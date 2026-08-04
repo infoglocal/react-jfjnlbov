@@ -60,7 +60,7 @@ const T = {
     tabHome: "Home", tabItin: "Itinerario", tabMap: "Mappa",
     itinTitle: "Il tuo itinerario", mapTitle: "La tua mappa",
     itinEmpty: "Aggiungi luoghi ed esperienze dalla Home per costruire il tuo itinerario.",
-    mapEmpty: "Aggiungi luoghi alla mappa dalla Home per vederli qui.",
+    mapEmpty: "Aggiungi luoghi con coordinate al tuo itinerario per vederli sulla mappa.",
     remove: "Rimuovi", clearAll: "Svuota", goHome: "Vai alla Home",
     booking: "Prenota", name: "Nome e cognome", email: "Email",
     people: "Persone", date: "Data", notes: "Note (facoltative)",
@@ -79,7 +79,7 @@ const T = {
     tabHome: "Home", tabItin: "Itinerary", tabMap: "Map",
     itinTitle: "Your itinerary", mapTitle: "Your map",
     itinEmpty: "Add places and experiences from Home to build your itinerary.",
-    mapEmpty: "Add places to the map from Home to see them here.",
+    mapEmpty: "Add places with coordinates to your itinerary to see them on the map.",
     remove: "Remove", clearAll: "Clear", goHome: "Go to Home",
     booking: "Book", name: "Full name", email: "Email",
     people: "People", date: "Date", notes: "Notes (optional)",
@@ -113,7 +113,6 @@ export default function App() {
   const [booking, setBooking] = useState(null);
   const [detail, setDetail] = useState(null);
   const [itinerary, setItinerary] = useState(() => load("gl_itin", []));
-  const [mapList, setMapList] = useState(() => load("gl_map", []));
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const t = T[lang];
@@ -122,7 +121,6 @@ export default function App() {
   useEffect(() => save("gl_group", group), [group]);
   useEffect(() => save("gl_interests", interests), [interests]);
   useEffect(() => save("gl_itin", itinerary), [itinerary]);
-  useEffect(() => save("gl_map", mapList), [mapList]);
 
   useEffect(() => {
     Papa.parse(CSV_URL, {
@@ -175,9 +173,8 @@ export default function App() {
             group={group} setGroup={setGroup} interests={interests} toggleInterest={toggleInterest}
             clearFilters={clearFilters} activeCount={(group ? 1 : 0) + interests.length}
             onBook={setBooking} onDetail={setDetail}
-            itinerary={itinerary} mapList={mapList}
+            itinerary={itinerary}
             onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)}
-            onToggleMap={(id) => toggleIn(mapList, setMapList, id)}
           />
         )}
         {tab === "itin" && (
@@ -185,22 +182,22 @@ export default function App() {
             onRemove={(id) => toggleIn(itinerary, setItinerary, id)} onClear={() => setItinerary([])} onGoHome={() => setTab("home")} />
         )}
         {tab === "map" && (
-          <MapTab t={t} lang={lang} items={mapList.map(byId).filter(Boolean)}
-            onRemove={(id) => toggleIn(mapList, setMapList, id)} onClear={() => setMapList([])} onGoHome={() => setTab("home")} />
+          <MapTab t={t} lang={lang} items={itinerary.map(byId).filter(Boolean)}
+            onGoHome={() => setTab("home")} />
         )}
       </main>
 
       {/* TAB BAR in basso */}
-      <TabBar t={t} tab={tab} setTab={setTab} itinCount={itinerary.length} mapCount={mapList.length} />
+      <TabBar t={t} tab={tab} setTab={setTab} itinCount={itinerary.length} mapCount={itinerary.map(byId).filter((p) => p && p.lat && p.lng).length} />
 
-      {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} onToggleMap={(id) => toggleIn(mapList, setMapList, id)} inItin={detail ? itinerary.includes(detail.id) : false} inMap={detail ? mapList.includes(detail.id) : false} />}
+      {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} />}
       {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} />}
     </div>
   );
 }
 
 /* ------------------------------ HOME TAB ---------------------------------- */
-function HomeTab({ t, lang, loading, sections, bySection, total, showFilters, setShowFilters, group, setGroup, interests, toggleInterest, clearFilters, activeCount, onBook, onDetail, itinerary, mapList, onToggleItin, onToggleMap }) {
+function HomeTab({ t, lang, loading, sections, bySection, total, showFilters, setShowFilters, group, setGroup, interests, toggleInterest, clearFilters, activeCount, onBook, onDetail, itinerary, onToggleItin }) {
   return (
     <div style={{ padding: "18px 18px 0" }}>
       {/* barra "Per te" + preferenze */}
@@ -229,7 +226,7 @@ function HomeTab({ t, lang, loading, sections, bySection, total, showFilters, se
         return (
           <Deck
             key={sec.id} title={sec[lang]} items={items} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
-            itinerary={itinerary} mapList={mapList} onToggleItin={onToggleItin} onToggleMap={onToggleMap}
+            itinerary={itinerary} onToggleItin={onToggleItin}
           />
         );
       })}
@@ -247,7 +244,7 @@ function HomeTab({ t, lang, loading, sections, bySection, total, showFilters, se
 
 /* -------------------------------- DECK ------------------------------------ */
 /* Un "deck" = titolo sezione + contatore "1 di N" + card grande sfogliabile. */
-function Deck({ title, items, lang, t, onBook, onDetail, itinerary, mapList, onToggleItin, onToggleMap }) {
+function Deck({ title, items, lang, t, onBook, onDetail, itinerary, onToggleItin }) {
   const ref = useRef(null);
   const [idx, setIdx] = useState(0);
   const drag = useRef({ down: false, x: 0, s: 0, moved: false });
@@ -278,8 +275,8 @@ function Deck({ title, items, lang, t, onBook, onDetail, itinerary, mapList, onT
           {items.map((p) => (
             <div key={p.id} className="gl-deck-slide">
               <DeckCard place={p} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
-                inItin={itinerary.includes(p.id)} inMap={mapList.includes(p.id)}
-                onToggleItin={() => onToggleItin(p.id)} onToggleMap={() => onToggleMap(p.id)} />
+                inItin={itinerary.includes(p.id)}
+                onToggleItin={() => onToggleItin(p.id)} />
             </div>
           ))}
         </div>
@@ -309,7 +306,7 @@ function DeckArrow({ dir, onClick }) {
 }
 
 /* ----------------------------- DECK CARD ---------------------------------- */
-function DeckCard({ place, lang, t, onBook, onDetail, inItin, inMap, onToggleItin, onToggleMap }) {
+function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
   const title = place[`title_${lang}`];
   const desc = place[`desc_${lang}`];
   const bookable = String(place.bookable).trim().toLowerCase() === "yes";
@@ -349,9 +346,7 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, inMap, onToggleIti
           {bookable && (
             <button onClick={() => onBook(place)} aria-label={t.book} style={{ width: 52, flexShrink: 0, background: "transparent", color: BRAND.red, border: `1.5px solid ${BRAND.border}`, borderRadius: 14, fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>📅</button>
           )}
-          {hasCoords && (
-            <button onClick={onToggleMap} aria-label={t.tabMap} style={{ width: 52, flexShrink: 0, background: inMap ? "rgba(56,176,74,0.12)" : "transparent", color: inMap ? BRAND.greenDark : BRAND.muted, border: `1.5px solid ${inMap ? BRAND.green : BRAND.border}`, borderRadius: 14, fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>📍</button>
-          )}
+
         </div>
       </div>
     </article>
@@ -442,7 +437,7 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome }) {
 }
 
 /* ------------------------------ MAP TAB ----------------------------------- */
-function MapTab({ t, lang, items, onRemove, onClear, onGoHome }) {
+function MapTab({ t, lang, items, onGoHome }) {
   const mapRef = useRef(null); const mapObj = useRef(null); const markersRef = useRef([]);
   const [mapError, setMapError] = useState(false);
 
@@ -465,7 +460,7 @@ function MapTab({ t, lang, items, onRemove, onClear, onGoHome }) {
   });
 
   useEffect(() => {
-    if (items.length === 0) return;
+    if (items.filter((p) => p.lat && p.lng).length === 0) return;
     let cancelled = false;
     const init = () => {
       ensureLeaflet().then((L) => {
@@ -500,27 +495,24 @@ function MapTab({ t, lang, items, onRemove, onClear, onGoHome }) {
 
   useEffect(() => () => { if (mapObj.current) { mapObj.current.remove(); mapObj.current = null; markersRef.current = []; } }, []);
 
+  const withCoords = items.filter((p) => p.lat && p.lng);
   return (
     <div style={{ padding: "20px 18px 0" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-        <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 26, margin: 0, letterSpacing: "-0.01em" }}>{t.mapTitle}</h2>
-        {items.length > 0 && <button onClick={onClear} style={{ background: "none", border: "none", color: BRAND.red, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{t.clearAll}</button>}
-      </div>
-      {items.length === 0 ? (
+      <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 26, margin: "0 0 18px", letterSpacing: "-0.01em" }}>{t.mapTitle}</h2>
+      {withCoords.length === 0 ? (
         <EmptyState msg={t.mapEmpty} cta={t.goHome} onCta={onGoHome} icon="📍" />
       ) : (
         <>
           {mapError && <p style={{ color: BRAND.muted, fontSize: 14, marginBottom: 12 }}>Mappa non disponibile al momento. I luoghi sono elencati qui sotto.</p>}
-          <div ref={mapRef} style={{ width: "100%", height: 320, borderRadius: 18, overflow: "hidden", border: `1px solid ${BRAND.border}`, marginBottom: 16, zIndex: 1, background: "#eef0ea" }} />
+          <div ref={mapRef} style={{ width: "100%", height: 340, borderRadius: 18, overflow: "hidden", border: `1px solid ${BRAND.border}`, marginBottom: 16, zIndex: 1, background: "#eef0ea" }} />
           <ul style={listReset}>
-            {items.map((p) => (
+            {withCoords.map((p) => (
               <li key={p.id} style={rowCard}>
-                <span style={{ fontSize: 20 }}>📍</span>
+                <img src={p.image} alt="" style={{ width: 48, height: 48, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 15.5 }}>{p[`title_${lang}`]}</div>
                   {p.location && <div style={{ fontSize: 13, color: BRAND.muted }}>{p.location}</div>}
                 </div>
-                <button onClick={() => onRemove(p.id)} aria-label={t.remove} style={rowX}>×</button>
               </li>
             ))}
           </ul>
@@ -604,7 +596,7 @@ function DetailGallery({ images, alt }) {
 }
 
 /* --------------------------- DETAIL MODAL --------------------------------- */
-function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, onToggleMap, inItin, inMap }) {
+function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) {
   const title = place[`title_${lang}`];
   const desc = place[`desc_${lang}`];
   const bookable = String(place.bookable).trim().toLowerCase() === "yes";
@@ -666,9 +658,7 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, onToggleMa
               <button onClick={() => onToggleItin(place.id)} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: inItin ? "rgba(56,176,74,0.12)" : "transparent", color: inItin ? BRAND.greenDark : BRAND.ink, border: `1.5px solid ${inItin ? BRAND.green : BRAND.border}`, borderRadius: 14, padding: "13px 14px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                 <span style={{ fontSize: 16 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItin : t.addItin}
               </button>
-              {hasCoords && (
-                <button onClick={() => onToggleMap(place.id)} aria-label={t.tabMap} style={{ width: 54, flexShrink: 0, background: inMap ? "rgba(56,176,74,0.12)" : "transparent", color: inMap ? BRAND.greenDark : BRAND.muted, border: `1.5px solid ${inMap ? BRAND.green : BRAND.border}`, borderRadius: 14, fontSize: 19, cursor: "pointer" }}>📍</button>
-              )}
+
             </div>
           </div>
         </div>
