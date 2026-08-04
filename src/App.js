@@ -111,6 +111,7 @@ export default function App() {
   const [interests, setInterests] = useState(() => load("gl_interests", []));
   const [showFilters, setShowFilters] = useState(false);
   const [booking, setBooking] = useState(null);
+  const [detail, setDetail] = useState(null);
   const [itinerary, setItinerary] = useState(() => load("gl_itin", []));
   const [mapList, setMapList] = useState(() => load("gl_map", []));
   const [places, setPlaces] = useState([]);
@@ -173,7 +174,7 @@ export default function App() {
             showFilters={showFilters} setShowFilters={setShowFilters}
             group={group} setGroup={setGroup} interests={interests} toggleInterest={toggleInterest}
             clearFilters={clearFilters} activeCount={(group ? 1 : 0) + interests.length}
-            onBook={setBooking}
+            onBook={setBooking} onDetail={setDetail}
             itinerary={itinerary} mapList={mapList}
             onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)}
             onToggleMap={(id) => toggleIn(mapList, setMapList, id)}
@@ -192,13 +193,14 @@ export default function App() {
       {/* TAB BAR in basso */}
       <TabBar t={t} tab={tab} setTab={setTab} itinCount={itinerary.length} mapCount={mapList.length} />
 
+      {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} onToggleMap={(id) => toggleIn(mapList, setMapList, id)} inItin={detail ? itinerary.includes(detail.id) : false} inMap={detail ? mapList.includes(detail.id) : false} />}
       {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} />}
     </div>
   );
 }
 
 /* ------------------------------ HOME TAB ---------------------------------- */
-function HomeTab({ t, lang, loading, sections, bySection, total, showFilters, setShowFilters, group, setGroup, interests, toggleInterest, clearFilters, activeCount, onBook, itinerary, mapList, onToggleItin, onToggleMap }) {
+function HomeTab({ t, lang, loading, sections, bySection, total, showFilters, setShowFilters, group, setGroup, interests, toggleInterest, clearFilters, activeCount, onBook, onDetail, itinerary, mapList, onToggleItin, onToggleMap }) {
   return (
     <div style={{ padding: "18px 18px 0" }}>
       {/* barra "Per te" + preferenze */}
@@ -226,7 +228,7 @@ function HomeTab({ t, lang, loading, sections, bySection, total, showFilters, se
         if (items.length === 0) return null;
         return (
           <Deck
-            key={sec.id} title={sec[lang]} items={items} lang={lang} t={t} onBook={onBook}
+            key={sec.id} title={sec[lang]} items={items} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
             itinerary={itinerary} mapList={mapList} onToggleItin={onToggleItin} onToggleMap={onToggleMap}
           />
         );
@@ -245,7 +247,7 @@ function HomeTab({ t, lang, loading, sections, bySection, total, showFilters, se
 
 /* -------------------------------- DECK ------------------------------------ */
 /* Un "deck" = titolo sezione + contatore "1 di N" + card grande sfogliabile. */
-function Deck({ title, items, lang, t, onBook, itinerary, mapList, onToggleItin, onToggleMap }) {
+function Deck({ title, items, lang, t, onBook, onDetail, itinerary, mapList, onToggleItin, onToggleMap }) {
   const ref = useRef(null);
   const [idx, setIdx] = useState(0);
   const drag = useRef({ down: false, x: 0, s: 0, moved: false });
@@ -275,7 +277,7 @@ function Deck({ title, items, lang, t, onBook, itinerary, mapList, onToggleItin,
         <div ref={ref} className="gl-deck" onScroll={onScroll} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={end} onMouseLeave={end} onClickCapture={onClickCapture}>
           {items.map((p) => (
             <div key={p.id} className="gl-deck-slide">
-              <DeckCard place={p} lang={lang} t={t} onBook={onBook}
+              <DeckCard place={p} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
                 inItin={itinerary.includes(p.id)} inMap={mapList.includes(p.id)}
                 onToggleItin={() => onToggleItin(p.id)} onToggleMap={() => onToggleMap(p.id)} />
             </div>
@@ -307,7 +309,7 @@ function DeckArrow({ dir, onClick }) {
 }
 
 /* ----------------------------- DECK CARD ---------------------------------- */
-function DeckCard({ place, lang, t, onBook, inItin, inMap, onToggleItin, onToggleMap }) {
+function DeckCard({ place, lang, t, onBook, onDetail, inItin, inMap, onToggleItin, onToggleMap }) {
   const title = place[`title_${lang}`];
   const desc = place[`desc_${lang}`];
   const bookable = String(place.bookable).trim().toLowerCase() === "yes";
@@ -317,8 +319,8 @@ function DeckCard({ place, lang, t, onBook, inItin, inMap, onToggleItin, onToggl
 
   return (
     <article style={{ background: BRAND.card, borderRadius: 22, overflow: "hidden", border: `1px solid ${BRAND.border}`, boxShadow: "0 6px 22px rgba(40,30,15,0.08)", height: "100%", display: "flex", flexDirection: "column" }}>
-      {/* immagine con badge */}
-      <div style={{ position: "relative", aspectRatio: "4/3", background: "#eee", overflow: "hidden" }}>
+      {/* immagine con badge — cliccabile per aprire il dettaglio */}
+      <div onClick={() => onDetail(place)} style={{ position: "relative", aspectRatio: "4/3", background: "#eee", overflow: "hidden", cursor: "pointer" }}>
         <img src={place.image} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.72), rgba(20,16,10,0) 42%)" }} />
         <div style={{ position: "absolute", top: 14, left: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -333,7 +335,7 @@ function DeckCard({ place, lang, t, onBook, inItin, inMap, onToggleItin, onToggl
 
       {/* corpo */}
       <div style={{ padding: 18, display: "flex", flexDirection: "column", flex: 1 }}>
-        <p style={{ fontSize: 15, lineHeight: 1.5, color: "#4a463d", margin: "0 0 14px", flex: 1, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{desc}</p>
+        <p onClick={() => onDetail(place)} style={{ fontSize: 15, lineHeight: 1.5, color: "#4a463d", margin: "0 0 14px", flex: 1, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", cursor: "pointer" }}>{desc}</p>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
           {place.location && <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: BRAND.muted }}>📍 {place.location}</span>}
@@ -574,6 +576,66 @@ function TabBar({ t, tab, setTab, itinCount, mapCount }) {
         );
       })}
     </nav>
+  );
+}
+
+/* --------------------------- DETAIL MODAL --------------------------------- */
+function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, onToggleMap, inItin, inMap }) {
+  const title = place[`title_${lang}`];
+  const desc = place[`desc_${lang}`];
+  const bookable = String(place.bookable).trim().toLowerCase() === "yes";
+  const hasCoords = place.lat && place.lng;
+  const tags = String(place.interests || "").split(",").map((s) => s.trim()).filter(Boolean)
+    .map((id) => (INTERESTS.find((x) => x.id === id) || { [lang]: id, emoji: "" }));
+
+  return (
+    <div onClick={onClose} style={{ ...overlay, zIndex: 55 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 540, padding: 0, maxHeight: "94vh" }}>
+        {/* immagine grande */}
+        <div style={{ position: "relative" }}>
+          <img src={place.image} alt={title} style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", display: "block", borderRadius: "22px 22px 0 0" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.55), transparent 50%)", borderRadius: "22px 22px 0 0" }} />
+          <button onClick={onClose} aria-label={t.close} style={{ position: "absolute", top: 14, right: 14, width: 38, height: 38, borderRadius: "50%", background: "rgba(0,0,0,0.5)", color: "#fff", border: "none", fontSize: 22, cursor: "pointer", lineHeight: 1, backdropFilter: "blur(4px)" }}>×</button>
+          <div style={{ position: "absolute", left: 20, bottom: 16, right: 20 }}>
+            {place.location && <span style={{ display: "inline-block", fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#fff", opacity: 0.9, marginBottom: 6 }}>📍 {place.location}</span>}
+            <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(26px, 6vw, 34px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: "#fff", margin: 0 }}>{title}</h2>
+          </div>
+        </div>
+
+        {/* corpo scrollabile */}
+        <div style={{ padding: 22, overflowY: "auto" }}>
+          {/* tag */}
+          {tags.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+              {tags.map((tg, i) => (
+                <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(56,176,74,0.1)", color: BRAND.greenDark, fontSize: 13, fontWeight: 600, padding: "6px 12px", borderRadius: 999 }}>
+                  <span>{tg.emoji}</span>{tg[lang]}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {place.price && <p style={{ fontSize: 22, fontWeight: 600, margin: "0 0 16px", color: BRAND.red, fontFamily: "'Fraunces', serif" }}>{place.price}</p>}
+
+          <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#4a463d", margin: "0 0 24px", whiteSpace: "pre-line" }}>{desc}</p>
+
+          {/* azioni */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {bookable && (
+              <button onClick={() => onBook(place)} style={{ width: "100%", background: BRAND.red, color: "#fff", border: "none", borderRadius: 14, padding: 16, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>
+            )}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => onToggleItin(place.id)} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: inItin ? "rgba(56,176,74,0.12)" : "transparent", color: inItin ? BRAND.greenDark : BRAND.ink, border: `1.5px solid ${inItin ? BRAND.green : BRAND.border}`, borderRadius: 14, padding: "13px 14px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                <span style={{ fontSize: 16 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItin : t.addItin}
+              </button>
+              {hasCoords && (
+                <button onClick={() => onToggleMap(place.id)} aria-label={t.tabMap} style={{ width: 54, flexShrink: 0, background: inMap ? "rgba(56,176,74,0.12)" : "transparent", color: inMap ? BRAND.greenDark : BRAND.muted, border: `1.5px solid ${inMap ? BRAND.green : BRAND.border}`, borderRadius: 14, fontSize: 19, cursor: "pointer" }}>📍</button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
