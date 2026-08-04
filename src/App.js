@@ -164,22 +164,22 @@ export default function App() {
       <FontLink />
 
       {/* HEADER */}
-      <header style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "18px 22px", position: "sticky", top: 0, background: "rgba(251,248,240,0.9)", backdropFilter: "blur(8px)", zIndex: 20, borderBottom: `1px solid ${BRAND.border}` }}>
+      <header className="gl-header" style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "18px 22px", position: "sticky", top: 0, background: "rgba(251,248,240,0.9)", backdropFilter: "blur(8px)", zIndex: 20, borderBottom: `1px solid ${BRAND.border}` }}>
         <span />
         <div style={{ justifySelf: "center" }}><Logo /></div>
         <div style={{ justifySelf: "end" }}><LangToggle lang={lang} setLang={setLang} /></div>
       </header>
 
-      <main style={{ maxWidth: 1040, margin: "0 auto", padding: "0 22px 48px" }}>
+      <main className="gl-main" style={{ maxWidth: 1040, margin: "0 auto", padding: "0 22px 48px" }}>
         {/* HERO EDITORIALE */}
-        <section style={{ padding: "56px 0 12px", position: "relative", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <section className="gl-hero-sec" style={{ padding: "56px 0 12px", position: "relative", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
           <span style={{ display: "inline-block", fontSize: 12, fontWeight: 700, letterSpacing: "0.28em", textTransform: "uppercase", color: BRAND.green, marginBottom: 20 }}>
             {t.eyebrow}
           </span>
-          <h1 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(44px, 9vw, 92px)", lineHeight: 0.98, letterSpacing: "-0.035em", margin: "0 0 22px", whiteSpace: "pre-line" }}>
+          <h1 className="gl-hero-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(44px, 9vw, 92px)", lineHeight: 0.98, letterSpacing: "-0.035em", margin: "0 0 22px", whiteSpace: "pre-line" }}>
             {t.tagline}
           </h1>
-          <p style={{ fontSize: "clamp(16px, 2.2vw, 19px)", lineHeight: 1.55, color: "#4a463d", margin: "0 0 26px", maxWidth: 500 }}>{t.intro}</p>
+          <p className="gl-hero-intro" style={{ fontSize: "clamp(16px, 2.2vw, 19px)", lineHeight: 1.55, color: "#4a463d", margin: "0 0 26px", maxWidth: 500 }}>{t.intro}</p>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, flexWrap: "wrap" }}>
             <button onClick={() => setShowFilters((s) => !s)} style={{ display: "inline-flex", alignItems: "center", gap: 9, background: showFilters ? BRAND.ink : "transparent", color: showFilters ? "#fff" : BRAND.ink, border: `1.5px solid ${showFilters ? BRAND.ink : BRAND.ink}`, borderRadius: 999, padding: "12px 22px", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               <span style={{ fontSize: 15 }}>⚙︎</span>{showFilters ? t.customizeOpen : t.customize}
@@ -683,6 +683,14 @@ function FontLink() {
         .gl-card:hover .gl-card-img { transform: scale(1.05); }
         .gl-hero:hover { box-shadow: 0 18px 50px rgba(40,30,15,0.22); }
         .gl-arrow:hover { background: #fff; box-shadow: 0 6px 18px rgba(40,30,15,0.2); }
+      }
+      @media (max-width: 640px) {
+        .gl-header { padding: 12px 16px !important; }
+        .gl-main { padding: 0 16px 40px !important; }
+        .gl-hero-sec { padding: 22px 0 6px !important; }
+        .gl-hero-title { font-size: 34px !important; line-height: 1.02 !important; margin: 0 0 12px !important; }
+        .gl-hero-intro { font-size: 15px !important; margin: 0 0 16px !important; }
+        .gl-slide { width: 82vw !important; }
       }
       @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
     `}</style>
