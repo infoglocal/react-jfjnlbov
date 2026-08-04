@@ -11,3 +11,9 @@ root.render(
     <App />
   </StrictMode>
 );
+// Registra il service worker per abilitare la PWA (modalità app a schermo pieno)
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
