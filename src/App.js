@@ -579,6 +579,30 @@ function TabBar({ t, tab, setTab, itinCount, mapCount }) {
   );
 }
 
+/* --------------------------- DETAIL GALLERY ------------------------------- */
+function DetailGallery({ images, alt }) {
+  const ref = useRef(null);
+  const [idx, setIdx] = useState(0);
+  const onScroll = () => { const el = ref.current; if (!el) return; setIdx(Math.round(el.scrollLeft / el.clientWidth)); };
+  const single = images.length <= 1;
+  return (
+    <div style={{ position: "relative" }}>
+      <div ref={ref} onScroll={onScroll} className="gl-gallery" style={single ? { overflow: "hidden" } : undefined}>
+        {images.map((src, i) => (
+          <img key={i} src={src} alt={`${alt} ${i + 1}`} className="gl-gallery-img" style={{ borderRadius: i === 0 ? "22px 22px 0 0" : 0 }} loading={i === 0 ? "eager" : "lazy"} />
+        ))}
+      </div>
+      {!single && (
+        <div style={{ position: "absolute", bottom: 54, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 6, zIndex: 2, pointerEvents: "none" }}>
+          {images.map((_, i) => (
+            <span key={i} style={{ width: i === idx ? 18 : 6, height: 6, borderRadius: 999, background: i === idx ? "#fff" : "rgba(255,255,255,0.55)", transition: "all .2s" }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* --------------------------- DETAIL MODAL --------------------------------- */
 function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, onToggleMap, inItin, inMap }) {
   const title = place[`title_${lang}`];
@@ -587,16 +611,22 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, onToggleMa
   const hasCoords = place.lat && place.lng;
   const tags = String(place.interests || "").split(",").map((s) => s.trim()).filter(Boolean)
     .map((id) => (INTERESTS.find((x) => x.id === id) || { [lang]: id, emoji: "" }));
+  // galleria: colonna "images" (URL separati da virgola) + fallback all'immagine principale
+  const extra = String(place.images || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const gallery = [place.image, ...extra].filter(Boolean);
+  // indirizzo cliccabile -> apre Google Maps
+  const address = String(place.address || "").trim();
+  const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : null;
 
   return (
     <div onClick={onClose} style={{ ...overlay, zIndex: 55 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 540, padding: 0, maxHeight: "94vh" }}>
-        {/* immagine grande */}
+        {/* galleria immagini sfogliabile */}
         <div style={{ position: "relative" }}>
-          <img src={place.image} alt={title} style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", display: "block", borderRadius: "22px 22px 0 0" }} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.55), transparent 50%)", borderRadius: "22px 22px 0 0" }} />
-          <button onClick={onClose} aria-label={t.close} style={{ position: "absolute", top: 14, right: 14, width: 38, height: 38, borderRadius: "50%", background: "rgba(0,0,0,0.5)", color: "#fff", border: "none", fontSize: 22, cursor: "pointer", lineHeight: 1, backdropFilter: "blur(4px)" }}>×</button>
-          <div style={{ position: "absolute", left: 20, bottom: 16, right: 20 }}>
+          <DetailGallery images={gallery} alt={title} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.55), transparent 50%)", borderRadius: "22px 22px 0 0", pointerEvents: "none" }} />
+          <button onClick={onClose} aria-label={t.close} style={{ position: "absolute", top: 14, right: 14, width: 38, height: 38, borderRadius: "50%", background: "rgba(0,0,0,0.5)", color: "#fff", border: "none", fontSize: 22, cursor: "pointer", lineHeight: 1, backdropFilter: "blur(4px)", zIndex: 3 }}>×</button>
+          <div style={{ position: "absolute", left: 20, bottom: 16, right: 20, pointerEvents: "none" }}>
             {place.location && <span style={{ display: "inline-block", fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#fff", opacity: 0.9, marginBottom: 6 }}>📍 {place.location}</span>}
             <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(26px, 6vw, 34px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: "#fff", margin: 0 }}>{title}</h2>
           </div>
@@ -617,7 +647,15 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, onToggleMa
 
           {place.price && <p style={{ fontSize: 22, fontWeight: 600, margin: "0 0 16px", color: BRAND.red, fontFamily: "'Fraunces', serif" }}>{place.price}</p>}
 
-          <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#4a463d", margin: "0 0 24px", whiteSpace: "pre-line" }}>{desc}</p>
+          <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#4a463d", margin: "0 0 20px", whiteSpace: "pre-line" }}>{desc}</p>
+
+          {mapsUrl && (
+            <a href={mapsUrl} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: BRAND.ink, background: BRAND.card, border: `1.5px solid ${BRAND.border}`, borderRadius: 14, padding: "13px 15px", marginBottom: 24 }}>
+              <span style={{ fontSize: 18 }}>📍</span>
+              <span style={{ flex: 1, fontSize: 14.5, fontWeight: 500, lineHeight: 1.35 }}>{address}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.green }}>{lang === "it" ? "Apri" : "Open"} →</span>
+            </a>
+          )}
 
           {/* azioni */}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -757,6 +795,9 @@ function FontLink() {
       .gl-deck:active { cursor: grabbing; }
       .gl-deck::-webkit-scrollbar { display: none; }
       .gl-deck-slide { flex: 0 0 100%; scroll-snap-align: center; padding: 2px; }
+      .gl-gallery { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -ms-overflow-style: none; }
+      .gl-gallery::-webkit-scrollbar { display: none; }
+      .gl-gallery-img { flex: 0 0 100%; width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; scroll-snap-align: center; }
       .gl-pulse { animation: glpulse 1.4s ease-in-out infinite; }
       @keyframes glpulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }
       .gl-spin { animation: glspin 0.8s linear infinite; }
