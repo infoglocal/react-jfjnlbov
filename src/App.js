@@ -156,12 +156,12 @@ export default function App() {
       <FontLink />
 
       {/* HEADER compatto */}
-      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", position: "sticky", top: 0, background: "rgba(251,248,240,0.92)", backdropFilter: "blur(10px)", zIndex: 30, borderBottom: `1px solid ${BRAND.border}` }}>
-        <Logo />
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {loading && <span style={{ fontSize: 12.5, color: BRAND.muted, display: "inline-flex", alignItems: "center", gap: 6 }}><Spinner />{t.loading}</span>}
-          <LangToggle lang={lang} setLang={setLang} />
-        </div>
+      <header style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "14px 18px", position: "sticky", top: 0, background: "rgba(251,248,240,0.92)", backdropFilter: "blur(10px)", zIndex: 30, borderBottom: `1px solid ${BRAND.border}` }}>
+        <span style={{ justifySelf: "start" }}>
+          {loading && <span style={{ fontSize: 12.5, color: BRAND.muted, display: "inline-flex", alignItems: "center", gap: 6 }}><Spinner /></span>}
+        </span>
+        <div style={{ justifySelf: "center" }}><Logo /></div>
+        <div style={{ justifySelf: "end" }}><LangToggle lang={lang} setLang={setLang} /></div>
       </header>
 
       {/* CONTENUTO per tab */}
@@ -441,29 +441,62 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome }) {
 
 /* ------------------------------ MAP TAB ----------------------------------- */
 function MapTab({ t, lang, items, onRemove, onClear, onGoHome }) {
-  const mapRef = useRef(null); const mapObj = useRef(null);
+  const mapRef = useRef(null); const mapObj = useRef(null); const markersRef = useRef([]);
+  const [mapError, setMapError] = useState(false);
+
+  const ensureLeaflet = () => new Promise((resolve, reject) => {
+    if (window.L) return resolve(window.L);
+    if (!document.getElementById("leaflet-css")) {
+      const css = document.createElement("link");
+      css.id = "leaflet-css"; css.rel = "stylesheet";
+      css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(css);
+    }
+    let s = document.getElementById("leaflet-js");
+    if (s) { s.addEventListener("load", () => resolve(window.L)); return; }
+    s = document.createElement("script");
+    s.id = "leaflet-js";
+    s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    s.onload = () => resolve(window.L);
+    s.onerror = () => reject(new Error("leaflet failed"));
+    document.body.appendChild(s);
+  });
+
   useEffect(() => {
     if (items.length === 0) return;
     let cancelled = false;
-    const ensureLeaflet = () => new Promise((resolve) => {
-      if (window.L) return resolve(window.L);
-      const css = document.createElement("link"); css.rel = "stylesheet"; css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"; document.head.appendChild(css);
-      const s = document.createElement("script"); s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"; s.onload = () => resolve(window.L); document.body.appendChild(s);
-    });
-    ensureLeaflet().then((L) => {
-      if (cancelled || !mapRef.current) return;
-      if (!mapObj.current) mapObj.current = L.map(mapRef.current, { scrollWheelZoom: false });
-      const map = mapObj.current;
-      map.eachLayer((layer) => { if (!layer._url) map.removeLayer(layer); });
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap", maxZoom: 19 }).addTo(map);
-      const pts = items.filter((p) => p.lat && p.lng);
-      const markers = pts.map((p) => L.marker([p.lat, p.lng]).addTo(map).bindPopup(`<b>${p[`title_${lang}`]}</b>`));
-      if (markers.length) { const grp = L.featureGroup(markers); map.fitBounds(grp.getBounds().pad(0.3)); }
-      setTimeout(() => map.invalidateSize(), 100);
-    });
-    return () => { cancelled = true; };
+    const init = () => {
+      ensureLeaflet().then((L) => {
+        if (cancelled || !mapRef.current) return;
+        if (!mapObj.current) {
+          mapObj.current = L.map(mapRef.current, { scrollWheelZoom: false, zoomControl: true });
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap", maxZoom: 19 }).addTo(mapObj.current);
+        }
+        const map = mapObj.current;
+        markersRef.current.forEach((m) => map.removeLayer(m));
+        markersRef.current = [];
+        const pts = items.filter((p) => p.lat && p.lng);
+        pts.forEach((p) => {
+          const mk = L.marker([p.lat, p.lng]).addTo(map).bindPopup(`<b>${p[`title_${lang}`]}</b>`);
+          markersRef.current.push(mk);
+        });
+        if (markersRef.current.length) {
+          const grp = L.featureGroup(markersRef.current);
+          map.fitBounds(grp.getBounds().pad(0.35), { maxZoom: 15 });
+        }
+        // invalidateSize ripetuto: risolve il caso "mappa grigia" quando il
+        // container non aveva dimensioni al primo render
+        setTimeout(() => map.invalidateSize(), 60);
+        setTimeout(() => map.invalidateSize(), 300);
+        setTimeout(() => map.invalidateSize(), 800);
+      }).catch(() => setMapError(true));
+    };
+    // ritardo minimo per essere sicuri che il div abbia altezza
+    const raf = requestAnimationFrame(init);
+    return () => { cancelled = true; cancelAnimationFrame(raf); };
   }, [items, lang]);
-  useEffect(() => () => { if (mapObj.current) { mapObj.current.remove(); mapObj.current = null; } }, []);
+
+  useEffect(() => () => { if (mapObj.current) { mapObj.current.remove(); mapObj.current = null; markersRef.current = []; } }, []);
 
   return (
     <div style={{ padding: "20px 18px 0" }}>
@@ -475,7 +508,8 @@ function MapTab({ t, lang, items, onRemove, onClear, onGoHome }) {
         <EmptyState msg={t.mapEmpty} cta={t.goHome} onCta={onGoHome} icon="📍" />
       ) : (
         <>
-          <div ref={mapRef} style={{ width: "100%", height: 320, borderRadius: 18, overflow: "hidden", border: `1px solid ${BRAND.border}`, marginBottom: 16, zIndex: 1 }} />
+          {mapError && <p style={{ color: BRAND.muted, fontSize: 14, marginBottom: 12 }}>Mappa non disponibile al momento. I luoghi sono elencati qui sotto.</p>}
+          <div ref={mapRef} style={{ width: "100%", height: 320, borderRadius: 18, overflow: "hidden", border: `1px solid ${BRAND.border}`, marginBottom: 16, zIndex: 1, background: "#eef0ea" }} />
           <ul style={listReset}>
             {items.map((p) => (
               <li key={p.id} style={rowCard}>
@@ -505,21 +539,35 @@ function EmptyState({ msg, cta, onCta, icon }) {
 }
 
 /* ------------------------------ TAB BAR ----------------------------------- */
+function TabIcon({ name, active }) {
+  const c = active ? "#e5383b" : "#7a7568";
+  const sw = 1.9;
+  if (name === "home") return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/><path d="M9.5 21v-6h5v6"/></svg>
+  );
+  if (name === "itin") return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/></svg>
+  );
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"><path d="m9 4-6 2.5v13L9 17l6 2.5 6-2.5v-13L15 6.5 9 4Z"/><path d="M9 4v13"/><path d="M15 6.5v13"/></svg>
+  );
+}
+
 function TabBar({ t, tab, setTab, itinCount, mapCount }) {
   const tabs = [
-    { id: "home", label: t.tabHome, icon: "⌂" },
-    { id: "itin", label: t.tabItin, icon: "❑", count: itinCount },
-    { id: "map",  label: t.tabMap,  icon: "◎", count: mapCount },
+    { id: "home", label: t.tabHome },
+    { id: "itin", label: t.tabItin, count: itinCount },
+    { id: "map",  label: t.tabMap,  count: mapCount },
   ];
   return (
     <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 40, background: "rgba(251,248,240,0.96)", backdropFilter: "blur(12px)", borderTop: `1px solid ${BRAND.border}`, display: "flex", paddingBottom: "env(safe-area-inset-bottom, 0)" }}>
       {tabs.map((tb) => {
         const active = tab === tb.id;
         return (
-          <button key={tb.id} onClick={() => setTab(tb.id)} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", padding: "10px 8px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, fontFamily: "inherit", color: active ? BRAND.red : BRAND.muted, position: "relative" }}>
-            <span style={{ fontSize: 21, lineHeight: 1, position: "relative" }}>
-              {tb.icon}
-              {tb.count > 0 && <span style={{ position: "absolute", top: -4, right: -10, minWidth: 16, height: 16, borderRadius: 8, background: BRAND.green, color: "#fff", fontSize: 10.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>{tb.count}</span>}
+          <button key={tb.id} onClick={() => setTab(tb.id)} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", padding: "9px 8px 11px", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, fontFamily: "inherit", color: active ? BRAND.red : BRAND.muted, position: "relative" }}>
+            <span style={{ position: "relative", display: "inline-flex" }}>
+              <TabIcon name={tb.id} active={active} />
+              {tb.count > 0 && <span style={{ position: "absolute", top: -5, right: -9, minWidth: 16, height: 16, borderRadius: 8, background: BRAND.green, color: "#fff", fontSize: 10.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>{tb.count}</span>}
             </span>
             <span style={{ fontSize: 11.5, fontWeight: active ? 700 : 500 }}>{tb.label}</span>
           </button>
