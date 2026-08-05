@@ -63,6 +63,7 @@ const T = {
     loading: "Caricamento…",
     empty: "Nessun risultato con questi filtri.", emptyCta: "Azzera i filtri",
     book: "Prenota", addItin: "Aggiungi all'Itinerario", inItin: "Nell'itinerario",
+    addItinShort: "Itinerario", inItinShort: "Aggiunto",
     of: "di",
     tabHome: "Home", tabItin: "Itinerario", tabMap: "Mappa",
     itinTitle: "Il tuo itinerario", mapTitle: "La tua mappa",
@@ -95,6 +96,7 @@ const T = {
     loading: "Loading…",
     empty: "Nothing matches these filters.", emptyCta: "Clear filters",
     book: "Book", addItin: "Add to itinerary", inItin: "In itinerary",
+    addItinShort: "Itinerary", inItinShort: "Added",
     of: "of",
     tabHome: "Home", tabItin: "Itinerary", tabMap: "Map",
     itinTitle: "Your itinerary", mapTitle: "Your map",
@@ -440,13 +442,12 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
         </div>
 
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onToggleItin} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: inItin ? BRAND.greenDark : BRAND.red, color: "#fff", border: "none", borderRadius: 14, padding: "14px 16px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-            <span style={{ fontSize: 17 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItin : t.addItin}
+          <button onClick={onToggleItin} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: inItin ? BRAND.greenDark : "transparent", color: inItin ? "#fff" : BRAND.ink, border: `1.5px solid ${inItin ? BRAND.greenDark : BRAND.border}`, borderRadius: 14, padding: "14px 12px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", lineHeight: 1.15 }}>
+            <span style={{ fontSize: 16 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItinShort : t.addItinShort}
           </button>
           {bookable && (
-            <button onClick={() => onBook(place)} aria-label={t.book} style={{ width: 52, flexShrink: 0, background: "transparent", color: BRAND.red, border: `1.5px solid ${BRAND.border}`, borderRadius: 14, fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>📅</button>
+            <button onClick={() => onBook(place)} style={{ flex: 1, background: BRAND.red, color: "#fff", border: "none", borderRadius: 14, padding: "14px 12px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>
           )}
-
         </div>
       </div>
     </article>
