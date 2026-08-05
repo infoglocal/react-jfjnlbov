@@ -50,6 +50,13 @@ const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR_9BMkobKhzPLZ
 /* ------------------------------- I18N ------------------------------------- */
 const T = {
   it: {
+    welcomeEyebrow: "Bologna",
+    welcomeTitle: "Vivi la città\ncome un local",
+    welcomeSub: "Scelti da chi ci vive. Due domande veloci e ti mostriamo cosa vale davvero il tuo tempo.",
+    welcomeStart: "Inizia",
+    stepGroup: "Come stai viaggiando?", stepGroupSub: "Scegli un'opzione per continuare.",
+    stepInterests: "Cosa ti piace fare?", stepInterestsSub: "Scegline almeno uno.",
+    back: "Indietro", continue: "Continua", seeResults: "Vedi i risultati",
     forYou: "Per te", customize: "Modifica preferenze",
     q1: "Come stai viaggiando?", q2: "Cosa ti piace fare?",
     clearFilters: "Azzera", apply: "Applica",
@@ -59,6 +66,12 @@ const T = {
     of: "di",
     tabHome: "Home", tabItin: "Itinerario", tabMap: "Mappa",
     itinTitle: "Il tuo itinerario", mapTitle: "La tua mappa",
+    tripDates: "Date del viaggio", from: "Dal", to: "Al",
+    planBtn: "✨ Suggerisci un itinerario", planning: "Sto pianificando…",
+    planTitle: "Il tuo itinerario giorno per giorno", planRegen: "Rigenera",
+    planMorning: "Mattina", planLunch: "Pranzo", planAfternoon: "Pomeriggio", planEvening: "Sera",
+    openInMaps: "Apri in Google Maps", shareWa: "Condividi su WhatsApp",
+    day: "Giorno",
     itinEmpty: "Aggiungi luoghi ed esperienze dalla Home per costruire il tuo itinerario.",
     mapEmpty: "Aggiungi luoghi con coordinate al tuo itinerario per vederli sulla mappa.",
     remove: "Rimuovi", clearAll: "Svuota", goHome: "Vai alla Home",
@@ -69,6 +82,13 @@ const T = {
     whatsapp: "Scrivi su WhatsApp", close: "Chiudi", required: "Compila i campi obbligatori.",
   },
   en: {
+    welcomeEyebrow: "Bologna",
+    welcomeTitle: "Experience the city\nlike a local",
+    welcomeSub: "Picked by people who live here. Two quick questions and we'll show you what's worth your time.",
+    welcomeStart: "Start",
+    stepGroup: "How are you travelling?", stepGroupSub: "Pick one to continue.",
+    stepInterests: "What do you enjoy?", stepInterestsSub: "Pick at least one.",
+    back: "Back", continue: "Continue", seeResults: "See results",
     forYou: "For you", customize: "Edit preferences",
     q1: "How are you travelling?", q2: "What do you enjoy?",
     clearFilters: "Clear", apply: "Apply",
@@ -78,6 +98,12 @@ const T = {
     of: "of",
     tabHome: "Home", tabItin: "Itinerary", tabMap: "Map",
     itinTitle: "Your itinerary", mapTitle: "Your map",
+    tripDates: "Trip dates", from: "From", to: "To",
+    planBtn: "✨ Suggest an itinerary", planning: "Planning…",
+    planTitle: "Your day-by-day itinerary", planRegen: "Regenerate",
+    planMorning: "Morning", planLunch: "Lunch", planAfternoon: "Afternoon", planEvening: "Evening",
+    openInMaps: "Open in Google Maps", shareWa: "Share on WhatsApp",
+    day: "Day",
     itinEmpty: "Add places and experiences from Home to build your itinerary.",
     mapEmpty: "Add places with coordinates to your itinerary to see them on the map.",
     remove: "Remove", clearAll: "Clear", goHome: "Go to Home",
@@ -103,24 +129,64 @@ function Logo({ size = 24 }) {
   );
 }
 
+/* --------------------------- ONBOARDING ----------------------------------- */
+function WelcomeStep({ t, onStart }) {
+  return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", textAlign: "center", padding: "40px 0" }}>
+      <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.28em", textTransform: "uppercase", color: BRAND.green, marginBottom: 18 }}>{t.welcomeEyebrow}</span>
+      <h1 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(38px, 11vw, 60px)", lineHeight: 1.0, letterSpacing: "-0.03em", margin: "0 0 20px", whiteSpace: "pre-line" }}>{t.welcomeTitle}</h1>
+      <p style={{ fontSize: 17, lineHeight: 1.55, color: "#4a463d", margin: "0 auto 36px", maxWidth: 400 }}>{t.welcomeSub}</p>
+      <div>
+        <button onClick={onStart} style={{ background: BRAND.green, color: "#fff", border: "none", borderRadius: 16, padding: "17px 48px", fontSize: 17, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.welcomeStart}</button>
+      </div>
+    </div>
+  );
+}
+
+function OnboardStep({ title, subtitle, options, lang, selected, onPick, canNext, onNext, onBack, nextLabel, backLabel }) {
+  return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", paddingTop: 40, paddingBottom: 28 }}>
+      <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(28px, 6vw, 38px)", letterSpacing: "-0.02em", margin: "0 0 8px", lineHeight: 1.1 }}>{title}</h2>
+      <p style={{ color: BRAND.muted, margin: "0 0 28px", fontSize: 16 }}>{subtitle}</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12, flex: 1, alignContent: "start" }}>
+        {options.map((o) => {
+          const active = selected.includes(o.id);
+          return (
+            <button key={o.id} onClick={() => onPick(o.id)} style={{ display: "flex", alignItems: "center", gap: 11, padding: "17px 18px", borderRadius: 16, cursor: "pointer", background: active ? BRAND.green : BRAND.card, color: active ? "#fff" : BRAND.ink, border: `1.5px solid ${active ? BRAND.green : BRAND.border}`, fontSize: 16, fontWeight: 500, fontFamily: "inherit", textAlign: "left", transition: "all .15s" }}>
+              <span style={{ fontSize: 24 }}>{o.emoji}</span><span>{o[lang]}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
+        <button onClick={onBack} style={{ background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 16, padding: "15px 24px", fontSize: 15.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{backLabel}</button>
+        <button onClick={onNext} disabled={!canNext} style={{ flex: 1, background: canNext ? BRAND.green : "#d9d3c4", color: "#fff", border: "none", borderRadius: 16, padding: "15px", fontSize: 16, fontWeight: 700, cursor: canNext ? "pointer" : "default", fontFamily: "inherit", transition: "background .15s" }}>{nextLabel}</button>
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------- APP -------------------------------------- */
 export default function App() {
   const [lang, setLang] = useState(() => load("gl_lang", "it"));
   const [tab, setTab] = useState("home");             // home | itin | map
-  const [group, setGroup] = useState(() => load("gl_group", null));
-  const [interests, setInterests] = useState(() => load("gl_interests", []));
+  const [step, setStep] = useState("welcome");        // welcome | group | interests | app
+  const [group, setGroup] = useState(null);
+  const [interests, setInterests] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [booking, setBooking] = useState(null);
   const [detail, setDetail] = useState(null);
   const [itinerary, setItinerary] = useState(() => load("gl_itin", []));
+  const [dateFrom, setDateFrom] = useState(() => load("gl_dfrom", ""));
+  const [dateTo, setDateTo] = useState(() => load("gl_dto", ""));
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const t = T[lang];
 
   useEffect(() => save("gl_lang", lang), [lang]);
-  useEffect(() => save("gl_group", group), [group]);
-  useEffect(() => save("gl_interests", interests), [interests]);
   useEffect(() => save("gl_itin", itinerary), [itinerary]);
+  useEffect(() => save("gl_dfrom", dateFrom), [dateFrom]);
+  useEffect(() => save("gl_dto", dateTo), [dateTo]);
 
   useEffect(() => {
     Papa.parse(CSV_URL, {
@@ -149,6 +215,39 @@ export default function App() {
 
   const byId = (id) => PLACES.find((p) => p.id === id);
   const bySection = (secId) => filtered.filter((p) => p.section === secId);
+
+  // ---- ONBOARDING: benvenuto -> gruppo -> interessi -> app ----
+  if (step !== "app") {
+    return (
+      <div style={{ minHeight: "100vh", background: BRAND.bg, color: BRAND.ink, fontFamily: "'Archivo', system-ui, sans-serif" }}>
+        <FontLink />
+        <header style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "14px 18px", position: "sticky", top: 0, background: "rgba(251,248,240,0.92)", backdropFilter: "blur(10px)", zIndex: 30, borderBottom: `1px solid ${BRAND.border}` }}>
+          <span />
+          <div style={{ justifySelf: "center" }}><Logo /></div>
+          <div style={{ justifySelf: "end" }}><LangToggle lang={lang} setLang={setLang} /></div>
+        </header>
+        <main style={{ maxWidth: 560, margin: "0 auto", padding: "0 22px", minHeight: "calc(100vh - 60px)", display: "flex", flexDirection: "column" }}>
+          {step === "welcome" && <WelcomeStep t={t} onStart={() => setStep("group")} />}
+          {step === "group" && (
+            <OnboardStep
+              title={t.stepGroup} subtitle={t.stepGroupSub} options={GROUPS} lang={lang}
+              selected={group ? [group] : []} onPick={(id) => setGroup(group === id ? null : id)}
+              canNext={!!group} onNext={() => setStep("interests")} onBack={() => setStep("welcome")}
+              nextLabel={t.continue} backLabel={t.back}
+            />
+          )}
+          {step === "interests" && (
+            <OnboardStep
+              title={t.stepInterests} subtitle={t.stepInterestsSub} options={INTERESTS} lang={lang}
+              selected={interests} onPick={toggleInterest}
+              canNext={interests.length > 0} onNext={() => { setTab("home"); setStep("app"); }} onBack={() => setStep("group")}
+              nextLabel={t.seeResults} backLabel={t.back}
+            />
+          )}
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: BRAND.bg, color: BRAND.ink, fontFamily: "'Archivo', system-ui, sans-serif" }}>
@@ -179,7 +278,8 @@ export default function App() {
         )}
         {tab === "itin" && (
           <ItineraryTab t={t} lang={lang} items={itinerary.map(byId).filter(Boolean)}
-            onRemove={(id) => toggleIn(itinerary, setItinerary, id)} onClear={() => setItinerary([])} onGoHome={() => setTab("home")} />
+            onRemove={(id) => toggleIn(itinerary, setItinerary, id)} onClear={() => setItinerary([])} onGoHome={() => setTab("home")}
+            dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} />
         )}
         {tab === "map" && (
           <MapTab t={t} lang={lang} items={itinerary.map(byId).filter(Boolean)}
@@ -394,12 +494,85 @@ function Chip({ active, onClick, emoji, label }) {
   );
 }
 
+/* --------------------- PLANNER (suggerimento a regole) -------------------- */
+// "Finto AI": ordina i posti dell'itinerario in una giornata sensata, senza
+// chiamare nessun server. Regole: ristoranti -> pranzo/cena, bar -> sera,
+// musei/cultura/attività -> mattina/pomeriggio. Distribuisce sui giorni.
+function buildPlan(items, nDays, t) {
+  const isFood = (p) => /food/.test(String(p.interests || ""));
+  const isDrink = (p) => /drink/.test(String(p.interests || ""));
+  const days = Math.max(1, nDays || 1);
+
+  // suddivido i posti in secchi per momento della giornata
+  const evening = items.filter((p) => isDrink(p) && !isFood(p));
+  const meals = items.filter((p) => isFood(p));
+  const daytime = items.filter((p) => !isFood(p) && !(isDrink(p) && !isFood(p)));
+
+  // distribuisco a round-robin sui giorni
+  const perDay = Array.from({ length: days }, () => ({ morning: [], lunch: [], afternoon: [], evening: [] }));
+  daytime.forEach((p, i) => {
+    const d = i % days;
+    (i % 2 === 0 ? perDay[d].morning : perDay[d].afternoon).push(p);
+  });
+  meals.forEach((p, i) => {
+    const d = i % days;
+    (i % 2 === 0 ? perDay[d].lunch : perDay[d].evening).push(p);
+  });
+  evening.forEach((p, i) => { perDay[i % days].evening.push(p); });
+
+  return perDay;
+}
+
+// URL per aprire l'itinerario in Google Maps con le tappe (solo posti con coordinate)
+function googleMapsDirUrl(items) {
+  const pts = items.filter((p) => p.lat && p.lng);
+  if (pts.length === 0) return null;
+  if (pts.length === 1) return `https://www.google.com/maps/search/?api=1&query=${pts[0].lat},${pts[0].lng}`;
+  const origin = `${pts[0].lat},${pts[0].lng}`;
+  const destination = `${pts[pts.length - 1].lat},${pts[pts.length - 1].lng}`;
+  const waypoints = pts.slice(1, -1).map((p) => `${p.lat},${p.lng}`).join("|");
+  let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=walking`;
+  if (waypoints) url += `&waypoints=${encodeURIComponent(waypoints)}`;
+  return url;
+}
+
 /* --------------------------- ITINERARY TAB -------------------------------- */
-function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome }) {
+function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, dateTo, setDateFrom, setDateTo }) {
+  const [plan, setPlan] = useState(null);
+  const [planning, setPlanning] = useState(false);
+
   const groups = useMemo(() => {
     const m = {}; items.forEach((p) => { const z = p.location || "—"; (m[z] = m[z] || []).push(p); });
     return Object.entries(m);
   }, [items]);
+
+  const nDays = useMemo(() => {
+    if (!dateFrom || !dateTo) return 1;
+    const d = Math.round((new Date(dateTo) - new Date(dateFrom)) / 86400000) + 1;
+    return Math.min(Math.max(d, 1), 14);
+  }, [dateFrom, dateTo]);
+
+  const runPlan = () => {
+    setPlanning(true);
+    setPlan(null);
+    // piccola attesa per dare il senso di "sta pensando"
+    setTimeout(() => { setPlan(buildPlan(items, nDays, t)); setPlanning(false); }, 700);
+  };
+
+  const shareWhatsApp = () => {
+    const lines = [`${t.itinTitle} — Bologna`, ""];
+    groups.forEach(([zone, list]) => {
+      lines.push(`📍 ${zone}`);
+      list.forEach((p) => lines.push(`• ${p[`title_${lang}`]}${p.price ? ` (${p.price})` : ""}`));
+      lines.push("");
+    });
+    const text = encodeURIComponent(lines.join("\n"));
+    window.open(`https://wa.me/?text=${text}`, "_blank");
+  };
+
+  const mapsUrl = googleMapsDirUrl(items);
+  const slotLabel = { morning: t.planMorning, lunch: t.planLunch, afternoon: t.planAfternoon, evening: t.planEvening };
+  const slotEmoji = { morning: "🌅", lunch: "🍽️", afternoon: "☀️", evening: "🌙" };
 
   return (
     <div style={{ padding: "20px 18px 0" }}>
@@ -407,30 +580,96 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome }) {
         <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 26, margin: 0, letterSpacing: "-0.01em" }}>{t.itinTitle}</h2>
         {items.length > 0 && <button onClick={onClear} style={{ background: "none", border: "none", color: BRAND.red, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{t.clearAll}</button>}
       </div>
+
       {items.length === 0 ? (
         <EmptyState msg={t.itinEmpty} cta={t.goHome} onCta={onGoHome} icon="🗺️" />
       ) : (
-        groups.map(([zone, list]) => (
-          <div key={zone} style={{ marginBottom: 26 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
-              <span style={{ fontSize: 15 }}>📍</span>
-              <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 18 }}>{zone}</span>
-              <span style={{ flex: 1, height: 2, background: BRAND.green, opacity: 0.8, borderRadius: 2 }} />
+        <>
+          {/* date del viaggio */}
+          <div style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 16, padding: 16, marginBottom: 16 }}>
+            <p style={{ ...sheetLabel, marginBottom: 10 }}>{t.tripDates}</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <label style={{ flex: 1 }}>
+                <span style={{ display: "block", fontSize: 12, color: BRAND.muted, marginBottom: 4 }}>{t.from}</span>
+                <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={inp} />
+              </label>
+              <label style={{ flex: 1 }}>
+                <span style={{ display: "block", fontSize: 12, color: BRAND.muted, marginBottom: 4 }}>{t.to}</span>
+                <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={inp} />
+              </label>
             </div>
-            <ul style={listReset}>
-              {list.map((p) => (
-                <li key={p.id} style={rowCard}>
-                  <img src={p.image} alt="" style={{ width: 56, height: 56, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 15.5, lineHeight: 1.25 }}>{p[`title_${lang}`]}</div>
-                    {p.price && <div style={{ fontSize: 13.5, color: BRAND.red, marginTop: 2, fontWeight: 600 }}>{p.price}</div>}
-                  </div>
-                  <button onClick={() => onRemove(p.id)} aria-label={t.remove} style={rowX}>×</button>
-                </li>
-              ))}
-            </ul>
           </div>
-        ))
+
+          {/* pulsante pianifica */}
+          <button onClick={runPlan} disabled={planning} style={{ width: "100%", background: BRAND.ink, color: "#fff", border: "none", borderRadius: 16, padding: 16, fontSize: 16, fontWeight: 700, cursor: planning ? "default" : "pointer", fontFamily: "inherit", marginBottom: 16, opacity: planning ? 0.7 : 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            {planning ? <><Spinner />{t.planning}</> : t.planBtn}
+          </button>
+
+          {/* risultato del planner */}
+          {plan && (
+            <div style={{ background: BRAND.card, border: `1.5px solid ${BRAND.green}`, borderRadius: 18, padding: 18, marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 18, margin: 0 }}>{t.planTitle}</h3>
+                <button onClick={runPlan} style={{ background: "none", border: "none", color: BRAND.green, fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>↻ {t.planRegen}</button>
+              </div>
+              {plan.map((d, i) => {
+                const hasAny = ["morning", "lunch", "afternoon", "evening"].some((s) => d[s].length);
+                if (!hasAny) return null;
+                return (
+                  <div key={i} style={{ marginBottom: i < plan.length - 1 ? 18 : 0 }}>
+                    {plan.length > 1 && <div style={{ fontWeight: 700, fontSize: 14, color: BRAND.red, marginBottom: 8 }}>{t.day} {i + 1}</div>}
+                    {["morning", "lunch", "afternoon", "evening"].map((slot) => (
+                      d[slot].length > 0 && (
+                        <div key={slot} style={{ display: "flex", gap: 10, marginBottom: 8 }}>
+                          <span style={{ fontSize: 16, flexShrink: 0 }}>{slotEmoji[slot]}</span>
+                          <div>
+                            <span style={{ fontSize: 12.5, fontWeight: 700, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{slotLabel[slot]}</span>
+                            <div style={{ fontSize: 14.5, color: BRAND.ink }}>{d[slot].map((p) => p[`title_${lang}`]).join(" · ")}</div>
+                          </div>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* azioni: maps + whatsapp */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
+            {mapsUrl && (
+              <a href={mapsUrl} target="_blank" rel="noreferrer" style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: BRAND.card, color: BRAND.ink, textDecoration: "none", border: `1.5px solid ${BRAND.border}`, borderRadius: 14, padding: "13px 12px", fontSize: 14, fontWeight: 700 }}>
+                <span>🗺️</span>{t.openInMaps}
+              </a>
+            )}
+            <button onClick={shareWhatsApp} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#25D366", color: "#fff", border: "none", borderRadius: 14, padding: "13px 12px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              <span>💬</span>{t.shareWa}
+            </button>
+          </div>
+
+          {/* lista per zona */}
+          {groups.map(([zone, list]) => (
+            <div key={zone} style={{ marginBottom: 26 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
+                <span style={{ fontSize: 15 }}>📍</span>
+                <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 18 }}>{zone}</span>
+                <span style={{ flex: 1, height: 2, background: BRAND.green, opacity: 0.8, borderRadius: 2 }} />
+              </div>
+              <ul style={listReset}>
+                {list.map((p) => (
+                  <li key={p.id} style={rowCard}>
+                    <img src={p.image} alt="" style={{ width: 56, height: 56, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 15.5, lineHeight: 1.25 }}>{p[`title_${lang}`]}</div>
+                      {p.price && <div style={{ fontSize: 13.5, color: BRAND.red, marginTop: 2, fontWeight: 600 }}>{p.price}</div>}
+                    </div>
+                    <button onClick={() => onRemove(p.id)} aria-label={t.remove} style={rowX}>×</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </>
       )}
     </div>
   );
@@ -504,7 +743,26 @@ function MapTab({ t, lang, items, onGoHome }) {
       ) : (
         <>
           {mapError && <p style={{ color: BRAND.muted, fontSize: 14, marginBottom: 12 }}>Mappa non disponibile al momento. I luoghi sono elencati qui sotto.</p>}
-          <div ref={mapRef} style={{ width: "100%", height: 340, borderRadius: 18, overflow: "hidden", border: `1px solid ${BRAND.border}`, marginBottom: 16, zIndex: 1, background: "#eef0ea" }} />
+          <div ref={mapRef} style={{ width: "100%", height: 340, borderRadius: 18, overflow: "hidden", border: `1px solid ${BRAND.border}`, marginBottom: 14, zIndex: 1, background: "#eef0ea" }} />
+          {(() => {
+            const mapsUrl = googleMapsDirUrl(withCoords);
+            const shareWa = () => {
+              const text = encodeURIComponent(`${t.mapTitle} — Bologna\n\n` + withCoords.map((p) => `📍 ${p[`title_${lang}`]}`).join("\n"));
+              window.open(`https://wa.me/?text=${text}`, "_blank");
+            };
+            return (
+              <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+                {mapsUrl && (
+                  <a href={mapsUrl} target="_blank" rel="noreferrer" style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: BRAND.card, color: BRAND.ink, textDecoration: "none", border: `1.5px solid ${BRAND.border}`, borderRadius: 14, padding: "13px 12px", fontSize: 14, fontWeight: 700 }}>
+                    <span>🗺️</span>{t.openInMaps}
+                  </a>
+                )}
+                <button onClick={shareWa} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#25D366", color: "#fff", border: "none", borderRadius: 14, padding: "13px 12px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  <span>💬</span>{t.shareWa}
+                </button>
+              </div>
+            );
+          })()}
           <ul style={listReset}>
             {withCoords.map((p) => (
               <li key={p.id} style={rowCard}>
