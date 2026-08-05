@@ -123,11 +123,10 @@ const load = (k, fb) => { try { const v = store.getItem(k); return v ? JSON.pars
 const save = (k, v) => { try { store.setItem(k, JSON.stringify(v)); } catch {} };
 
 /* --------------------------- LOGO ----------------------------------------- */
-function Logo({ size = 24 }) {
+function Logo({ height = 26 }) {
+  // logo immagine (sfondo trasparente) da /public
   return (
-    <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: size, letterSpacing: "-0.02em", lineHeight: 1 }}>
-      <span style={{ color: BRAND.green }}>G</span><span style={{ color: BRAND.red }}>local</span>
-    </span>
+    <img src="/glocal-logo.png" alt="Glocal" style={{ height, width: "auto", display: "block" }} />
   );
 }
 
