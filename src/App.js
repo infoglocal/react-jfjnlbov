@@ -2,20 +2,20 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import Papa from "papaparse";
 
 /* ============================================================================
-   GLOCAL ‚Äî web app (mobile-first)
+   GLOCAL — web app (mobile-first)
    ----------------------------------------------------------------------------
    Si apre direttamente sulle sezioni per INTERESSE:
-   Cibo ¬∑ Bere ¬∑ Natura ¬∑ Musei, arte e cultura ¬∑ Shopping.
+   Cibo · Bere · Natura · Musei, arte e cultura · Shopping.
    In ogni sezione, in cima, il blocco "Bologna doc" (i classici col consiglio
-   da local) ‚Äî le righe con doc = "yes".
-   Due tab: Home ¬∑ Itinerario. Nessuna welcome, nessuna profilazione, no mappa.
+   da local) — le righe con doc = "yes".
+   Due tab: Home · Itinerario. Nessuna welcome, nessuna profilazione, no mappa.
    Dati dal Google Sheet (CSV) + prenotazioni via Formspree.
 
    Colonne foglio:
    id | interests | title_it | title_en | desc_it | desc_en | image | images |
    bookable | price | location | address | lat | lng | contact | doc | tip_it | tip_en
 
-   - interests: una o pi√π tra food, drink, nature, museums, shopping (virgola).
+   - interests: una o più tra food, drink, nature, museums, shopping (virgola).
                 Determina in quale/quali sezioni appare la card.
    - doc:       "yes" -> la card entra nel blocco "Bologna doc" della/e sua/e
                 sezione/i (un classico da vedere). Altro/vuoto -> card normale.
@@ -32,13 +32,13 @@ const BRAND = {
   border: "#e6e0d0", ink: "#1a1a1a", muted: "#7a7568",
 };
 
-// Le SEZIONI dell'app = interessi. L'ordine qui √® l'ordine in Home.
+// Le SEZIONI dell'app = interessi. L'ordine qui è l'ordine in Home.
 const SECTIONS = [
-  { id: "food",     it: "Cibo",                  en: "Food",             emoji: "üçù" },
-  { id: "drink",    it: "Bere",                  en: "Drinks",           emoji: "üç∑" },
-  { id: "nature",   it: "Natura",                en: "Nature",           emoji: "üåø" },
-  { id: "museums",  it: "Musei, arte e cultura", en: "Museums & culture",emoji: "üèõÔ∏è" },
-  { id: "shopping", it: "Shopping",              en: "Shopping",         emoji: "üõçÔ∏è" },
+  { id: "food",     it: "Cibo",                  en: "Food",             emoji: "🍝" },
+  { id: "drink",    it: "Bere",                  en: "Drinks",           emoji: "🍷" },
+  { id: "nature",   it: "Natura",                en: "Nature",           emoji: "🌿" },
+  { id: "museums",  it: "Musei, arte e cultura", en: "Museums & culture",emoji: "🏛️" },
+  { id: "shopping", it: "Shopping",              en: "Shopping",         emoji: "🛍️" },
 ];
 
 // -------- CONTENUTI dal Google Sheet pubblicato come CSV --------------------
@@ -47,9 +47,9 @@ const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTDteVaj56DqRze
 /* ------------------------------- I18N ------------------------------------- */
 const T = {
   it: {
-    loading: "Caricamento‚Ä¶",
+    loading: "Caricamento…",
     pickTitle: "Cosa ti interessa?",
-    pickSub: "Scegli uno o pi√π temi. Ti mostriamo solo quello che ti piace.",
+    pickSub: "Scegli uno o più temi. Ti mostriamo solo quello che ti piace.",
     pickCta: "Vedi i risultati", pickHint: "Scegline almeno uno",
     editInterests: "Interessi",
     docTitle: "Bologna doc", docSub: "I classici, col consiglio di un local",
@@ -63,18 +63,18 @@ const T = {
     itinEmpty: "Aggiungi luoghi ed esperienze dalla Home per costruire il tuo itinerario.",
     remove: "Rimuovi", clearAll: "Svuota", goHome: "Vai alla Home",
     tripDates: "Date del viaggio", from: "Dal", to: "Al",
-    planBtn: "‚ú® Suggerisci un itinerario", planning: "Sto pianificando‚Ä¶",
+    planBtn: "✨ Suggerisci un itinerario", planning: "Sto pianificando…",
     planTitle: "Il tuo itinerario giorno per giorno", planRegen: "Rigenera",
     planMorning: "Mattina", planLunch: "Pranzo", planAfternoon: "Pomeriggio", planEvening: "Sera",
     openInMaps: "Apri in Google Maps", shareWa: "Condividi su WhatsApp", day: "Giorno",
     booking: "Prenota", name: "Nome e cognome", email: "Email",
     people: "Persone", date: "Data", notes: "Note (facoltative)",
-    send: "Invia richiesta", sending: "Invio‚Ä¶",
-    thanks: "Richiesta inviata", thanksSub: "Non √® ancora una conferma: il local ti risponde via email entro 24 ore.",
+    send: "Invia richiesta", sending: "Invio…",
+    thanks: "Richiesta inviata", thanksSub: "Non è ancora una conferma: il local ti risponde via email entro 24 ore.",
     whatsapp: "Scrivi su WhatsApp", close: "Chiudi", required: "Compila i campi obbligatori.",
   },
   en: {
-    loading: "Loading‚Ä¶",
+    loading: "Loading…",
     pickTitle: "What are you into?",
     pickSub: "Pick one or more themes. We'll show you only what you like.",
     pickCta: "See results", pickHint: "Pick at least one",
@@ -90,13 +90,13 @@ const T = {
     itinEmpty: "Add places and experiences from Home to build your itinerary.",
     remove: "Remove", clearAll: "Clear", goHome: "Go to Home",
     tripDates: "Trip dates", from: "From", to: "To",
-    planBtn: "‚ú® Suggest an itinerary", planning: "Planning‚Ä¶",
+    planBtn: "✨ Suggest an itinerary", planning: "Planning…",
     planTitle: "Your day-by-day itinerary", planRegen: "Regenerate",
     planMorning: "Morning", planLunch: "Lunch", planAfternoon: "Afternoon", planEvening: "Evening",
     openInMaps: "Open in Google Maps", shareWa: "Share on WhatsApp", day: "Day",
     booking: "Book", name: "Full name", email: "Email",
     people: "People", date: "Date", notes: "Notes (optional)",
-    send: "Send request", sending: "Sending‚Ä¶",
+    send: "Send request", sending: "Sending…",
     thanks: "Request sent", thanksSub: "Not a confirmation yet: the local will email you within 24 hours.",
     whatsapp: "Message on WhatsApp", close: "Close", required: "Please fill in the required fields.",
   },
@@ -235,12 +235,12 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
       {/* barra: modifica interessi */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", paddingTop: 14 }}>
         <button onClick={onEditInterests} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 999, padding: "8px 15px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-          <span>‚öôÔ∏é</span>{t.editInterests}
+          <span>⚙︎</span>{t.editInterests}
           {chosen.length > 0 && <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: BRAND.green, color: "#fff", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>{chosen.length}</span>}
         </button>
       </div>
 
-      {/* SEZIONI per interesse scelto ‚Äî solo contenuti NON doc */}
+      {/* SEZIONI per interesse scelto — solo contenuti NON doc */}
       {visibleSections.map((sec) => {
         const normal = places.filter((p) => hasInterest(p, sec.id) && !isDoc(p));
         if (normal.length === 0) return null;
@@ -255,11 +255,11 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
           </section>
         );
       })}
-      {/* BOLOGNA DOC ‚Äî sezione fissa IN FONDO, sempre visibile, uguale per tutti */}
+      {/* BOLOGNA DOC — sezione fissa IN FONDO, sempre visibile, uguale per tutti */}
       {docs.length > 0 && (
         <section style={{ marginTop: 36 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-            <span style={{ fontSize: 22 }}>‚òÖ</span>
+            <span style={{ fontSize: 22 }}>★</span>
             <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{t.docTitle}</h2>
           </div>
           <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 12px" }}>{t.docSub}</p>
@@ -315,7 +315,7 @@ function DeckArrow({ dir, onClick }) {
   return (
     <button onClick={onClick} aria-label={dir === "left" ? "Precedente" : "Successivo"} className="gl-deck-arrow"
       style={{ position: "absolute", top: "42%", [dir === "left" ? "left" : "right"]: 8, transform: "translateY(-50%)", width: 40, height: 40, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.92)", color: BRAND.ink, fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(0,0,0,0.18)", zIndex: 4, backdropFilter: "blur(4px)" }}>
-      {dir === "left" ? "‚Äπ" : "‚Ä∫"}
+      {dir === "left" ? "‹" : "›"}
     </button>
   );
 }
@@ -346,13 +346,13 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
 
         {tip && (
           <button onClick={() => setShowTip(true)} style={{ display: "inline-flex", alignItems: "center", gap: 7, alignSelf: "flex-start", background: "rgba(229,56,59,0.08)", color: BRAND.red, border: `1.5px solid ${BRAND.red}`, borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
-            <span style={{ fontSize: 15 }}>üí¨</span>{t.localTipsBtn}
+            <span style={{ fontSize: 15 }}>💬</span>{t.localTipsBtn}
           </button>
         )}
 
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onToggleItin} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: inItin ? BRAND.greenDark : "transparent", color: inItin ? "#fff" : BRAND.ink, border: `1.5px solid ${inItin ? BRAND.greenDark : BRAND.border}`, borderRadius: 14, padding: "13px 12px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-            <span style={{ fontSize: 16 }}>{inItin ? "‚úì" : "Ôºã"}</span>{inItin ? t.inItinShort : t.addItinShort}
+            <span style={{ fontSize: 16 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItinShort : t.addItinShort}
           </button>
           {bookable && (
             <button onClick={() => onBook(place)} style={{ flex: 1, background: BRAND.red, color: "#fff", border: "none", borderRadius: 14, padding: "13px 12px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>
@@ -364,7 +364,7 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
         <div onClick={() => setShowTip(false)} style={{ ...overlay, alignItems: "center", zIndex: 58 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 20, maxWidth: 380, width: "calc(100% - 48px)", padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <span style={{ fontSize: 20 }}>üí¨</span>
+              <span style={{ fontSize: 20 }}>💬</span>
               <span style={{ fontSize: 12.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: BRAND.red }}>{t.localTip}</span>
             </div>
             <p style={{ fontSize: 16, lineHeight: 1.6, color: "#3a3630", margin: "0 0 20px" }}>{tip}</p>
@@ -416,9 +416,9 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) 
         <div style={{ position: "relative" }}>
           <DetailGallery images={gallery} alt={title} />
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.55), transparent 50%)", borderRadius: "22px 22px 0 0", pointerEvents: "none" }} />
-          <button onClick={onClose} aria-label={t.close} style={{ position: "absolute", top: 14, right: 14, width: 38, height: 38, borderRadius: "50%", background: "rgba(0,0,0,0.5)", color: "#fff", border: "none", fontSize: 22, cursor: "pointer", lineHeight: 1, backdropFilter: "blur(4px)", zIndex: 3 }}>√ó</button>
+          <button onClick={onClose} aria-label={t.close} style={{ position: "absolute", top: 14, right: 14, width: 38, height: 38, borderRadius: "50%", background: "rgba(0,0,0,0.5)", color: "#fff", border: "none", fontSize: 22, cursor: "pointer", lineHeight: 1, backdropFilter: "blur(4px)", zIndex: 3 }}>×</button>
           <div style={{ position: "absolute", left: 20, bottom: 16, right: 20, pointerEvents: "none" }}>
-            {place.location && <span style={{ display: "inline-block", fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#fff", opacity: 0.9, marginBottom: 6 }}>üìç {place.location}</span>}
+            {place.location && <span style={{ display: "inline-block", fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#fff", opacity: 0.9, marginBottom: 6 }}>📍 {place.location}</span>}
             <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(26px, 6vw, 34px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: "#fff", margin: 0 }}>{title}</h2>
           </div>
         </div>
@@ -429,16 +429,16 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) 
 
           {mapsUrl && (
             <a href={mapsUrl} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: BRAND.ink, background: BRAND.card, border: `1.5px solid ${BRAND.border}`, borderRadius: 14, padding: "13px 15px", marginBottom: 24 }}>
-              <span style={{ fontSize: 18 }}>üìç</span>
+              <span style={{ fontSize: 18 }}>📍</span>
               <span style={{ flex: 1, fontSize: 14.5, fontWeight: 500, lineHeight: 1.35 }}>{address}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.green }}>{lang === "it" ? "Apri" : "Open"} ‚Üí</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.green }}>{lang === "it" ? "Apri" : "Open"} →</span>
             </a>
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {bookable && <button onClick={() => onBook(place)} style={{ width: "100%", background: BRAND.red, color: "#fff", border: "none", borderRadius: 14, padding: 16, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>}
             <button onClick={() => onToggleItin(place.id)} style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: inItin ? "rgba(56,176,74,0.12)" : "transparent", color: inItin ? BRAND.greenDark : BRAND.ink, border: `1.5px solid ${inItin ? BRAND.green : BRAND.border}`, borderRadius: 14, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-              <span style={{ fontSize: 16 }}>{inItin ? "‚úì" : "Ôºã"}</span>{inItin ? t.inItin : t.addItin}
+              <span style={{ fontSize: 16 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItin : t.addItin}
             </button>
           </div>
         </div>
@@ -480,7 +480,7 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, d
   const [planning, setPlanning] = useState(false);
 
   const groups = useMemo(() => {
-    const m = {}; items.forEach((p) => { const z = p.location || "‚Äî"; (m[z] = m[z] || []).push(p); });
+    const m = {}; items.forEach((p) => { const z = p.location || "—"; (m[z] = m[z] || []).push(p); });
     return Object.entries(m);
   }, [items]);
 
@@ -493,14 +493,14 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, d
   const runPlan = () => { setPlanning(true); setPlan(null); setTimeout(() => { setPlan(buildPlan(items, nDays)); setPlanning(false); }, 700); };
 
   const shareWhatsApp = () => {
-    const lines = [`${t.itinTitle} ‚Äî Bologna`, ""];
-    groups.forEach(([zone, list]) => { lines.push(`üìç ${zone}`); list.forEach((p) => lines.push(`‚Ä¢ ${p[`title_${lang}`]}${p.price ? ` (${p.price})` : ""}`)); lines.push(""); });
+    const lines = [`${t.itinTitle} — Bologna`, ""];
+    groups.forEach(([zone, list]) => { lines.push(`📍 ${zone}`); list.forEach((p) => lines.push(`• ${p[`title_${lang}`]}${p.price ? ` (${p.price})` : ""}`)); lines.push(""); });
     window.open(`https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
   };
 
   const mapsUrl = googleMapsDirUrl(items);
   const slotLabel = { morning: t.planMorning, lunch: t.planLunch, afternoon: t.planAfternoon, evening: t.planEvening };
-  const slotEmoji = { morning: "üåÖ", lunch: "üçΩÔ∏è", afternoon: "‚òÄÔ∏è", evening: "üåô" };
+  const slotEmoji = { morning: "🌅", lunch: "🍽️", afternoon: "☀️", evening: "🌙" };
 
   return (
     <div style={{ padding: "20px 18px 0" }}>
@@ -510,7 +510,7 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, d
       </div>
 
       {items.length === 0 ? (
-        <EmptyState msg={t.itinEmpty} cta={t.goHome} onCta={onGoHome} icon="üó∫Ô∏è" />
+        <EmptyState msg={t.itinEmpty} cta={t.goHome} onCta={onGoHome} icon="🗺️" />
       ) : (
         <>
           <div style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 16, padding: 16, marginBottom: 16 }}>
@@ -529,7 +529,7 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, d
             <div style={{ background: BRAND.card, border: `1.5px solid ${BRAND.green}`, borderRadius: 18, padding: 18, marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                 <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 18, margin: 0 }}>{t.planTitle}</h3>
-                <button onClick={runPlan} style={{ background: "none", border: "none", color: BRAND.green, fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>‚Üª {t.planRegen}</button>
+                <button onClick={runPlan} style={{ background: "none", border: "none", color: BRAND.green, fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>↻ {t.planRegen}</button>
               </div>
               {plan.map((d, i) => {
                 const hasAny = ["morning", "lunch", "afternoon", "evening"].some((s) => d[s].length);
@@ -543,7 +543,7 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, d
                           <span style={{ fontSize: 16, flexShrink: 0 }}>{slotEmoji[slot]}</span>
                           <div>
                             <span style={{ fontSize: 12.5, fontWeight: 700, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{slotLabel[slot]}</span>
-                            <div style={{ fontSize: 14.5, color: BRAND.ink }}>{d[slot].map((p) => p[`title_${lang}`]).join(" ¬∑ ")}</div>
+                            <div style={{ fontSize: 14.5, color: BRAND.ink }}>{d[slot].map((p) => p[`title_${lang}`]).join(" · ")}</div>
                           </div>
                         </div>
                       )
@@ -557,18 +557,18 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, d
           <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
             {mapsUrl && (
               <a href={mapsUrl} target="_blank" rel="noreferrer" style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: BRAND.card, color: BRAND.ink, textDecoration: "none", border: `1.5px solid ${BRAND.border}`, borderRadius: 14, padding: "13px 12px", fontSize: 14, fontWeight: 700 }}>
-                <span>üó∫Ô∏è</span>{t.openInMaps}
+                <span>🗺️</span>{t.openInMaps}
               </a>
             )}
             <button onClick={shareWhatsApp} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#25D366", color: "#fff", border: "none", borderRadius: 14, padding: "13px 12px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-              <span>üí¨</span>{t.shareWa}
+              <span>💬</span>{t.shareWa}
             </button>
           </div>
 
           {groups.map(([zone, list]) => (
             <div key={zone} style={{ marginBottom: 26 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
-                <span style={{ fontSize: 15 }}>üìç</span>
+                <span style={{ fontSize: 15 }}>📍</span>
                 <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 18 }}>{zone}</span>
                 <span style={{ flex: 1, height: 2, background: BRAND.green, opacity: 0.8, borderRadius: 2 }} />
               </div>
@@ -580,7 +580,7 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, d
                       <div style={{ fontWeight: 600, fontSize: 15.5, lineHeight: 1.25 }}>{p[`title_${lang}`]}</div>
                       {p.price && <div style={{ fontSize: 13.5, color: BRAND.red, marginTop: 2, fontWeight: 600 }}>{p.price}</div>}
                     </div>
-                    <button onClick={() => onRemove(p.id)} aria-label={t.remove} style={rowX}>√ó</button>
+                    <button onClick={() => onRemove(p.id)} aria-label={t.remove} style={rowX}>×</button>
                   </li>
                 ))}
               </ul>
@@ -646,25 +646,25 @@ function BookingModal({ place, lang, t, onClose }) {
     } catch { setStatus("error"); }
   };
   const waText = encodeURIComponent(lang === "it"
-    ? `Ciao! Ho inviato una richiesta di prenotazione tramite Glocal per "${title}" per il ${form.date || "‚Äî"}, ${form.people} persone. A nome di ${form.name || "‚Äî"}.`
-    : `Hi! I sent a booking request via Glocal for "${title}" on ${form.date || "‚Äî"}, ${form.people} people. Under the name ${form.name || "‚Äî"}.`);
+    ? `Ciao! Ho inviato una richiesta di prenotazione tramite Glocal per "${title}" per il ${form.date || "—"}, ${form.people} persone. A nome di ${form.name || "—"}.`
+    : `Hi! I sent a booking request via Glocal for "${title}" on ${form.date || "—"}, ${form.people} people. Under the name ${form.name || "—"}.`);
 
   return (
     <div onClick={onClose} style={{ ...overlay, zIndex: 60 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 520, padding: 24 }}>
         {status === "done" ? (
           <div style={{ textAlign: "center", padding: "28px 8px" }}>
-            <div style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(56,176,74,0.14)", color: BRAND.green, fontSize: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>‚úì</div>
+            <div style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(56,176,74,0.14)", color: BRAND.green, fontSize: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>✓</div>
             <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 25, margin: "0 0 10px" }}>{t.thanks}</h3>
             <p style={{ color: "#5a554a", margin: "0 auto 24px", fontSize: 15, lineHeight: 1.55, maxWidth: 380 }}>{t.thanksSub}</p>
-            {contact && <a href={`https://wa.me/${contact}?text=${waText}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#25D366", color: "#fff", textDecoration: "none", borderRadius: 14, padding: "13px 22px", fontSize: 15, fontWeight: 700, marginBottom: 12 }}><span>üí¨</span>{t.whatsapp}</a>}
+            {contact && <a href={`https://wa.me/${contact}?text=${waText}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#25D366", color: "#fff", textDecoration: "none", borderRadius: 14, padding: "13px 22px", fontSize: 15, fontWeight: 700, marginBottom: 12 }}><span>💬</span>{t.whatsapp}</a>}
             <div><button onClick={onClose} style={{ background: "none", border: "none", color: BRAND.muted, fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginTop: 4 }}>{t.close}</button></div>
           </div>
         ) : (
           <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
               <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.14em", color: BRAND.green, fontWeight: 700 }}>{t.booking}</span>
-              <button onClick={onClose} style={xBtn}>√ó</button>
+              <button onClick={onClose} style={xBtn}>×</button>
             </div>
             <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 23, margin: "0 0 20px" }}>{title}</h3>
             <Field label={t.name}><input style={inp} value={form.name} onChange={set("name")} /></Field>
@@ -742,5 +742,3 @@ function FontLink() {
     `}</style>
   );
 }
-
-
