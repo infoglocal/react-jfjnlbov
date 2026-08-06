@@ -259,9 +259,10 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
       {docs.length > 0 && (
         <section style={{ marginTop: 36 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: BRAND.red, color: "#fff", fontSize: 13, fontWeight: 700, padding: "6px 13px", borderRadius: 999 }}>★ {t.docTitle}</span>
+            <span style={{ fontSize: 22 }}>★</span>
+            <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{t.docTitle}</h2>
           </div>
-          <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "6px 0 12px" }}>{t.docSub}</p>
+          <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 12px" }}>{t.docSub}</p>
           <Deck items={docs} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
             itinerary={itinerary} onToggleItin={onToggleItin} isDocDeck />
         </section>
@@ -520,7 +521,7 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, d
             </div>
           </div>
 
-          <button onClick={runPlan} disabled={planning} style={{ width: "100%", background: BRAND.ink, color: "#fff", border: "none", borderRadius: 16, padding: 16, fontSize: 16, fontWeight: 700, cursor: planning ? "default" : "pointer", fontFamily: "inherit", marginBottom: 16, opacity: planning ? 0.7 : 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <button onClick={runPlan} disabled={planning} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 16, padding: 16, fontSize: 16, fontWeight: 700, cursor: planning ? "default" : "pointer", fontFamily: "inherit", marginBottom: 16, opacity: planning ? 0.7 : 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             {planning ? <><Spinner />{t.planning}</> : t.planBtn}
           </button>
 
