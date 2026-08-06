@@ -48,6 +48,10 @@ const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTDteVaj56DqRze
 const T = {
   it: {
     loading: "Caricamento…",
+    pickTitle: "Cosa ti interessa?",
+    pickSub: "Scegli uno o più temi. Ti mostriamo solo quello che ti piace.",
+    pickCta: "Vedi i risultati", pickHint: "Scegline almeno uno",
+    editInterests: "Interessi",
     docTitle: "Bologna doc", docSub: "I classici, col consiglio di un local",
     localTip: "Il consiglio del local",
     emptySection: "Presto nuovi contenuti in questa sezione.",
@@ -71,6 +75,10 @@ const T = {
   },
   en: {
     loading: "Loading…",
+    pickTitle: "What are you into?",
+    pickSub: "Pick one or more themes. We'll show you only what you like.",
+    pickCta: "See results", pickHint: "Pick at least one",
+    editInterests: "Interests",
     docTitle: "Bologna doc", docSub: "The classics, with a local's tip",
     localTip: "The local's tip",
     emptySection: "New content coming soon in this section.",
@@ -111,6 +119,8 @@ function Logo({ height = 26 }) {
 export default function App() {
   const [lang, setLang] = useState(() => load("gl_lang", "it"));
   const [tab, setTab] = useState("home");
+  const [chosen, setChosen] = useState([]);          // interessi scelti (rivisti ogni apertura)
+  const [picking, setPicking] = useState(true);      // true = schermata scelta interessi
   const [booking, setBooking] = useState(null);
   const [detail, setDetail] = useState(null);
   const [itinerary, setItinerary] = useState(() => load("gl_itin", []));
@@ -139,6 +149,22 @@ export default function App() {
 
   const toggleIn = (list, setList, id) => setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
   const byId = (id) => places.find((p) => p.id === id);
+  const toggleChosen = (id) => setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
+
+  // schermata iniziale: scelta interessi (obbligatoria, rivista a ogni apertura)
+  if (picking) {
+    return (
+      <div style={{ minHeight: "100vh", background: BRAND.bg, color: BRAND.ink, fontFamily: "'Archivo', system-ui, sans-serif" }}>
+        <FontLink />
+        <header style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "14px 18px", borderBottom: `1px solid ${BRAND.border}` }}>
+          <span />
+          <div style={{ justifySelf: "center" }}><Logo /></div>
+          <div style={{ justifySelf: "end" }}><LangToggle lang={lang} setLang={setLang} /></div>
+        </header>
+        <InterestPicker t={t} lang={lang} chosen={chosen} onToggle={toggleChosen} onDone={() => { setTab("home"); setPicking(false); }} />
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: BRAND.bg, color: BRAND.ink, fontFamily: "'Archivo', system-ui, sans-serif" }}>
@@ -151,7 +177,8 @@ export default function App() {
 
       <main style={{ maxWidth: 720, margin: "0 auto", padding: "0 0 96px" }}>
         {tab === "home" && (
-          <HomeTab t={t} lang={lang} loading={loading} places={places}
+          <HomeTab t={t} lang={lang} loading={loading} places={places} chosen={chosen}
+            onEditInterests={() => setPicking(true)}
             onBook={setBooking} onDetail={setDetail}
             itinerary={itinerary} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} />
         )}
@@ -170,13 +197,48 @@ export default function App() {
   );
 }
 
+/* --------------------------- INTEREST PICKER ------------------------------ */
+function InterestPicker({ t, lang, chosen, onToggle, onDone }) {
+  return (
+    <main style={{ maxWidth: 560, margin: "0 auto", padding: "0 22px", minHeight: "calc(100vh - 60px)", display: "flex", flexDirection: "column" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", paddingTop: 44, paddingBottom: 28 }}>
+        <h1 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(30px, 7vw, 42px)", letterSpacing: "-0.02em", margin: "0 0 10px", lineHeight: 1.08 }}>{t.pickTitle}</h1>
+        <p style={{ color: BRAND.muted, margin: "0 0 30px", fontSize: 16, lineHeight: 1.5 }}>{t.pickSub}</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12, alignContent: "start" }}>
+          {SECTIONS.map((o) => {
+            const active = chosen.includes(o.id);
+            return (
+              <button key={o.id} onClick={() => onToggle(o.id)} style={{ display: "flex", alignItems: "center", gap: 11, padding: "18px 18px", borderRadius: 16, cursor: "pointer", background: active ? BRAND.green : BRAND.card, color: active ? "#fff" : BRAND.ink, border: `1.5px solid ${active ? BRAND.green : BRAND.border}`, fontSize: 15.5, fontWeight: 500, fontFamily: "inherit", textAlign: "left", transition: "all .15s" }}>
+                <span style={{ fontSize: 24 }}>{o.emoji}</span><span>{o[lang]}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ position: "sticky", bottom: 0, background: BRAND.bg, paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0))", paddingTop: 12 }}>
+        <button onClick={onDone} disabled={chosen.length === 0} style={{ width: "100%", background: chosen.length ? BRAND.green : "#d9d3c4", color: "#fff", border: "none", borderRadius: 16, padding: 17, fontSize: 17, fontWeight: 700, cursor: chosen.length ? "pointer" : "default", fontFamily: "inherit", transition: "background .15s" }}>
+          {chosen.length ? t.pickCta : t.pickHint}
+        </button>
+      </div>
+    </main>
+  );
+}
+
 /* ------------------------------ HOME TAB ---------------------------------- */
-function HomeTab({ t, lang, loading, places, onBook, onDetail, itinerary, onToggleItin }) {
+function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, onDetail, itinerary, onToggleItin }) {
   if (loading) return <div style={{ padding: "22px 18px" }}><DeckSkeleton /></div>;
+  const visibleSections = SECTIONS.filter((s) => chosen.length === 0 || chosen.includes(s.id));
 
   return (
     <div style={{ padding: "8px 18px 0" }}>
-      {SECTIONS.map((sec) => {
+      {/* barra: interessi scelti + modifica */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", paddingTop: 14 }}>
+        <button onClick={onEditInterests} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 999, padding: "8px 15px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+          <span>⚙︎</span>{t.editInterests}
+          {chosen.length > 0 && <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: BRAND.green, color: "#fff", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>{chosen.length}</span>}
+        </button>
+      </div>
+      {visibleSections.map((sec) => {
         const all = places.filter((p) => hasInterest(p, sec.id));
         if (all.length === 0) return null;
         const docs = all.filter(isDoc);
