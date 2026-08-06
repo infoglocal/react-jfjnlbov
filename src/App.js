@@ -228,48 +228,42 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone }) {
 function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, onDetail, itinerary, onToggleItin }) {
   if (loading) return <div style={{ padding: "22px 18px" }}><DeckSkeleton /></div>;
   const visibleSections = SECTIONS.filter((s) => chosen.length === 0 || chosen.includes(s.id));
+  const docs = places.filter(isDoc); // TUTTI i classici, sempre, a prescindere dagli interessi
 
   return (
     <div style={{ padding: "8px 18px 0" }}>
-      {/* barra: interessi scelti + modifica */}
+      {/* barra: modifica interessi */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", paddingTop: 14 }}>
         <button onClick={onEditInterests} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 999, padding: "8px 15px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
           <span>⚙︎</span>{t.editInterests}
           {chosen.length > 0 && <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: BRAND.green, color: "#fff", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>{chosen.length}</span>}
         </button>
       </div>
+
+      {/* BOLOGNA DOC — sezione fissa in cima, sempre visibile, uguale per tutti */}
+      {docs.length > 0 && (
+        <section style={{ marginTop: 22 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: BRAND.red, color: "#fff", fontSize: 13, fontWeight: 700, padding: "6px 13px", borderRadius: 999 }}>★ {t.docTitle}</span>
+          </div>
+          <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "6px 0 12px" }}>{t.docSub}</p>
+          <Deck items={docs} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
+            itinerary={itinerary} onToggleItin={onToggleItin} isDocDeck />
+        </section>
+      )}
+
+      {/* SEZIONI per interesse scelto — solo contenuti NON doc */}
       {visibleSections.map((sec) => {
-        const all = places.filter((p) => hasInterest(p, sec.id));
-        if (all.length === 0) return null;
-        const docs = all.filter(isDoc);
-        const normal = all.filter((p) => !isDoc(p));
+        const normal = places.filter((p) => hasInterest(p, sec.id) && !isDoc(p));
+        if (normal.length === 0) return null;
         return (
-          <section key={sec.id} style={{ marginTop: 30 }}>
-            {/* intestazione sezione */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+          <section key={sec.id} style={{ marginTop: 32 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
               <span style={{ fontSize: 22 }}>{sec.emoji}</span>
               <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{sec[lang]}</h2>
             </div>
-
-            {/* Bologna doc (i classici) */}
-            {docs.length > 0 && (
-              <div style={{ marginTop: 14, marginBottom: 22 }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: BRAND.red, color: "#fff", fontSize: 12.5, fontWeight: 700, padding: "5px 11px", borderRadius: 999 }}>★ {t.docTitle}</span>
-                  <span style={{ fontSize: 12.5, color: BRAND.muted }}>{t.docSub}</span>
-                </div>
-                <Deck items={docs} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
-                  itinerary={itinerary} onToggleItin={onToggleItin} isDocDeck />
-              </div>
-            )}
-
-            {/* contenuti normali della sezione */}
-            {normal.length > 0 && (
-              <div style={{ marginTop: 8 }}>
-                <Deck items={normal} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
-                  itinerary={itinerary} onToggleItin={onToggleItin} />
-              </div>
-            )}
+            <Deck items={normal} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
+              itinerary={itinerary} onToggleItin={onToggleItin} />
           </section>
         );
       })}
