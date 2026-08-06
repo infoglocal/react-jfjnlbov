@@ -240,18 +240,6 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
         </button>
       </div>
 
-      {/* BOLOGNA DOC — sezione fissa in cima, sempre visibile, uguale per tutti */}
-      {docs.length > 0 && (
-        <section style={{ marginTop: 22 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: BRAND.red, color: "#fff", fontSize: 13, fontWeight: 700, padding: "6px 13px", borderRadius: 999 }}>★ {t.docTitle}</span>
-          </div>
-          <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "6px 0 12px" }}>{t.docSub}</p>
-          <Deck items={docs} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
-            itinerary={itinerary} onToggleItin={onToggleItin} isDocDeck />
-        </section>
-      )}
-
       {/* SEZIONI per interesse scelto — solo contenuti NON doc */}
       {visibleSections.map((sec) => {
         const normal = places.filter((p) => hasInterest(p, sec.id) && !isDoc(p));
@@ -267,6 +255,18 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
           </section>
         );
       })}
+      {/* BOLOGNA DOC — sezione fissa IN FONDO, sempre visibile, uguale per tutti */}
+      {docs.length > 0 && (
+        <section style={{ marginTop: 36 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: BRAND.red, color: "#fff", fontSize: 13, fontWeight: 700, padding: "6px 13px", borderRadius: 999 }}>★ {t.docTitle}</span>
+          </div>
+          <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "6px 0 12px" }}>{t.docSub}</p>
+          <Deck items={docs} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
+            itinerary={itinerary} onToggleItin={onToggleItin} isDocDeck />
+        </section>
+      )}
+
       <div style={{ height: 20 }} />
     </div>
   );
@@ -293,7 +293,7 @@ function Deck({ items, lang, t, onBook, onDetail, itinerary, onToggleItin, isDoc
         {items.map((p) => (
           <div key={p.id} className="gl-deck-slide">
             <DeckCard place={p} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
-              inItin={itinerary.includes(p.id)} onToggleItin={() => onToggleItin(p.id)} showTip={isDocDeck} />
+              inItin={itinerary.includes(p.id)} onToggleItin={() => onToggleItin(p.id)} />
           </div>
         ))}
       </div>
@@ -320,10 +320,9 @@ function DeckArrow({ dir, onClick }) {
 }
 
 /* ----------------------------- DECK CARD ---------------------------------- */
-function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin, showTip }) {
+function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
   const title = place[`title_${lang}`];
   const desc = place[`desc_${lang}`];
-  const tip = place[`tip_${lang}`];
   const bookable = String(place.bookable).trim().toLowerCase() === "yes";
 
   return (
@@ -338,17 +337,6 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin, show
       </div>
 
       <div style={{ padding: 18, display: "flex", flexDirection: "column", flex: 1 }}>
-        {/* consiglio del local (solo blocco doc, se presente) */}
-        {showTip && tip && (
-          <div style={{ display: "flex", gap: 8, background: "rgba(229,56,59,0.07)", borderLeft: `3px solid ${BRAND.red}`, borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
-            <span style={{ fontSize: 15 }}>💬</span>
-            <div>
-              <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: BRAND.red, marginBottom: 2 }}>{t.localTip}</div>
-              <div style={{ fontSize: 14, lineHeight: 1.45, color: "#4a463d" }}>{tip}</div>
-            </div>
-          </div>
-        )}
-
         <p onClick={() => onDetail(place)} style={{ fontSize: 15, lineHeight: 1.5, color: "#4a463d", margin: "0 0 14px", flex: 1, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", cursor: "pointer" }}>{desc}</p>
 
         {place.price && <div style={{ fontSize: 15, fontWeight: 700, color: BRAND.red, fontFamily: "'Fraunces', serif", marginBottom: 12 }}>{place.price}</div>}
