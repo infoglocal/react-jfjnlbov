@@ -53,7 +53,7 @@ const T = {
     pickCta: "Vedi i risultati", pickHint: "Scegline almeno uno",
     editInterests: "Interessi",
     docTitle: "Bologna doc", docSub: "I classici, col consiglio di un local",
-    localTip: "Il consiglio del local",
+    localTip: "Il consiglio del local", localTipsBtn: "Local tips",
     emptySection: "Presto nuovi contenuti in questa sezione.",
     book: "Prenota", addItinShort: "Itinerario", inItinShort: "Aggiunto",
     addItin: "Aggiungi all'itinerario", inItin: "Nell'itinerario",
@@ -80,7 +80,7 @@ const T = {
     pickCta: "See results", pickHint: "Pick at least one",
     editInterests: "Interests",
     docTitle: "Bologna doc", docSub: "The classics, with a local's tip",
-    localTip: "The local's tip",
+    localTip: "The local's tip", localTipsBtn: "Local tips",
     emptySection: "New content coming soon in this section.",
     book: "Book", addItinShort: "Itinerary", inItinShort: "Added",
     addItin: "Add to itinerary", inItin: "In itinerary",
@@ -323,7 +323,9 @@ function DeckArrow({ dir, onClick }) {
 function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
   const title = place[`title_${lang}`];
   const desc = place[`desc_${lang}`];
+  const tip = place[`tip_${lang}`];
   const bookable = String(place.bookable).trim().toLowerCase() === "yes";
+  const [showTip, setShowTip] = useState(false);
 
   return (
     <article style={{ background: BRAND.card, borderRadius: 22, overflow: "hidden", border: `1px solid ${BRAND.border}`, boxShadow: "0 6px 22px rgba(40,30,15,0.08)", height: "100%", display: "flex", flexDirection: "column" }}>
@@ -341,6 +343,12 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
 
         {place.price && <div style={{ fontSize: 15, fontWeight: 700, color: BRAND.red, fontFamily: "'Fraunces', serif", marginBottom: 12 }}>{place.price}</div>}
 
+        {tip && (
+          <button onClick={() => setShowTip(true)} style={{ display: "inline-flex", alignItems: "center", gap: 7, alignSelf: "flex-start", background: "rgba(229,56,59,0.08)", color: BRAND.red, border: `1.5px solid ${BRAND.red}`, borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
+            <span style={{ fontSize: 15 }}>💬</span>{t.localTipsBtn}
+          </button>
+        )}
+
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onToggleItin} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: inItin ? BRAND.greenDark : "transparent", color: inItin ? "#fff" : BRAND.ink, border: `1.5px solid ${inItin ? BRAND.greenDark : BRAND.border}`, borderRadius: 14, padding: "13px 12px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
             <span style={{ fontSize: 16 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItinShort : t.addItinShort}
@@ -350,6 +358,19 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
           )}
         </div>
       </div>
+
+      {showTip && tip && (
+        <div onClick={() => setShowTip(false)} style={{ ...overlay, alignItems: "center", zIndex: 58 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 20, maxWidth: 380, width: "calc(100% - 48px)", padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <span style={{ fontSize: 20 }}>💬</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: BRAND.red }}>{t.localTip}</span>
+            </div>
+            <p style={{ fontSize: 16, lineHeight: 1.6, color: "#3a3630", margin: "0 0 20px" }}>{tip}</p>
+            <button onClick={() => setShowTip(false)} style={{ width: "100%", background: BRAND.ink, color: "#fff", border: "none", borderRadius: 12, padding: 13, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.close}</button>
+          </div>
+        </div>
+      )}
     </article>
   );
 }
@@ -382,7 +403,6 @@ function DetailGallery({ images, alt }) {
 function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) {
   const title = place[`title_${lang}`];
   const desc = place[`desc_${lang}`];
-  const tip = place[`tip_${lang}`];
   const bookable = String(place.bookable).trim().toLowerCase() === "yes";
   const extra = String(place.images || "").split(",").map((s) => s.trim()).filter(Boolean);
   const gallery = [place.image, ...extra].filter(Boolean);
@@ -403,16 +423,6 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) 
         </div>
 
         <div style={{ padding: 22, overflowY: "auto" }}>
-          {tip && (
-            <div style={{ display: "flex", gap: 10, background: "rgba(229,56,59,0.07)", borderLeft: `3px solid ${BRAND.red}`, borderRadius: 10, padding: "12px 14px", marginBottom: 18 }}>
-              <span style={{ fontSize: 17 }}>💬</span>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: BRAND.red, marginBottom: 3 }}>{t.localTip}</div>
-                <div style={{ fontSize: 15, lineHeight: 1.55, color: "#4a463d" }}>{tip}</div>
-              </div>
-            </div>
-          )}
-
           {place.price && <p style={{ fontSize: 22, fontWeight: 600, margin: "0 0 16px", color: BRAND.red, fontFamily: "'Fraunces', serif" }}>{place.price}</p>}
           <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#4a463d", margin: "0 0 20px", whiteSpace: "pre-line" }}>{desc}</p>
 
