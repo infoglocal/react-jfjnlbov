@@ -44,6 +44,27 @@ const SECTIONS = [
 // -------- CONTENUTI dal Google Sheet pubblicato come CSV --------------------
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTDteVaj56DqRzerlc3EP5YqmpeQYOydBBadXfBE0CozUnO3lcTRN6zrWSghznYtBd5aWYp8D2ALcbL/pub?gid=1251495453&single=true&output=csv";
 
+// -------- GOOGLE ANALYTICS 4 -----------------------------------------------
+const GA_ID = "G-SDH5FJLQSP";
+// carica lo script GA una sola volta
+function initGA() {
+  if (typeof window === "undefined" || window.__gaLoaded) return;
+  window.__gaLoaded = true;
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
+  document.head.appendChild(s);
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { window.dataLayer.push(arguments); }
+  window.gtag = gtag;
+  gtag("js", new Date());
+  gtag("config", GA_ID);
+}
+// invia un evento a GA (no-op se GA non è pronto)
+function track(event, params) {
+  try { if (window.gtag) window.gtag("event", event, params || {}); } catch {}
+}
+
 /* ------------------------------- I18N ------------------------------------- */
 const T = {
   it: {
@@ -136,6 +157,7 @@ export default function App() {
   useEffect(() => save("gl_dto", dateTo), [dateTo]);
 
   useEffect(() => {
+    initGA();
     Papa.parse(CSV_URL, {
       download: true, header: true,
       complete: (res) => {
@@ -161,7 +183,7 @@ export default function App() {
           <div style={{ justifySelf: "center" }}><Logo /></div>
           <div style={{ justifySelf: "end" }}><LangToggle lang={lang} setLang={setLang} /></div>
         </header>
-        <InterestPicker t={t} lang={lang} chosen={chosen} onToggle={toggleChosen} onDone={() => { setTab("home"); setPicking(false); }} />
+        <InterestPicker t={t} lang={lang} chosen={chosen} onToggle={toggleChosen} onDone={() => { track("select_interests", { interests: chosen.join(",") }); setTab("home"); setPicking(false); }} />
       </div>
     );
   }
@@ -255,7 +277,7 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
           </section>
         );
       })}
-      {/* BOLOGNA DOC — sezione fissa IN FONDO, sempre visibile, uguale per tutti */}
+      {/BOLOGNA DOC — sezione fissa IN FONDO, sempre visibile, uguale per tutti */}
       {docs.length > 0 && (
         <section style={{ marginTop: 36 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
@@ -330,7 +352,7 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
 
   return (
     <article style={{ background: BRAND.card, borderRadius: 22, overflow: "hidden", border: `1px solid ${BRAND.border}`, boxShadow: "0 6px 22px rgba(40,30,15,0.08)", height: "100%", display: "flex", flexDirection: "column" }}>
-      <div onClick={() => onDetail(place)} style={{ position: "relative", aspectRatio: "4/3", background: "#eee", overflow: "hidden", cursor: "pointer" }}>
+      <div onClick={() => { track("view_card", { card: place.title_it || place.id, section: place.interests }); onDetail(place); }} style={{ position: "relative", aspectRatio: "4/3", background: "#eee", overflow: "hidden", cursor: "pointer" }}>
         <img src={place.image} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.72), rgba(20,16,10,0) 42%)" }} />
         {place.location && <span style={{ position: "absolute", top: 14, left: 14, background: "rgba(255,255,255,0.92)", color: BRAND.ink, fontSize: 12.5, fontWeight: 700, padding: "6px 12px", borderRadius: 999 }}>{place.location}</span>}
@@ -340,22 +362,22 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
       </div>
 
       <div style={{ padding: 18, display: "flex", flexDirection: "column", flex: 1 }}>
-        <p onClick={() => onDetail(place)} style={{ fontSize: 15, lineHeight: 1.5, color: "#4a463d", margin: "0 0 14px", flex: 1, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", cursor: "pointer" }}>{desc}</p>
+        <p onClick={() => { track("view_card", { card: place.title_it || place.id, section: place.interests }); onDetail(place); }} style={{ fontSize: 15, lineHeight: 1.5, color: "#4a463d", margin: "0 0 14px", flex: 1, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", cursor: "pointer" }}>{desc}</p>
 
         {place.price && <div style={{ fontSize: 15, fontWeight: 700, color: BRAND.red, fontFamily: "'Fraunces', serif", marginBottom: 12 }}>{place.price}</div>}
 
         {tip && (
-          <button onClick={() => setShowTip(true)} style={{ display: "inline-flex", alignItems: "center", gap: 7, alignSelf: "flex-start", background: "rgba(229,56,59,0.08)", color: BRAND.red, border: `1.5px solid ${BRAND.red}`, borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
+          <button onClick={() => { track("open_local_tip", { card: place.title_it || place.id }); setShowTip(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 7, alignSelf: "flex-start", background: "rgba(229,56,59,0.08)", color: BRAND.red, border: `1.5px solid ${BRAND.red}`, borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
             <span style={{ fontSize: 15 }}>💬</span>{t.localTipsBtn}
           </button>
         )}
 
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onToggleItin} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: inItin ? BRAND.greenDark : "transparent", color: inItin ? "#fff" : BRAND.ink, border: `1.5px solid ${inItin ? BRAND.greenDark : BRAND.border}`, borderRadius: 14, padding: "13px 12px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+          <button onClick={() => { if (!inItin) track("add_to_itinerary", { card: place.title_it || place.id }); onToggleItin(); }} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: inItin ? BRAND.greenDark : "transparent", color: inItin ? "#fff" : BRAND.ink, border: `1.5px solid ${inItin ? BRAND.greenDark : BRAND.border}`, borderRadius: 14, padding: "13px 12px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
             <span style={{ fontSize: 16 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItinShort : t.addItinShort}
           </button>
           {bookable && (
-            <button onClick={() => onBook(place)} style={{ flex: 1, background: BRAND.red, color: "#fff", border: "none", borderRadius: 14, padding: "13px 12px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>
+            <button onClick={() => { track("start_booking", { card: place.title_it || place.id }); onBook(place); }} style={{ flex: 1, background: BRAND.red, color: "#fff", border: "none", borderRadius: 14, padding: "13px 12px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>
           )}
         </div>
       </div>
@@ -436,8 +458,8 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) 
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {bookable && <button onClick={() => onBook(place)} style={{ width: "100%", background: BRAND.red, color: "#fff", border: "none", borderRadius: 14, padding: 16, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>}
-            <button onClick={() => onToggleItin(place.id)} style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: inItin ? "rgba(56,176,74,0.12)" : "transparent", color: inItin ? BRAND.greenDark : BRAND.ink, border: `1.5px solid ${inItin ? BRAND.green : BRAND.border}`, borderRadius: 14, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            {bookable && <button onClick={() => { track("start_booking", { card: place.title_it || place.id, from: "detail" }); onBook(place); }} style={{ width: "100%", background: BRAND.red, color: "#fff", border: "none", borderRadius: 14, padding: 16, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>}
+            <button onClick={() => { if (!inItin) track("add_to_itinerary", { card: place.title_it || place.id, from: "detail" }); onToggleItin(place.id); }} style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: inItin ? "rgba(56,176,74,0.12)" : "transparent", color: inItin ? BRAND.greenDark : BRAND.ink, border: `1.5px solid ${inItin ? BRAND.green : BRAND.border}`, borderRadius: 14, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
               <span style={{ fontSize: 16 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItin : t.addItin}
             </button>
           </div>
