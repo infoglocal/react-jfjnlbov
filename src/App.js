@@ -277,7 +277,7 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
           </section>
         );
       })}
-      {/* BOLOGNA DOC — sezione fissa IN FONDO, sempre visibile, uguale per tutti */}
+      {/BOLOGNA DOC — sezione fissa IN FONDO, sempre visibile, uguale per tutti */}
       {docs.length > 0 && (
         <section style={{ marginTop: 36 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
