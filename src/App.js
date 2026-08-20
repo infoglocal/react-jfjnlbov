@@ -277,11 +277,10 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
           </section>
         );
       })}
-      {/BOLOGNA DOC — sezione fissa IN FONDO, sempre visibile, uguale per tutti */}
+      {/* BOLOGNA DOC — sezione fissa IN FONDO, sempre visibile, uguale per tutti */}
       {docs.length > 0 && (
         <section style={{ marginTop: 36 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-            <span style={{ fontSize: 22 }}>★</span>
             <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{t.docTitle}</h2>
           </div>
           <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 12px" }}>{t.docSub}</p>
