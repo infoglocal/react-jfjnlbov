@@ -470,6 +470,8 @@ function DetailGallery({ images, alt }) {
 function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) {
   const title = place[`title_${lang}`];
   const desc = place[`desc_${lang}`];
+  const tip = place[`tip_${lang}`];
+  const [showTip, setShowTip] = useState(false);
   const bookable = String(place.bookable).trim().toLowerCase() === "yes";
   const extra = String(place.images || "").split(",").map((s) => s.trim()).filter(Boolean);
   const gallery = [place.image, ...extra].filter(Boolean);
@@ -493,6 +495,12 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) 
           {place.price && <p style={{ fontSize: 22, fontWeight: 600, margin: "0 0 16px", color: BRAND.red, fontFamily: "'Fraunces', serif" }}>{place.price}</p>}
           <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#4a463d", margin: "0 0 20px", whiteSpace: "pre-line" }}>{desc}</p>
 
+          {tip && (
+            <button onClick={() => { track("open_local_tip", { card: place.title_it || place.id, from: "detail" }); setShowTip(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(229,56,59,0.08)", color: BRAND.red, border: `1.5px solid ${BRAND.red}`, borderRadius: 999, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 20 }}>
+              <span style={{ fontSize: 16 }}>💬</span>{t.localTipsBtn}
+            </button>
+          )}
+
           {mapsUrl && (
             <a href={mapsUrl} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: BRAND.ink, background: BRAND.card, border: `1.5px solid ${BRAND.border}`, borderRadius: 14, padding: "13px 15px", marginBottom: 24 }}>
               <span style={{ fontSize: 18 }}>📍</span>
@@ -507,6 +515,19 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) 
               <span style={{ fontSize: 16 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItin : t.addItin}
             </button>
           </div>
+
+          {showTip && tip && (
+            <div onClick={() => setShowTip(false)} style={{ ...overlay, alignItems: "center", zIndex: 62 }}>
+              <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 20, maxWidth: 380, width: "calc(100% - 48px)", padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 20 }}>💬</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: BRAND.red }}>{t.localTip}</span>
+                </div>
+                <p style={{ fontSize: 16, lineHeight: 1.6, color: "#3a3630", margin: "0 0 20px" }}>{tip}</p>
+                <button onClick={() => setShowTip(false)} style={{ width: "100%", background: BRAND.ink, color: "#fff", border: "none", borderRadius: 12, padding: 13, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.close}</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -843,7 +864,7 @@ function CookieBanner({ t, onOk }) {
     <div style={{ position: "fixed", left: 12, right: 12, bottom: 12, zIndex: 80, background: BRAND.ink, color: "#fff", borderRadius: 16, padding: "16px 18px", boxShadow: "0 10px 40px rgba(0,0,0,0.35)", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, maxWidth: 620, margin: "0 auto" }}>
       <span style={{ flex: 1, minWidth: 200, fontSize: 13.5, lineHeight: 1.5 }}>
         {t.cookieText}{" "}
-        <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: "#9fe0ab", textDecoration: "underline" }}>{t.cookiePolicy}</a>
+        <a href="https://www.iubenda.com/privacy-policy/67582598" target="_blank" rel="noreferrer" style={{ color: "#9fe0ab", textDecoration: "underline" }}>{t.cookiePolicy}</a>{" · "}<a href="https://www.iubenda.com/privacy-policy/67582598/cookie-policy" target="_blank" rel="noreferrer" style={{ color: "#9fe0ab", textDecoration: "underline" }}>Cookie</a>
       </span>
       <button onClick={onOk} style={{ background: BRAND.green, color: "#fff", border: "none", borderRadius: 12, padding: "11px 22px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{t.cookieOk}</button>
     </div>
