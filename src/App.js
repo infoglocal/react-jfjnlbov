@@ -74,6 +74,14 @@ const T = {
     pickCta: "Vedi i risultati", pickHint: "Scegline almeno uno",
     editInterests: "Interessi",
     docTitle: "Bologna doc", docSub: "I classici, col consiglio di un local",
+    betaTitle: "Glocal è in costruzione 🚧",
+    betaBody: "Stai provando una versione in anteprima. Alcune cose potrebbero cambiare: il tuo parere ci aiuta a migliorare.",
+    betaCta: "Lascia un feedback", betaClose: "Continua a esplorare",
+    fbTitle: "Il tuo feedback", fbBody: "Cosa ne pensi di Glocal? Cosa miglioreresti?",
+    fbPlaceholder: "Scrivi qui il tuo parere…", fbSend: "Invia", fbSending: "Invio…",
+    fbThanks: "Grazie! Il tuo parere è prezioso.",
+    cookieText: "Usiamo cookie tecnici e di statistica per capire come viene usata l'app e migliorarla.",
+    cookieOk: "Ho capito", cookiePolicy: "Privacy",
     localTip: "Il consiglio del local", localTipsBtn: "Local tips",
     emptySection: "Presto nuovi contenuti in questa sezione.",
     book: "Prenota", addItinShort: "Itinerario", inItinShort: "Aggiunto",
@@ -89,7 +97,7 @@ const T = {
     planMorning: "Mattina", planLunch: "Pranzo", planAfternoon: "Pomeriggio", planEvening: "Sera",
     openInMaps: "Apri in Google Maps", shareWa: "Condividi su WhatsApp", day: "Giorno",
     booking: "Prenota", name: "Nome e cognome", email: "Email",
-    people: "Persone", date: "Data", notes: "Note (facoltative)",
+    phone: "Cellulare", people: "Persone", date: "Data", notes: "Note (facoltative)",
     send: "Invia richiesta", sending: "Invio…",
     thanks: "Richiesta inviata", thanksSub: "Non è ancora una conferma: il local ti risponde via email entro 24 ore.",
     whatsapp: "Scrivi su WhatsApp", close: "Chiudi", required: "Compila i campi obbligatori.",
@@ -101,6 +109,14 @@ const T = {
     pickCta: "See results", pickHint: "Pick at least one",
     editInterests: "Interests",
     docTitle: "Bologna doc", docSub: "The classics, with a local's tip",
+    betaTitle: "Glocal is under construction 🚧",
+    betaBody: "You're trying a preview version. Some things may change: your feedback helps us improve.",
+    betaCta: "Leave feedback", betaClose: "Keep exploring",
+    fbTitle: "Your feedback", fbBody: "What do you think of Glocal? What would you improve?",
+    fbPlaceholder: "Write your thoughts here…", fbSend: "Send", fbSending: "Sending…",
+    fbThanks: "Thank you! Your feedback matters.",
+    cookieText: "We use technical and analytics cookies to understand how the app is used and improve it.",
+    cookieOk: "Got it", cookiePolicy: "Privacy",
     localTip: "The local's tip", localTipsBtn: "Local tips",
     emptySection: "New content coming soon in this section.",
     book: "Book", addItinShort: "Itinerary", inItinShort: "Added",
@@ -116,7 +132,7 @@ const T = {
     planMorning: "Morning", planLunch: "Lunch", planAfternoon: "Afternoon", planEvening: "Evening",
     openInMaps: "Open in Google Maps", shareWa: "Share on WhatsApp", day: "Day",
     booking: "Book", name: "Full name", email: "Email",
-    people: "People", date: "Date", notes: "Notes (optional)",
+    phone: "Mobile", people: "People", date: "Date", notes: "Notes (optional)",
     send: "Send request", sending: "Sending…",
     thanks: "Request sent", thanksSub: "Not a confirmation yet: the local will email you within 24 hours.",
     whatsapp: "Message on WhatsApp", close: "Close", required: "Please fill in the required fields.",
@@ -149,6 +165,9 @@ export default function App() {
   const [dateTo, setDateTo] = useState(() => load("gl_dto", ""));
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showBeta, setShowBeta] = useState(() => !load("gl_beta_seen", false));
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [cookieOk, setCookieOk] = useState(() => load("gl_cookie_ok", false));
   const t = T[lang];
 
   useEffect(() => save("gl_lang", lang), [lang]);
@@ -215,6 +234,9 @@ export default function App() {
 
       {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} />}
       {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} />}
+      {showBeta && <BetaModal t={t} onFeedback={() => { setShowBeta(false); save("gl_beta_seen", true); setShowFeedback(true); }} onClose={() => { setShowBeta(false); save("gl_beta_seen", true); }} />}
+      {showFeedback && <FeedbackModal t={t} lang={lang} onClose={() => setShowFeedback(false)} />}
+      {!cookieOk && <CookieBanner t={t} onOk={() => { setCookieOk(true); save("gl_cookie_ok", true); }} />}
     </div>
   );
 }
@@ -652,17 +674,17 @@ function TabBar({ t, tab, setTab, itinCount }) {
 
 /* --------------------------- BOOKING MODAL -------------------------------- */
 function BookingModal({ place, lang, t, onClose }) {
-  const [form, setForm] = useState({ name: "", email: "", people: "2", date: "", notes: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", people: "2", date: "", notes: "" });
   const [status, setStatus] = useState("idle");
   const title = place[`title_${lang}`];
   const contact = String(place.contact || "").replace(/[^0-9]/g, "");
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   const FORMSPREE_ENDPOINT = "https://formspree.io/f/mnpaapzq";
   const submit = async () => {
-    if (!form.name || !form.email || !form.date) { setStatus("error"); return; }
+    if (!form.name || !form.email || !form.phone || !form.date) { setStatus("error"); return; }
     setStatus("sending");
     try {
-      const res = await fetch(FORMSPREE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ esperienza: title, nome: form.name, email: form.email, persone: form.people, data: form.date, note: form.notes, _subject: `Nuova prenotazione Glocal: ${title}` }) });
+      const res = await fetch(FORMSPREE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ esperienza: title, nome: form.name, email: form.email, cellulare: form.phone, persone: form.people, data: form.date, note: form.notes, _subject: `Nuova prenotazione Glocal: ${title}` }) });
       if (res.ok) setStatus("done"); else setStatus("error");
     } catch { setStatus("error"); }
   };
@@ -690,6 +712,7 @@ function BookingModal({ place, lang, t, onClose }) {
             <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 23, margin: "0 0 20px" }}>{title}</h3>
             <Field label={t.name}><input style={inp} value={form.name} onChange={set("name")} /></Field>
             <Field label={t.email}><input style={inp} type="email" value={form.email} onChange={set("email")} /></Field>
+            <Field label={t.phone}><input style={inp} type="tel" value={form.phone} onChange={set("phone")} placeholder="+39 ..." /></Field>
             <div style={{ display: "flex", gap: 12 }}>
               <Field label={t.people} flex><input style={inp} type="number" min="1" value={form.people} onChange={set("people")} /></Field>
               <Field label={t.date} flex><input style={inp} type="date" value={form.date} onChange={set("date")} /></Field>
@@ -738,6 +761,72 @@ function LangToggle({ lang, setLang }) {
     </div>
   );
 }
+/* --------------------------- BETA / FEEDBACK / COOKIE --------------------- */
+function BetaModal({ t, onFeedback, onClose }) {
+  return (
+    <div onClick={onClose} style={{ ...overlay, alignItems: "center", zIndex: 70 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 22, maxWidth: 400, width: "calc(100% - 44px)", padding: 26, boxShadow: "0 20px 60px rgba(0,0,0,0.3)", textAlign: "center" }}>
+        <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 24, margin: "0 0 12px", letterSpacing: "-0.01em" }}>{t.betaTitle}</h3>
+        <p style={{ fontSize: 15.5, lineHeight: 1.55, color: "#4a463d", margin: "0 0 22px" }}>{t.betaBody}</p>
+        <button onClick={onFeedback} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 15, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}>{t.betaCta}</button>
+        <button onClick={onClose} style={{ width: "100%", background: "transparent", color: BRAND.muted, border: "none", padding: 8, fontSize: 14.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{t.betaClose}</button>
+      </div>
+    </div>
+  );
+}
+
+function FeedbackModal({ t, lang, onClose }) {
+  const [text, setText] = useState("");
+  const [status, setStatus] = useState("idle");
+  const FORMSPREE_ENDPOINT = "https://formspree.io/f/mnpaapzq";
+  const submit = async () => {
+    if (!text.trim()) return;
+    setStatus("sending");
+    try {
+      const res = await fetch(FORMSPREE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ tipo: "FEEDBACK", messaggio: text, lingua: lang, _subject: "Nuovo feedback Glocal" }) });
+      if (res.ok) setStatus("done"); else setStatus("error");
+    } catch { setStatus("error"); }
+  };
+  return (
+    <div onClick={onClose} style={{ ...overlay, alignItems: "center", zIndex: 71 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 22, maxWidth: 440, width: "calc(100% - 44px)", padding: 26, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+        {status === "done" ? (
+          <div style={{ textAlign: "center", padding: "12px 4px" }}>
+            <div style={{ width: 54, height: 54, borderRadius: "50%", background: "rgba(56,176,74,0.14)", color: BRAND.green, fontSize: 28, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>✓</div>
+            <p style={{ fontSize: 16, color: "#3a3630", margin: "0 0 20px" }}>{t.fbThanks}</p>
+            <button onClick={onClose} style={{ background: BRAND.ink, color: "#fff", border: "none", borderRadius: 12, padding: "12px 28px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.close}</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+              <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 22, margin: 0 }}>{t.fbTitle}</h3>
+              <button onClick={onClose} style={xBtn}>×</button>
+            </div>
+            <p style={{ fontSize: 14.5, color: BRAND.muted, margin: "0 0 16px" }}>{t.fbBody}</p>
+            <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={t.fbPlaceholder} style={{ ...inp, minHeight: 110, resize: "vertical", marginBottom: 14 }} />
+            <button onClick={submit} disabled={status === "sending" || !text.trim()} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 15, fontSize: 16, fontWeight: 700, cursor: status === "sending" || !text.trim() ? "default" : "pointer", fontFamily: "inherit", opacity: status === "sending" || !text.trim() ? 0.6 : 1 }}>
+              {status === "sending" ? t.fbSending : t.fbSend}
+            </button>
+            {status === "error" && <p style={{ color: BRAND.red, fontSize: 13.5, margin: "10px 0 0", textAlign: "center" }}>{t.required}</p>}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CookieBanner({ t, onOk }) {
+  return (
+    <div style={{ position: "fixed", left: 12, right: 12, bottom: 12, zIndex: 80, background: BRAND.ink, color: "#fff", borderRadius: 16, padding: "16px 18px", boxShadow: "0 10px 40px rgba(0,0,0,0.35)", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, maxWidth: 620, margin: "0 auto" }}>
+      <span style={{ flex: 1, minWidth: 200, fontSize: 13.5, lineHeight: 1.5 }}>
+        {t.cookieText}{" "}
+        <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: "#9fe0ab", textDecoration: "underline" }}>{t.cookiePolicy}</a>
+      </span>
+      <button onClick={onOk} style={{ background: BRAND.green, color: "#fff", border: "none", borderRadius: 12, padding: "11px 22px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{t.cookieOk}</button>
+    </div>
+  );
+}
+
 function FontLink() {
   return (
     <style>{`
