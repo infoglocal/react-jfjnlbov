@@ -74,6 +74,8 @@ const T = {
     pickCta: "Vedi i risultati", pickHint: "Scegline almeno uno",
     editInterests: "Interessi",
     docTitle: "Bologna doc", docSub: "I classici, col consiglio di un local",
+    madeTitle: "100% Made in Bo", madeSub: "Esperienze autentiche, nate qui",
+    betaBar: "🚧 Versione in anteprima",
     betaTitle: "Glocal è in costruzione 🚧",
     betaBody: "Stai provando una versione in anteprima. Alcune cose potrebbero cambiare: il tuo parere ci aiuta a migliorare.",
     betaCta: "Lascia un feedback", betaClose: "Continua a esplorare",
@@ -109,6 +111,8 @@ const T = {
     pickCta: "See results", pickHint: "Pick at least one",
     editInterests: "Interests",
     docTitle: "Bologna doc", docSub: "The classics, with a local's tip",
+    madeTitle: "100% Made in Bo", madeSub: "Authentic experiences, born here",
+    betaBar: "🚧 Preview version",
     betaTitle: "Glocal is under construction 🚧",
     betaBody: "You're trying a preview version. Some things may change: your feedback helps us improve.",
     betaCta: "Leave feedback", betaClose: "Keep exploring",
@@ -146,6 +150,7 @@ const save = (k, v) => { try { store.setItem(k, JSON.stringify(v)); } catch {} }
 
 const hasInterest = (p, id) => String(p.interests || "").split(",").map((s) => s.trim()).includes(id);
 const isDoc = (p) => String(p.doc || "").trim().toLowerCase() === "yes";
+const isMadeInBo = (p) => String(p.madeinbo || "").trim().toLowerCase() === "yes";
 
 /* --------------------------- LOGO ----------------------------------------- */
 function Logo({ height = 26 }) {
@@ -216,6 +221,9 @@ export default function App() {
         <div style={{ justifySelf: "end" }}><LangToggle lang={lang} setLang={setLang} /></div>
       </header>
 
+      {/* barra beta sempre visibile */}
+      <div style={{ background: "rgba(229,56,59,0.10)", color: BRAND.red, textAlign: "center", fontSize: 12.5, fontWeight: 700, padding: "6px 12px", letterSpacing: "0.02em", position: "sticky", top: 57, zIndex: 25, backdropFilter: "blur(6px)" }}>{t.betaBar}</div>
+
       <main style={{ maxWidth: 720, margin: "0 auto", padding: "0 0 96px" }}>
         {tab === "home" && (
           <HomeTab t={t} lang={lang} loading={loading} places={places} chosen={chosen}
@@ -273,6 +281,7 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
   if (loading) return <div style={{ padding: "22px 18px" }}><DeckSkeleton /></div>;
   const visibleSections = SECTIONS.filter((s) => chosen.length === 0 || chosen.includes(s.id));
   const docs = places.filter(isDoc); // TUTTI i classici, sempre, a prescindere dagli interessi
+  const made = places.filter(isMadeInBo); // esperienze fisse Made in Bo, sempre
 
   return (
     <div style={{ padding: "8px 18px 0" }}>
@@ -308,6 +317,18 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
           <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 12px" }}>{t.docSub}</p>
           <Deck items={docs} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
             itinerary={itinerary} onToggleItin={onToggleItin} isDocDeck />
+        </section>
+      )}
+
+      {/* 100% MADE IN BO — sezione fissa, sotto Bologna doc, sempre visibile */}
+      {made.length > 0 && (
+        <section style={{ marginTop: 36 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{t.madeTitle}</h2>
+          </div>
+          <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 12px" }}>{t.madeSub}</p>
+          <Deck items={made} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
+            itinerary={itinerary} onToggleItin={onToggleItin} />
         </section>
       )}
 
