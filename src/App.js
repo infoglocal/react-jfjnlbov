@@ -221,9 +221,6 @@ export default function App() {
         <div style={{ justifySelf: "end" }}><LangToggle lang={lang} setLang={setLang} /></div>
       </header>
 
-      {/* barra beta sempre visibile */}
-      <div style={{ background: "rgba(229,56,59,0.10)", color: BRAND.red, textAlign: "center", fontSize: 12.5, fontWeight: 700, padding: "6px 12px", letterSpacing: "0.02em", position: "sticky", top: 57, zIndex: 25, backdropFilter: "blur(6px)" }}>{t.betaBar}</div>
-
       <main style={{ maxWidth: 720, margin: "0 auto", padding: "0 0 96px" }}>
         {tab === "home" && (
           <HomeTab t={t} lang={lang} loading={loading} places={places} chosen={chosen}
@@ -237,6 +234,11 @@ export default function App() {
             dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} />
         )}
       </main>
+
+      {/* pillola beta flottante: clic -> feedback */}
+      <button onClick={() => setShowFeedback(true)} style={{ position: "fixed", right: 14, bottom: 78, zIndex: 45, display: "inline-flex", alignItems: "center", gap: 6, background: BRAND.ink, color: "#fff", border: "none", borderRadius: 999, padding: "9px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 20px rgba(0,0,0,0.25)" }}>
+        {t.betaBar}
+      </button>
 
       <TabBar t={t} tab={tab} setTab={setTab} itinCount={itinerary.length} />
 
