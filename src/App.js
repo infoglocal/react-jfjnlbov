@@ -234,10 +234,12 @@ export default function App() {
         )}
       </main>
 
-      {/* pillola beta flottante: clic -> feedback */}
-      <button onClick={() => setShowFeedback(true)} style={{ position: "fixed", right: 14, bottom: 78, zIndex: 45, display: "inline-flex", alignItems: "center", gap: 6, background: BRAND.ink, color: "#fff", border: "none", borderRadius: 999, padding: "9px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 20px rgba(0,0,0,0.25)" }}>
-        {t.fbPill}
-      </button>
+      {/* pillola feedback: nascosta quando un pannello è aperto, per non intralciare */}
+      {!detail && !booking && !showFeedback && (
+        <button onClick={() => setShowFeedback(true)} style={{ position: "fixed", right: 14, bottom: 78, zIndex: 45, display: "inline-flex", alignItems: "center", gap: 6, background: BRAND.ink, color: "#fff", border: "none", borderRadius: 999, padding: "9px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 20px rgba(0,0,0,0.25)" }}>
+          {t.fbPill}
+        </button>
+      )}
 
       <TabBar t={t} tab={tab} setTab={setTab} itinCount={itinerary.length} />
 
@@ -343,7 +345,14 @@ function Deck({ items, lang, t, onBook, onDetail, itinerary, onToggleItin, isDoc
   const [idx, setIdx] = useState(0);
   const drag = useRef({ down: false, x: 0, s: 0, moved: false });
   const onScroll = () => { const el = ref.current; if (!el) return; setIdx(Math.round(el.scrollLeft / el.clientWidth)); };
-  const go = (dir) => { const el = ref.current; if (!el) return; el.scrollBy({ left: dir * el.clientWidth, behavior: "smooth" }); };
+  const go = (dir) => {
+    const el = ref.current; if (!el) return;
+    const n = items.length;
+    let next = idx + dir;
+    if (next < 0) next = n - 1;        // dalla prima -> ultima
+    else if (next >= n) next = 0;      // dall'ultima -> prima
+    el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
+  };
   const onDown = (e) => { const el = ref.current; if (!el) return; drag.current = { down: true, x: e.pageX, s: el.scrollLeft, moved: false }; };
   const onMove = (e) => { const el = ref.current; if (!el || !drag.current.down) return; const dx = e.pageX - drag.current.x; if (Math.abs(dx) > 4) drag.current.moved = true; el.scrollLeft = drag.current.s - dx; };
   const end = () => { drag.current.down = false; };
@@ -362,8 +371,8 @@ function Deck({ items, lang, t, onBook, onDetail, itinerary, onToggleItin, isDoc
           </div>
         ))}
       </div>
-      {idx > 0 && <DeckArrow dir="left" onClick={() => go(-1)} />}
-      {idx < items.length - 1 && <DeckArrow dir="right" onClick={() => go(1)} />}
+      {items.length > 1 && <DeckArrow dir="left" onClick={() => go(-1)} />}
+      {items.length > 1 && <DeckArrow dir="right" onClick={() => go(1)} />}
       {items.length > 1 && items.length <= 12 && (
         <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 10 }}>
           {items.map((_, i) => (
@@ -466,7 +475,7 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) 
   const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : null;
 
   return (
-    <div onClick={onClose} style={{ ...overlay, zIndex: 55 }}>
+    <div onClick={onClose} style={overlay}>
       <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 540, padding: 0, maxHeight: "94vh" }}>
         <div style={{ position: "relative" }}>
           <DetailGallery images={gallery} alt={title} />
@@ -713,7 +722,7 @@ function BookingModal({ place, lang, t, onClose }) {
     : `Hi! I sent a booking request via Glocal for "${title}" on ${form.date || "—"}, ${form.people} people. Under the name ${form.name || "—"}.`);
 
   return (
-    <div onClick={onClose} style={{ ...overlay, zIndex: 60 }}>
+    <div onClick={onClose} style={overlay}>
       <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 520, padding: 24 }}>
         {status === "done" ? (
           <div style={{ textAlign: "center", padding: "28px 8px" }}>
@@ -762,7 +771,7 @@ function DeckSkeleton() {
 function Spinner() { return <span style={{ width: 14, height: 14, border: `2px solid ${BRAND.border}`, borderTopColor: BRAND.red, borderRadius: "50%", display: "inline-block" }} className="gl-spin" />; }
 
 /* ----------------------------- SMALL BITS --------------------------------- */
-const overlay = { position: "fixed", inset: 0, background: "rgba(26,20,12,0.55)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 50 };
+const overlay = { position: "fixed", inset: 0, background: "rgba(26,20,12,0.55)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 90 };
 const sheet = { background: BRAND.bg, width: "100%", borderRadius: "22px 22px 0 0", overflowY: "auto", maxHeight: "92vh", boxShadow: "0 -10px 50px rgba(0,0,0,0.25)" };
 const inp = { width: "100%", boxSizing: "border-box", padding: "12px 14px", borderRadius: 12, border: `1.5px solid ${BRAND.border}`, background: BRAND.card, fontSize: 15, fontFamily: "inherit", color: BRAND.ink, outline: "none" };
 const xBtn = { background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "#999", lineHeight: 1 };
@@ -808,7 +817,7 @@ function FeedbackModal({ t, lang, onClose }) {
     } catch { setStatus("error"); }
   };
   return (
-    <div onClick={onClose} style={{ ...overlay, alignItems: "center", zIndex: 71 }}>
+    <div onClick={onClose} style={{ ...overlay, alignItems: "center", zIndex: 95 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 22, maxWidth: 440, width: "calc(100% - 44px)", padding: 26, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
         {status === "done" ? (
           <div style={{ textAlign: "center", padding: "12px 4px" }}>
@@ -851,7 +860,7 @@ function CookieBanner({ t, onOk }) {
 // stessa struttura del BookingModal, colori sul verde
 function LocalTipSheet({ tip, t, onClose }) {
   return (
-    <div onClick={onClose} style={{ ...overlay, zIndex: 62 }}>
+    <div onClick={onClose} style={overlay}>
       <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 520, padding: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
           <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.14em", color: BRAND.green, fontWeight: 700 }}>💬 {t.localTip}</span>
