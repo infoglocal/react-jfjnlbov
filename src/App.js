@@ -424,22 +424,7 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
         </div>
       </div>
 
-      {showTip && tip && (
-        <div onClick={() => setShowTip(false)} style={{ ...overlay, alignItems: "center", zIndex: 58 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 20, maxWidth: 400, width: "calc(100% - 44px)", maxHeight: "80vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "22px 22px 12px" }}>
-              <span style={{ fontSize: 20 }}>💬</span>
-              <span style={{ fontSize: 12.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: BRAND.greenDark }}>{t.localTip}</span>
-            </div>
-            <div style={{ padding: "0 22px", overflowY: "auto", flex: 1 }}>
-              <p style={{ fontSize: 16, lineHeight: 1.6, color: "#3a3630", margin: "0 0 18px", whiteSpace: "pre-line" }}>{tip}</p>
-            </div>
-            <div style={{ padding: "12px 22px 22px" }}>
-              <button onClick={() => setShowTip(false)} style={{ width: "100%", background: BRAND.ink, color: "#fff", border: "none", borderRadius: 12, padding: 13, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.close}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {showTip && tip && <LocalTipSheet tip={tip} t={t} onClose={() => setShowTip(false)} />}
     </article>
   );
 }
@@ -518,22 +503,7 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) 
             </button>
           </div>
 
-          {showTip && tip && (
-            <div onClick={() => setShowTip(false)} style={{ ...overlay, alignItems: "center", zIndex: 62 }}>
-              <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 20, maxWidth: 400, width: "calc(100% - 44px)", maxHeight: "80vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "22px 22px 12px" }}>
-                  <span style={{ fontSize: 20 }}>💬</span>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: BRAND.greenDark }}>{t.localTip}</span>
-                </div>
-                <div style={{ padding: "0 22px", overflowY: "auto", flex: 1 }}>
-                  <p style={{ fontSize: 16, lineHeight: 1.6, color: "#3a3630", margin: "0 0 18px", whiteSpace: "pre-line" }}>{tip}</p>
-                </div>
-                <div style={{ padding: "12px 22px 22px" }}>
-                  <button onClick={() => setShowTip(false)} style={{ width: "100%", background: BRAND.ink, color: "#fff", border: "none", borderRadius: 12, padding: 13, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.close}</button>
-                </div>
-              </div>
-            </div>
-          )}
+          {showTip && tip && <LocalTipSheet tip={tip} t={t} onClose={() => setShowTip(false)} />}
         </div>
       </div>
     </div>
@@ -873,6 +843,26 @@ function CookieBanner({ t, onOk }) {
         <a href="https://www.iubenda.com/privacy-policy/67582598" target="_blank" rel="noreferrer" style={{ color: "#9fe0ab", textDecoration: "underline" }}>{t.cookiePolicy}</a>{" · "}<a href="https://www.iubenda.com/privacy-policy/67582598/cookie-policy" target="_blank" rel="noreferrer" style={{ color: "#9fe0ab", textDecoration: "underline" }}>Cookie</a>
       </span>
       <button onClick={onOk} style={{ background: BRAND.green, color: "#fff", border: "none", borderRadius: 12, padding: "11px 22px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{t.cookieOk}</button>
+    </div>
+  );
+}
+
+/* --------------------------- LOCAL TIP SHEET ------------------------------ */
+// pannello che sale dal basso: scroll naturale come il dettaglio, comodo su mobile
+function LocalTipSheet({ tip, t, onClose }) {
+  return (
+    <div onClick={onClose} style={{ ...overlay, zIndex: 62 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 540, maxHeight: "82vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 22px 14px", borderBottom: `1px solid ${BRAND.border}` }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: BRAND.greenDark }}>
+            <span style={{ fontSize: 18 }}>💬</span>{t.localTip}
+          </span>
+          <button onClick={onClose} aria-label={t.close} style={xBtn}>×</button>
+        </div>
+        <div style={{ padding: "18px 22px 24px", overflowY: "auto", WebkitOverflowScrolling: "touch", flex: 1 }}>
+          <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#3a3630", margin: 0, whiteSpace: "pre-line" }}>{tip}</p>
+        </div>
+      </div>
     </div>
   );
 }
