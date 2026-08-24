@@ -863,7 +863,7 @@ function LocalTipSheet({ place, tip, lang, t, onClose }) {
   const title = place[`title_${lang}`];
   return (
     <div onClick={onClose} style={overlay}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 520, padding: 24 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 520, padding: 24, minHeight: "55vh" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
           <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.14em", color: BRAND.green, fontWeight: 700 }}>{t.localTip}</span>
           <button onClick={onClose} style={xBtn}>×</button>
