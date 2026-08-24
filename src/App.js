@@ -165,6 +165,7 @@ export default function App() {
   const [picking, setPicking] = useState(true);      // true = schermata scelta interessi
   const [booking, setBooking] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [tipPlace, setTipPlace] = useState(null);
   const [itinerary, setItinerary] = useState(() => load("gl_itin", []));
   const [dateFrom, setDateFrom] = useState(() => load("gl_dfrom", ""));
   const [dateTo, setDateTo] = useState(() => load("gl_dto", ""));
@@ -224,7 +225,7 @@ export default function App() {
         {tab === "home" && (
           <HomeTab t={t} lang={lang} loading={loading} places={places} chosen={chosen}
             onEditInterests={() => setPicking(true)}
-            onBook={setBooking} onDetail={setDetail}
+            onBook={setBooking} onDetail={setDetail} onTip={setTipPlace}
             itinerary={itinerary} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} />
         )}
         {tab === "itin" && (
@@ -243,8 +244,9 @@ export default function App() {
 
       <TabBar t={t} tab={tab} setTab={setTab} itinCount={itinerary.length} />
 
-      {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} />}
+      {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} />}
       {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} />}
+      {tipPlace && <LocalTipSheet place={tipPlace} tip={tipPlace[`tip_${lang}`]} lang={lang} t={t} onClose={() => setTipPlace(null)} />}
       {showFeedback && <FeedbackModal t={t} lang={lang} onClose={() => setShowFeedback(false)} />}
       {!cookieOk && <CookieBanner t={t} onOk={() => { setCookieOk(true); save("gl_cookie_ok", true); }} />}
     </div>
@@ -279,7 +281,7 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone }) {
 }
 
 /* ------------------------------ HOME TAB ---------------------------------- */
-function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, onDetail, itinerary, onToggleItin }) {
+function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, onDetail, onTip, itinerary, onToggleItin }) {
   if (loading) return <div style={{ padding: "22px 18px" }}><DeckSkeleton /></div>;
   const visibleSections = SECTIONS.filter((s) => chosen.length === 0 || chosen.includes(s.id));
   const docs = places.filter(isDoc); // TUTTI i classici, sempre, a prescindere dagli interessi
@@ -305,7 +307,7 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
               <span style={{ fontSize: 22 }}>{sec.emoji}</span>
               <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{sec[lang]}</h2>
             </div>
-            <Deck items={normal} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
+            <Deck items={normal} lang={lang} t={t} onBook={onBook} onDetail={onDetail} onTip={onTip}
               itinerary={itinerary} onToggleItin={onToggleItin} />
           </section>
         );
@@ -317,7 +319,7 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
             <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{t.docTitle}</h2>
           </div>
           <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 12px" }}>{t.docSub}</p>
-          <Deck items={docs} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
+          <Deck items={docs} lang={lang} t={t} onBook={onBook} onDetail={onDetail} onTip={onTip}
             itinerary={itinerary} onToggleItin={onToggleItin} isDocDeck />
         </section>
       )}
@@ -329,7 +331,7 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
             <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{t.madeTitle}</h2>
           </div>
           <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 12px" }}>{t.madeSub}</p>
-          <Deck items={made} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
+          <Deck items={made} lang={lang} t={t} onBook={onBook} onDetail={onDetail} onTip={onTip}
             itinerary={itinerary} onToggleItin={onToggleItin} />
         </section>
       )}
@@ -340,7 +342,7 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
 }
 
 /* -------------------------------- DECK ------------------------------------ */
-function Deck({ items, lang, t, onBook, onDetail, itinerary, onToggleItin, isDocDeck }) {
+function Deck({ items, lang, t, onBook, onDetail, onTip, itinerary, onToggleItin, isDocDeck }) {
   const ref = useRef(null);
   const [idx, setIdx] = useState(0);
   const drag = useRef({ down: false, x: 0, s: 0, moved: false });
@@ -366,7 +368,7 @@ function Deck({ items, lang, t, onBook, onDetail, itinerary, onToggleItin, isDoc
       <div ref={ref} className="gl-deck" onScroll={onScroll} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={end} onMouseLeave={end} onClickCapture={onClickCapture}>
         {items.map((p) => (
           <div key={p.id} className="gl-deck-slide">
-            <DeckCard place={p} lang={lang} t={t} onBook={onBook} onDetail={onDetail}
+            <DeckCard place={p} lang={lang} t={t} onBook={onBook} onDetail={onDetail} onTip={onTip}
               inItin={itinerary.includes(p.id)} onToggleItin={() => onToggleItin(p.id)} />
           </div>
         ))}
@@ -394,11 +396,10 @@ function DeckArrow({ dir, onClick }) {
 }
 
 /* ----------------------------- DECK CARD ---------------------------------- */
-function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
+function DeckCard({ place, lang, t, onBook, onDetail, onTip, inItin, onToggleItin }) {
   const title = place[`title_${lang}`];
   const desc = place[`desc_${lang}`];
   const tip = place[`tip_${lang}`];
-  const [showTip, setShowTip] = useState(false);
   const bookable = String(place.bookable).trim().toLowerCase() === "yes";
 
   return (
@@ -418,7 +419,7 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
         {place.price && <div style={{ fontSize: 15, fontWeight: 700, color: BRAND.red, fontFamily: "'Fraunces', serif", marginBottom: 12 }}>{place.price}</div>}
 
         {tip && (
-          <button onClick={() => { track("open_local_tip", { card: place.title_it || place.id }); setShowTip(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 7, alignSelf: "flex-start", background: "rgba(56,176,74,0.10)", color: BRAND.greenDark, border: `1.5px solid ${BRAND.green}`, borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
+          <button onClick={() => { track("open_local_tip", { card: place.title_it || place.id }); onTip(place); }} style={{ display: "inline-flex", alignItems: "center", gap: 7, alignSelf: "flex-start", background: "rgba(56,176,74,0.10)", color: BRAND.greenDark, border: `1.5px solid ${BRAND.green}`, borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
             <span style={{ fontSize: 15 }}>💬</span>{t.localTipsBtn}
           </button>
         )}
@@ -433,7 +434,6 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
         </div>
       </div>
 
-      {showTip && tip && <LocalTipSheet place={place} tip={tip} lang={lang} t={t} onClose={() => setShowTip(false)} />}
     </article>
   );
 }
@@ -463,11 +463,10 @@ function DetailGallery({ images, alt }) {
 }
 
 /* --------------------------- DETAIL MODAL --------------------------------- */
-function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) {
+function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inItin }) {
   const title = place[`title_${lang}`];
   const desc = place[`desc_${lang}`];
   const tip = place[`tip_${lang}`];
-  const [showTip, setShowTip] = useState(false);
   const bookable = String(place.bookable).trim().toLowerCase() === "yes";
   const extra = String(place.images || "").split(",").map((s) => s.trim()).filter(Boolean);
   const gallery = [place.image, ...extra].filter(Boolean);
@@ -492,7 +491,7 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) 
           <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#4a463d", margin: "0 0 20px", whiteSpace: "pre-line" }}>{desc}</p>
 
           {tip && (
-            <button onClick={() => { track("open_local_tip", { card: place.title_it || place.id, from: "detail" }); setShowTip(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(56,176,74,0.10)", color: BRAND.greenDark, border: `1.5px solid ${BRAND.green}`, borderRadius: 999, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 20 }}>
+            <button onClick={() => { track("open_local_tip", { card: place.title_it || place.id, from: "detail" }); onTip(place); }} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(56,176,74,0.10)", color: BRAND.greenDark, border: `1.5px solid ${BRAND.green}`, borderRadius: 999, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 20 }}>
               <span style={{ fontSize: 16 }}>💬</span>{t.localTipsBtn}
             </button>
           )}
@@ -512,7 +511,6 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) 
             </button>
           </div>
 
-          {showTip && tip && <LocalTipSheet place={place} tip={tip} lang={lang} t={t} onClose={() => setShowTip(false)} />}
 
         </div>
       </div>
