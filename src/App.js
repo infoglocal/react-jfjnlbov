@@ -858,22 +858,18 @@ function CookieBanner({ t, onOk }) {
 }
 
 /* --------------------------- LOCAL TIP SHEET ------------------------------ */
-// pannello grande che sale dal basso, stessa struttura del BookingModal
+// struttura IDENTICA al BookingModal: stesso overlay, stesso sheet, stessa impaginazione
 function LocalTipSheet({ place, tip, lang, t, onClose }) {
   const title = place[`title_${lang}`];
   return (
     <div onClick={onClose} style={overlay}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 520, height: "88vh", display: "flex", flexDirection: "column", padding: 0 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "22px 24px 14px", borderBottom: `1px solid ${BRAND.border}`, flexShrink: 0 }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.14em", color: BRAND.green, fontWeight: 700 }}>
-            <span style={{ fontSize: 16 }}>💬</span>{t.localTip}
-          </span>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 520, padding: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+          <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.14em", color: BRAND.green, fontWeight: 700 }}>{t.localTip}</span>
           <button onClick={onClose} style={xBtn}>×</button>
         </div>
-        <div style={{ padding: "20px 24px 28px", overflowY: "auto", WebkitOverflowScrolling: "touch", flex: 1 }}>
-          <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 25, margin: "0 0 16px", letterSpacing: "-0.01em" }}>{title}</h3>
-          <p style={{ fontSize: 16.5, lineHeight: 1.7, color: "#3a3630", margin: 0, whiteSpace: "pre-line" }}>{tip}</p>
-        </div>
+        <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 23, margin: "0 0 20px" }}>{title}</h3>
+        <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#3a3630", margin: 0, whiteSpace: "pre-line" }}>{tip}</p>
       </div>
     </div>
   );
