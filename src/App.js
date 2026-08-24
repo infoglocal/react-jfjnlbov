@@ -409,30 +409,34 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
         {place.price && <div style={{ fontSize: 15, fontWeight: 700, color: BRAND.red, fontFamily: "'Fraunces', serif", marginBottom: 12 }}>{place.price}</div>}
 
         {tip && (
-          <button onClick={() => { track("open_local_tip", { card: place.title_it || place.id }); setShowTip(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 7, alignSelf: "flex-start", background: "rgba(229,56,59,0.08)", color: BRAND.red, border: `1.5px solid ${BRAND.red}`, borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
+          <button onClick={() => { track("open_local_tip", { card: place.title_it || place.id }); setShowTip(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 7, alignSelf: "flex-start", background: "rgba(56,176,74,0.10)", color: BRAND.greenDark, border: `1.5px solid ${BRAND.green}`, borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
             <span style={{ fontSize: 15 }}>💬</span>{t.localTipsBtn}
           </button>
         )}
 
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={() => { if (!inItin) track("add_to_itinerary", { card: place.title_it || place.id }); onToggleItin(); }} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: inItin ? BRAND.greenDark : "transparent", color: inItin ? "#fff" : BRAND.ink, border: `1.5px solid ${inItin ? BRAND.greenDark : BRAND.border}`, borderRadius: 14, padding: "13px 12px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+          <button onClick={() => { if (!inItin) track("add_to_itinerary", { card: place.title_it || place.id }); onToggleItin(); }} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: inItin ? BRAND.greenDark : "transparent", color: inItin ? "#fff" : BRAND.red, border: `1.5px solid ${inItin ? BRAND.greenDark : BRAND.red}`, borderRadius: 14, padding: "13px 12px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
             <span style={{ fontSize: 16 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItinShort : t.addItinShort}
           </button>
           {bookable && (
-            <button onClick={() => { track("start_booking", { card: place.title_it || place.id }); onBook(place); }} style={{ flex: 1, background: BRAND.red, color: "#fff", border: "none", borderRadius: 14, padding: "13px 12px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>
+            <button onClick={() => { track("start_booking", { card: place.title_it || place.id }); onBook(place); }} style={{ flex: 1, background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: "13px 12px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>
           )}
         </div>
       </div>
 
       {showTip && tip && (
         <div onClick={() => setShowTip(false)} style={{ ...overlay, alignItems: "center", zIndex: 58 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 20, maxWidth: 380, width: "calc(100% - 48px)", padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 20, maxWidth: 400, width: "calc(100% - 44px)", maxHeight: "80vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "22px 22px 12px" }}>
               <span style={{ fontSize: 20 }}>💬</span>
-              <span style={{ fontSize: 12.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: BRAND.red }}>{t.localTip}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: BRAND.greenDark }}>{t.localTip}</span>
             </div>
-            <p style={{ fontSize: 16, lineHeight: 1.6, color: "#3a3630", margin: "0 0 20px" }}>{tip}</p>
-            <button onClick={() => setShowTip(false)} style={{ width: "100%", background: BRAND.ink, color: "#fff", border: "none", borderRadius: 12, padding: 13, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.close}</button>
+            <div style={{ padding: "0 22px", overflowY: "auto", flex: 1 }}>
+              <p style={{ fontSize: 16, lineHeight: 1.6, color: "#3a3630", margin: "0 0 18px", whiteSpace: "pre-line" }}>{tip}</p>
+            </div>
+            <div style={{ padding: "12px 22px 22px" }}>
+              <button onClick={() => setShowTip(false)} style={{ width: "100%", background: BRAND.ink, color: "#fff", border: "none", borderRadius: 12, padding: 13, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.close}</button>
+            </div>
           </div>
         </div>
       )}
@@ -494,7 +498,7 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) 
           <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#4a463d", margin: "0 0 20px", whiteSpace: "pre-line" }}>{desc}</p>
 
           {tip && (
-            <button onClick={() => { track("open_local_tip", { card: place.title_it || place.id, from: "detail" }); setShowTip(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(229,56,59,0.08)", color: BRAND.red, border: `1.5px solid ${BRAND.red}`, borderRadius: 999, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 20 }}>
+            <button onClick={() => { track("open_local_tip", { card: place.title_it || place.id, from: "detail" }); setShowTip(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(56,176,74,0.10)", color: BRAND.greenDark, border: `1.5px solid ${BRAND.green}`, borderRadius: 999, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 20 }}>
               <span style={{ fontSize: 16 }}>💬</span>{t.localTipsBtn}
             </button>
           )}
@@ -508,21 +512,25 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) 
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {bookable && <button onClick={() => { track("start_booking", { card: place.title_it || place.id, from: "detail" }); onBook(place); }} style={{ width: "100%", background: BRAND.red, color: "#fff", border: "none", borderRadius: 14, padding: 16, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>}
-            <button onClick={() => { if (!inItin) track("add_to_itinerary", { card: place.title_it || place.id, from: "detail" }); onToggleItin(place.id); }} style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: inItin ? "rgba(56,176,74,0.12)" : "transparent", color: inItin ? BRAND.greenDark : BRAND.ink, border: `1.5px solid ${inItin ? BRAND.green : BRAND.border}`, borderRadius: 14, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            {bookable && <button onClick={() => { track("start_booking", { card: place.title_it || place.id, from: "detail" }); onBook(place); }} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 16, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>}
+            <button onClick={() => { if (!inItin) track("add_to_itinerary", { card: place.title_it || place.id, from: "detail" }); onToggleItin(place.id); }} style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: inItin ? "rgba(56,176,74,0.12)" : "transparent", color: inItin ? BRAND.greenDark : BRAND.red, border: `1.5px solid ${inItin ? BRAND.green : BRAND.red}`, borderRadius: 14, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
               <span style={{ fontSize: 16 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItin : t.addItin}
             </button>
           </div>
 
           {showTip && tip && (
             <div onClick={() => setShowTip(false)} style={{ ...overlay, alignItems: "center", zIndex: 62 }}>
-              <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 20, maxWidth: 380, width: "calc(100% - 48px)", padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 20, maxWidth: 400, width: "calc(100% - 44px)", maxHeight: "80vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "22px 22px 12px" }}>
                   <span style={{ fontSize: 20 }}>💬</span>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: BRAND.red }}>{t.localTip}</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: BRAND.greenDark }}>{t.localTip}</span>
                 </div>
-                <p style={{ fontSize: 16, lineHeight: 1.6, color: "#3a3630", margin: "0 0 20px" }}>{tip}</p>
-                <button onClick={() => setShowTip(false)} style={{ width: "100%", background: BRAND.ink, color: "#fff", border: "none", borderRadius: 12, padding: 13, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.close}</button>
+                <div style={{ padding: "0 22px", overflowY: "auto", flex: 1 }}>
+                  <p style={{ fontSize: 16, lineHeight: 1.6, color: "#3a3630", margin: "0 0 18px", whiteSpace: "pre-line" }}>{tip}</p>
+                </div>
+                <div style={{ padding: "12px 22px 22px" }}>
+                  <button onClick={() => setShowTip(false)} style={{ width: "100%", background: BRAND.ink, color: "#fff", border: "none", borderRadius: 12, padding: 13, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.close}</button>
+                </div>
               </div>
             </div>
           )}
@@ -880,7 +888,7 @@ function FontLink() {
       .gl-deck { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -ms-overflow-style: none; cursor: grab; -webkit-overflow-scrolling: touch; }
       .gl-deck:active { cursor: grabbing; }
       .gl-deck::-webkit-scrollbar { display: none; }
-      .gl-deck-slide { flex: 0 0 100%; scroll-snap-align: center; padding: 2px; }
+      .gl-deck-slide { flex: 0 0 100%; scroll-snap-align: center; padding: 2px; box-sizing: border-box; }
       .gl-gallery { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -ms-overflow-style: none; }
       .gl-gallery::-webkit-scrollbar { display: none; }
       .gl-gallery-img { flex: 0 0 100%; width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; scroll-snap-align: center; }
@@ -889,7 +897,6 @@ function FontLink() {
       .gl-spin { animation: glspin 0.8s linear infinite; }
       @keyframes glspin { to { transform: rotate(360deg) } }
       @media (hover:hover) { .gl-deck-arrow:hover { background: #fff; } }
-      @media (min-width: 560px) { .gl-deck-slide { flex: 0 0 420px; padding-right: 16px; } }
       @media (prefers-reduced-motion: reduce) { *, .gl-pulse, .gl-spin { animation: none !important; transition: none !important; } }
     `}</style>
   );
