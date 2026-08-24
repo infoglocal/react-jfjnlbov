@@ -848,20 +848,16 @@ function CookieBanner({ t, onOk }) {
 }
 
 /* --------------------------- LOCAL TIP SHEET ------------------------------ */
-// pannello che sale dal basso: scroll naturale come il dettaglio, comodo su mobile
+// stessa struttura del BookingModal, colori sul verde
 function LocalTipSheet({ tip, t, onClose }) {
   return (
     <div onClick={onClose} style={{ ...overlay, zIndex: 62 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 540, maxHeight: "82vh", display: "flex", flexDirection: "column" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 22px 14px", borderBottom: `1px solid ${BRAND.border}` }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: BRAND.greenDark }}>
-            <span style={{ fontSize: 18 }}>💬</span>{t.localTip}
-          </span>
-          <button onClick={onClose} aria-label={t.close} style={xBtn}>×</button>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 520, padding: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+          <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.14em", color: BRAND.green, fontWeight: 700 }}>💬 {t.localTip}</span>
+          <button onClick={onClose} style={xBtn}>×</button>
         </div>
-        <div style={{ padding: "18px 22px 24px", overflowY: "auto", WebkitOverflowScrolling: "touch", flex: 1 }}>
-          <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#3a3630", margin: 0, whiteSpace: "pre-line" }}>{tip}</p>
-        </div>
+        <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#3a3630", margin: "14px 0 0", whiteSpace: "pre-line" }}>{tip}</p>
       </div>
     </div>
   );
