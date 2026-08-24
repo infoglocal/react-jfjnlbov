@@ -75,7 +75,7 @@ const T = {
     editInterests: "Interessi",
     docTitle: "Bologna doc", docSub: "I classici, col consiglio di un local",
     madeTitle: "100% Made in Bo", madeSub: "Esperienze autentiche, nate qui",
-    betaBar: "🚧 Versione in anteprima",
+    betaBar: "🚧 Versione in anteprima", fbPill: "💬 Lascia un feedback",
     betaTitle: "Glocal è in costruzione 🚧",
     betaBody: "Stai provando una versione in anteprima. Alcune cose potrebbero cambiare: il tuo parere ci aiuta a migliorare.",
     betaCta: "Lascia un feedback", betaClose: "Continua a esplorare",
@@ -112,7 +112,7 @@ const T = {
     editInterests: "Interests",
     docTitle: "Bologna doc", docSub: "The classics, with a local's tip",
     madeTitle: "100% Made in Bo", madeSub: "Authentic experiences, born here",
-    betaBar: "🚧 Preview version",
+    betaBar: "🚧 Preview version", fbPill: "💬 Leave feedback",
     betaTitle: "Glocal is under construction 🚧",
     betaBody: "You're trying a preview version. Some things may change: your feedback helps us improve.",
     betaCta: "Leave feedback", betaClose: "Keep exploring",
@@ -170,7 +170,6 @@ export default function App() {
   const [dateTo, setDateTo] = useState(() => load("gl_dto", ""));
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showBeta, setShowBeta] = useState(() => !load("gl_beta_seen", false));
   const [showFeedback, setShowFeedback] = useState(false);
   const [cookieOk, setCookieOk] = useState(() => load("gl_cookie_ok", false));
   const t = T[lang];
@@ -237,14 +236,13 @@ export default function App() {
 
       {/* pillola beta flottante: clic -> feedback */}
       <button onClick={() => setShowFeedback(true)} style={{ position: "fixed", right: 14, bottom: 78, zIndex: 45, display: "inline-flex", alignItems: "center", gap: 6, background: BRAND.ink, color: "#fff", border: "none", borderRadius: 999, padding: "9px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 20px rgba(0,0,0,0.25)" }}>
-        {t.betaBar}
+        {t.fbPill}
       </button>
 
       <TabBar t={t} tab={tab} setTab={setTab} itinCount={itinerary.length} />
 
       {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} />}
       {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} />}
-      {showBeta && <BetaModal t={t} onFeedback={() => { setShowBeta(false); save("gl_beta_seen", true); setShowFeedback(true); }} onClose={() => { setShowBeta(false); save("gl_beta_seen", true); }} />}
       {showFeedback && <FeedbackModal t={t} lang={lang} onClose={() => setShowFeedback(false)} />}
       {!cookieOk && <CookieBanner t={t} onOk={() => { setCookieOk(true); save("gl_cookie_ok", true); }} />}
     </div>
@@ -822,7 +820,7 @@ function BetaModal({ t, onFeedback, onClose }) {
 function FeedbackModal({ t, lang, onClose }) {
   const [text, setText] = useState("");
   const [status, setStatus] = useState("idle");
-  const FORMSPREE_ENDPOINT = "https://formspree.io/f/mnpaapzq";
+  const FORMSPREE_ENDPOINT = "https://formspree.io/f/maewzgoa";
   const submit = async () => {
     if (!text.trim()) return;
     setStatus("sending");
