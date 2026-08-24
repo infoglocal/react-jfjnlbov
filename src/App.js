@@ -399,7 +399,6 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
   const desc = place[`desc_${lang}`];
   const tip = place[`tip_${lang}`];
   const bookable = String(place.bookable).trim().toLowerCase() === "yes";
-  const [showTip, setShowTip] = useState(false);
 
   return (
     <article style={{ background: BRAND.card, borderRadius: 22, overflow: "hidden", border: `1px solid ${BRAND.border}`, boxShadow: "0 6px 22px rgba(40,30,15,0.08)", height: "100%", display: "flex", flexDirection: "column" }}>
@@ -418,7 +417,7 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
         {place.price && <div style={{ fontSize: 15, fontWeight: 700, color: BRAND.red, fontFamily: "'Fraunces', serif", marginBottom: 12 }}>{place.price}</div>}
 
         {tip && (
-          <button onClick={() => { track("open_local_tip", { card: place.title_it || place.id }); setShowTip(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 7, alignSelf: "flex-start", background: "rgba(56,176,74,0.10)", color: BRAND.greenDark, border: `1.5px solid ${BRAND.green}`, borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
+          <button onClick={() => { track("open_local_tip", { card: place.title_it || place.id }); onDetail(place); }} style={{ display: "inline-flex", alignItems: "center", gap: 7, alignSelf: "flex-start", background: "rgba(56,176,74,0.10)", color: BRAND.greenDark, border: `1.5px solid ${BRAND.green}`, borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
             <span style={{ fontSize: 15 }}>💬</span>{t.localTipsBtn}
           </button>
         )}
@@ -433,7 +432,6 @@ function DeckCard({ place, lang, t, onBook, onDetail, inItin, onToggleItin }) {
         </div>
       </div>
 
-      {showTip && tip && <LocalTipSheet tip={tip} t={t} onClose={() => setShowTip(false)} />}
     </article>
   );
 }
@@ -467,7 +465,6 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) 
   const title = place[`title_${lang}`];
   const desc = place[`desc_${lang}`];
   const tip = place[`tip_${lang}`];
-  const [showTip, setShowTip] = useState(false);
   const bookable = String(place.bookable).trim().toLowerCase() === "yes";
   const extra = String(place.images || "").split(",").map((s) => s.trim()).filter(Boolean);
   const gallery = [place.image, ...extra].filter(Boolean);
@@ -492,9 +489,13 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) 
           <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#4a463d", margin: "0 0 20px", whiteSpace: "pre-line" }}>{desc}</p>
 
           {tip && (
-            <button onClick={() => { track("open_local_tip", { card: place.title_it || place.id, from: "detail" }); setShowTip(true); }} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(56,176,74,0.10)", color: BRAND.greenDark, border: `1.5px solid ${BRAND.green}`, borderRadius: 999, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 20 }}>
-              <span style={{ fontSize: 16 }}>💬</span>{t.localTipsBtn}
-            </button>
+            <div style={{ background: "rgba(56,176,74,0.08)", border: `1.5px solid ${BRAND.green}`, borderRadius: 14, padding: "16px 18px", marginBottom: 22 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 17 }}>💬</span>
+                <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: BRAND.greenDark }}>{t.localTip}</span>
+              </div>
+              <p style={{ fontSize: 15.5, lineHeight: 1.6, color: "#3a3630", margin: 0, whiteSpace: "pre-line" }}>{tip}</p>
+            </div>
           )}
 
           {mapsUrl && (
@@ -512,7 +513,6 @@ function DetailModal({ place, lang, t, onClose, onBook, onToggleItin, inItin }) 
             </button>
           </div>
 
-          {showTip && tip && <LocalTipSheet tip={tip} t={t} onClose={() => setShowTip(false)} />}
         </div>
       </div>
     </div>
@@ -852,22 +852,6 @@ function CookieBanner({ t, onOk }) {
         <a href="https://www.iubenda.com/privacy-policy/67582598" target="_blank" rel="noreferrer" style={{ color: "#9fe0ab", textDecoration: "underline" }}>{t.cookiePolicy}</a>{" · "}<a href="https://www.iubenda.com/privacy-policy/67582598/cookie-policy" target="_blank" rel="noreferrer" style={{ color: "#9fe0ab", textDecoration: "underline" }}>Cookie</a>
       </span>
       <button onClick={onOk} style={{ background: BRAND.green, color: "#fff", border: "none", borderRadius: 12, padding: "11px 22px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{t.cookieOk}</button>
-    </div>
-  );
-}
-
-/* --------------------------- LOCAL TIP SHEET ------------------------------ */
-// stessa struttura del BookingModal, colori sul verde
-function LocalTipSheet({ tip, t, onClose }) {
-  return (
-    <div onClick={onClose} style={overlay}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 520, padding: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-          <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.14em", color: BRAND.green, fontWeight: 700 }}>💬 {t.localTip}</span>
-          <button onClick={onClose} style={xBtn}>×</button>
-        </div>
-        <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#3a3630", margin: "14px 0 0", whiteSpace: "pre-line" }}>{tip}</p>
-      </div>
     </div>
   );
 }
