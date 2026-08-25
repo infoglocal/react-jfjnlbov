@@ -550,11 +550,6 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, d
   const [plan, setPlan] = useState(null);
   const [planning, setPlanning] = useState(false);
 
-  const groups = useMemo(() => {
-    const m = {}; items.forEach((p) => { const z = p.location || "—"; (m[z] = m[z] || []).push(p); });
-    return Object.entries(m);
-  }, [items]);
-
   const nDays = useMemo(() => {
     if (!dateFrom || !dateTo) return 1;
     const d = Math.round((new Date(dateTo) - new Date(dateFrom)) / 86400000) + 1;
@@ -563,15 +558,32 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, d
 
   const runPlan = () => { setPlanning(true); setPlan(null); setTimeout(() => { setPlan(buildPlan(items, nDays)); setPlanning(false); }, 700); };
 
+  const slotLabel = { morning: t.planMorning, lunch: t.planLunch, afternoon: t.planAfternoon, evening: t.planEvening };
+  const slotEmoji = { morning: "🌅", lunch: "🍽️", afternoon: "☀️", evening: "🌙" };
+
   const shareWhatsApp = () => {
     const lines = [`${t.itinTitle} — Bologna`, ""];
-    groups.forEach(([zone, list]) => { lines.push(`📍 ${zone}`); list.forEach((p) => lines.push(`• ${p[`title_${lang}`]}${p.price ? ` (${p.price})` : ""}`)); lines.push(""); });
+    if (plan) {
+      plan.forEach((d, i) => {
+        const hasAny = ["morning", "lunch", "afternoon", "evening"].some((s) => d[s].length);
+        if (!hasAny) return;
+        if (plan.length > 1) lines.push(`📅 ${t.day} ${i + 1}`);
+        ["morning", "lunch", "afternoon", "evening"].forEach((slot) => {
+          if (!d[slot].length) return;
+          lines.push(`${slotEmoji[slot]} ${slotLabel[slot]}`);
+          d[slot].forEach((p) => lines.push(`• ${p[`title_${lang}`]}${p.price ? ` (${p.price})` : ""}`));
+        });
+        lines.push("");
+      });
+    } else {
+      items.forEach((p) => lines.push(`• ${p[`title_${lang}`]}${p.price ? ` (${p.price})` : ""}`));
+      lines.push("");
+    }
+    lines.push("📲 Scopri altre esperienze a Bologna: https://app.g-local.it");
     window.open(`https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
   };
 
   const mapsUrl = googleMapsDirUrl(items);
-  const slotLabel = { morning: t.planMorning, lunch: t.planLunch, afternoon: t.planAfternoon, evening: t.planEvening };
-  const slotEmoji = { morning: "🌅", lunch: "🍽️", afternoon: "☀️", evening: "🌙" };
 
   return (
     <div style={{ padding: "20px 18px 0" }}>
@@ -636,27 +648,27 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, d
             </button>
           </div>
 
-          {groups.map(([zone, list]) => (
-            <div key={zone} style={{ marginBottom: 26 }}>
+          {!plan && (
+            <>
               <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
-                <span style={{ fontSize: 15 }}>📍</span>
-                <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 18 }}>{zone}</span>
+                <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 18 }}>{t.itinTitle}</span>
                 <span style={{ flex: 1, height: 2, background: BRAND.green, opacity: 0.8, borderRadius: 2 }} />
               </div>
               <ul style={listReset}>
-                {list.map((p) => (
+                {items.map((p) => (
                   <li key={p.id} style={rowCard}>
                     <img src={p.image} alt="" style={{ width: 56, height: 56, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 15.5, lineHeight: 1.25 }}>{p[`title_${lang}`]}</div>
+                      {p.location && <div style={{ fontSize: 12.5, color: BRAND.muted, marginTop: 1 }}>📍 {p.location}</div>}
                       {p.price && <div style={{ fontSize: 13.5, color: BRAND.red, marginTop: 2, fontWeight: 600 }}>{p.price}</div>}
                     </div>
                     <button onClick={() => onRemove(p.id)} aria-label={t.remove} style={rowX}>×</button>
                   </li>
                 ))}
               </ul>
-            </div>
-          ))}
+            </>
+          )}
         </>
       )}
     </div>
