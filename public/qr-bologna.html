@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Glocal</title>
+</head>
+<body style="margin:0;background:#FBF8F0;">
+<script>
+  // ---- CONFIGURA QUI se cambi campagna/QR ----
+  var DEST_URL   = "https://app.g-local.it/";
+  var UTM_SOURCE = "qr";
+  var UTM_MEDIUM = "cartolina";
+  var UTM_CAMPAIGN = "bologna_offline";
+  var LOG_URL    = "https://script.google.com/macros/s/AKfycbwZTmAxNUp446kSsegiBh73sD-6fhD6quMeCpdhHwhxBVk6MFboz1gqiohCopHId1WrBw/exec";
+  // ---------------------------------------------
+
+  var target = DEST_URL
+    + "?utm_source=" + encodeURIComponent(UTM_SOURCE)
+    + "&utm_medium=" + encodeURIComponent(UTM_MEDIUM)
+    + "&utm_campaign=" + encodeURIComponent(UTM_CAMPAIGN);
+
+  // log "fire and forget": non blocca il redirect, non aspetta risposta
+  try {
+    var logUrl = LOG_URL
+      + "?campaign=" + encodeURIComponent(UTM_CAMPAIGN)
+      + "&medium=" + encodeURIComponent(UTM_MEDIUM)
+      + "&source=" + encodeURIComponent(UTM_SOURCE)
+      + "&ua=" + encodeURIComponent(navigator.userAgent);
+    // uso Image() invece di fetch: parte subito, non aspetta, nessun problema CORS
+    (new Image()).src = logUrl;
+  } catch (e) {}
+
+  // redirect immediato
+  window.location.replace(target);
+</script>
+</body>
+</html>
