@@ -27,8 +27,8 @@
       + "&medium=" + encodeURIComponent(UTM_MEDIUM)
       + "&source=" + encodeURIComponent(UTM_SOURCE)
       + "&ua=" + encodeURIComponent(navigator.userAgent);
-    // uso Image() invece di fetch: parte subito, non aspetta, nessun problema CORS
-    (new Image()).src = logUrl;
+    // no-cors: la richiesta parte comunque anche se non possiamo leggere la risposta
+    fetch(logUrl, { method: "GET", mode: "no-cors", keepalive: true }).catch(function(){});
   } catch (e) {}
 
   // redirect immediato
