@@ -403,7 +403,7 @@ function DeckCard({ place, lang, t, onBook, onDetail, onTip, inItin, onToggleIti
   const bookable = String(place.bookable).trim().toLowerCase() === "yes";
 
   return (
-    <article style={{ background: BRAND.card, borderRadius: 22, overflow: "hidden", border: `1px solid ${BRAND.border}`, boxShadow: "0 6px 22px rgba(40,30,15,0.08)", height: "100%", display: "flex", flexDirection: "column" }}>
+    <article className="gl-card" style={{ background: BRAND.card, borderRadius: 22, overflow: "hidden", border: `1px solid ${BRAND.border}`, boxShadow: "0 6px 22px rgba(40,30,15,0.08)", height: "100%", display: "flex", flexDirection: "column" }}>
       <div onClick={() => { track("view_card", { card: place.title_it || place.id, section: place.interests }); onDetail(place); }} style={{ position: "relative", aspectRatio: "4/3", background: "#eee", overflow: "hidden", cursor: "pointer" }}>
         <img src={place.image} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.72), rgba(20,16,10,0) 42%)" }} />
@@ -900,12 +900,14 @@ function FontLink() {
       .gl-gallery { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -ms-overflow-style: none; }
       .gl-gallery::-webkit-scrollbar { display: none; }
       .gl-gallery-img { flex: 0 0 100%; width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; scroll-snap-align: center; }
+      .gl-card { transition: transform .15s ease, box-shadow .15s ease; }
+      .gl-card:active { transform: scale(0.975) translateY(1px); box-shadow: 0 2px 10px rgba(40,30,15,0.10) !important; }
       .gl-pulse { animation: glpulse 1.4s ease-in-out infinite; }
       @keyframes glpulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }
       .gl-spin { animation: glspin 0.8s linear infinite; }
       @keyframes glspin { to { transform: rotate(360deg) } }
       @media (hover:hover) { .gl-deck-arrow:hover { background: #fff; } }
-      @media (prefers-reduced-motion: reduce) { *, .gl-pulse, .gl-spin { animation: none !important; transition: none !important; } }
+      @media (prefers-reduced-motion: reduce) { *, .gl-pulse, .gl-spin, .gl-card { animation: none !important; transition: none !important; } }
     `}</style>
   );
 }
