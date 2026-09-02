@@ -518,19 +518,89 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
   );
 }
 
-/* --------------------- PLANNER (suggerimento a regole) -------------------- */
+/* --------------------- PLANNER (a regole, geografico) ---------------------- */
+// Bologna è a ~44.5°N: un grado di longitudine "vale" meno km di uno di
+// latitudine. Questo fattore serve per confrontare correttamente le distanze.
+const LAT_KM = 111.2;
+const LNG_KM = 111.2 * Math.cos((44.5 * Math.PI) / 180); // ~79.4 km/grado
+
+function geoDist(a, b) {
+  const dLat = (a.lat - b.lat) * LAT_KM;
+  const dLng = (a.lng - b.lng) * LNG_KM;
+  return Math.sqrt(dLat * dLat + dLng * dLng);
+}
+
+// Divide i punti in `k` gruppi geograficamente compatti e bilanciati,
+// tagliando ricorsivamente lungo l'asse (lat o lng) con l'estensione maggiore
+// — così ogni giorno copre una zona percorribile a piedi, non tutta la città.
+function splitGeo(points, k) {
+  if (k <= 1 || points.length <= 1) return [points];
+  const lats = points.map((p) => p.lat), lngs = points.map((p) => p.lng);
+  const spreadLat = (Math.max(...lats) - Math.min(...lats)) * LAT_KM;
+  const spreadLng = (Math.max(...lngs) - Math.min(...lngs)) * LNG_KM;
+  const byLat = spreadLat >= spreadLng;
+  const sorted = [...points].sort((a, b) => (byLat ? a.lat - b.lat : a.lng - b.lng));
+  const kLeft = Math.floor(k / 2) || 1;
+  const kRight = k - kLeft;
+  const cut = Math.min(sorted.length - 1, Math.max(1, Math.round((sorted.length * kLeft) / k)));
+  const left = sorted.slice(0, cut);
+  const right = sorted.slice(cut);
+  if (right.length === 0) return splitGeo(left, k);
+  return [...splitGeo(left, kLeft), ...splitGeo(right, kRight)];
+}
+
+// Ordina le tappe di un giorno con un percorso "vicino più vicino": parte da
+// quella più a nord-ovest e visita sempre la più vicina non ancora fatta —
+// evita di fare avanti e indietro nella stessa giornata.
+function nearestNeighborPath(points) {
+  if (points.length <= 1) return [...points];
+  const remaining = [...points].sort((a, b) => a.lat - b.lat || a.lng - b.lng);
+  const path = [remaining.shift()];
+  while (remaining.length) {
+    const last = path[path.length - 1];
+    let bestI = 0, bestD = Infinity;
+    remaining.forEach((p, i) => { const d = geoDist(last, p); if (d < bestD) { bestD = d; bestI = i; } });
+    path.push(remaining.splice(bestI, 1)[0]);
+  }
+  return path;
+}
+
 function buildPlan(items, nDays) {
   const isFood = (p) => hasInterest(p, "food");
-  const isDrink = (p) => hasInterest(p, "drink");
+  const isDrinkOnly = (p) => hasInterest(p, "drink") && !isFood(p);
   const days = Math.max(1, nDays || 1);
-  const evening = items.filter((p) => isDrink(p) && !isFood(p));
-  const meals = items.filter((p) => isFood(p));
-  const daytime = items.filter((p) => !isFood(p) && !(isDrink(p) && !isFood(p)));
-  const perDay = Array.from({ length: days }, () => ({ morning: [], lunch: [], afternoon: [], evening: [] }));
-  daytime.forEach((p, i) => { const d = i % days; (i % 2 === 0 ? perDay[d].morning : perDay[d].afternoon).push(p); });
-  meals.forEach((p, i) => { const d = i % days; (i % 2 === 0 ? perDay[d].lunch : perDay[d].evening).push(p); });
-  evening.forEach((p, i) => { perDay[i % days].evening.push(p); });
-  return perDay;
+
+  const withCoords = items.filter((p) => p.lat && p.lng);
+  const withoutCoords = items.filter((p) => !(p.lat && p.lng));
+
+  // Raggruppa geograficamente in `days` zone compatte; le tappe senza
+  // coordinate (rare) vengono aggiunte a rotazione, un giorno alla volta.
+  const groups = withCoords.length ? splitGeo(withCoords, days) : Array.from({ length: days }, () => []);
+  while (groups.length < days) groups.push([]);
+  withoutCoords.forEach((p, i) => groups[i % days].push(p));
+
+  return groups.map((group) => {
+    const withGeo = group.filter((p) => p.lat && p.lng);
+    const noGeo = group.filter((p) => !(p.lat && p.lng));
+    const path = [...nearestNeighborPath(withGeo), ...noGeo];
+
+    const food = path.filter(isFood);
+    const drink = path.filter(isDrinkOnly);
+    const rest = path.filter((p) => !isFood(p) && !isDrinkOnly(p));
+
+    // Pranzo: la tappa food più centrale nel percorso del giorno, per non
+    // dover tornare indietro apposta. Eventuale food extra va in pomeriggio.
+    const lunch = food.length ? [food[Math.floor(food.length / 2)]] : [];
+    const extraFood = food.filter((p) => p !== lunch[0]);
+    const half = Math.ceil(rest.length / 2);
+
+    return {
+      morning: rest.slice(0, half),
+      lunch,
+      afternoon: [...rest.slice(half), ...extraFood],
+      evening: drink,
+    };
+  });
 }
 
 function googleMapsDirUrl(items) {
