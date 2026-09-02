@@ -534,14 +534,22 @@ function buildPlan(items, nDays) {
 }
 
 function googleMapsDirUrl(items) {
-  const pts = items.filter((p) => p.lat && p.lng);
+  // Usa l'indirizzo testuale (stessa fonte affidabile della card singola) e
+  // ricade su lat/lng solo se un posto non ha l'address compilato.
+  const stop = (p) => {
+    const addr = String(p.address || "").trim();
+    if (addr) return encodeURIComponent(addr);
+    if (p.lat && p.lng) return `${p.lat},${p.lng}`;
+    return null;
+  };
+  const pts = items.map((p) => ({ p, s: stop(p) })).filter((x) => x.s);
   if (pts.length === 0) return null;
-  if (pts.length === 1) return `https://www.google.com/maps/search/?api=1&query=${pts[0].lat},${pts[0].lng}`;
-  const origin = `${pts[0].lat},${pts[0].lng}`;
-  const destination = `${pts[pts.length - 1].lat},${pts[pts.length - 1].lng}`;
-  const waypoints = pts.slice(1, -1).map((p) => `${p.lat},${p.lng}`).join("|");
+  if (pts.length === 1) return `https://www.google.com/maps/search/?api=1&query=${pts[0].s}`;
+  const origin = pts[0].s;
+  const destination = pts[pts.length - 1].s;
+  const waypoints = pts.slice(1, -1).map((x) => x.s).join("|");
   let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=walking`;
-  if (waypoints) url += `&waypoints=${encodeURIComponent(waypoints)}`;
+  if (waypoints) url += `&waypoints=${waypoints}`;
   return url;
 }
 
