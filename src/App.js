@@ -109,7 +109,7 @@ const T = {
     thanks: "Richiesta inviata", thanksSub: "Non è ancora una conferma: il local ti risponde via email entro 24 ore.",
     whatsapp: "Scrivi su WhatsApp", close: "Chiudi", required: "Compila i campi obbligatori.",
     openNow: "Aperto ora", closedNow: "Chiuso ora", closesAt: "chiude alle", opensAt: "apre alle",
-    hoursTitle: "Orari", hoursSynced: "Orari sincronizzati da Google",
+    hoursTitle: "Orari", hoursSynced: "Orari sincronizzati da Google", open24h: "Aperto 24 ore su 24",
   },
   en: {
     loading: "Loading…",
@@ -148,7 +148,7 @@ const T = {
     thanks: "Request sent", thanksSub: "Not a confirmation yet: the local will email you within 24 hours.",
     whatsapp: "Message on WhatsApp", close: "Close", required: "Please fill in the required fields.",
     openNow: "Open now", closedNow: "Closed now", closesAt: "closes at", opensAt: "opens at",
-    hoursTitle: "Hours", hoursSynced: "Hours synced from Google",
+    hoursTitle: "Hours", hoursSynced: "Hours synced from Google", open24h: "Open 24 hours",
   },
 };
 
@@ -199,6 +199,11 @@ function getOpenStatus(orari) {
 
   const todayLine = rows.find((r) => r.toLowerCase().startsWith(todayName));
   const yesterdayLine = rows.find((r) => r.toLowerCase().startsWith(yesterdayName));
+
+  // Caso "aperto 24 ore su 24": nessun range da calcolare, è sempre aperto.
+  if (todayLine && todayLine.toLowerCase().includes("24 ore")) {
+    return { open: true, allDay: true };
+  }
 
   if (yesterdayLine) {
     const yRange = parseTimeRange(yesterdayLine);
@@ -536,7 +541,7 @@ function OpeningHours({ orari, t }) {
   const label = !status
     ? t.hoursTitle
     : status.open
-    ? `${t.openNow} · ${t.closesAt} ${status.closesAt}`
+    ? (status.allDay ? t.open24h : `${t.openNow} · ${t.closesAt} ${status.closesAt}`)
     : status.opensAt
     ? `${t.closedNow} · ${t.opensAt} ${status.opensAt}`
     : t.closedNow;
