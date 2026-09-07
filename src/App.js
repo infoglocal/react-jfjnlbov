@@ -13,7 +13,8 @@ import Papa from "papaparse";
 
    Colonne foglio:
    id | interests | title_it | title_en | desc_it | desc_en | image | images |
-   bookable | price | location | address | lat | lng | contact | doc | tip_it | tip_en
+   bookable | price | location | address | lat | lng | contact | doc | tip_it | tip_en |
+   place_id | orari
 
    - interests: una o più tra food, drink, nature, museums, shopping (virgola).
                 Determina in quale/quali sezioni appare la card.
@@ -23,6 +24,10 @@ import Papa from "papaparse";
    - bookable:  "yes" -> pulsante Prenota. Altro/vuoto -> nascosto.
    - images:    URL extra separati da virgola (galleria nel dettaglio).
    - address:   indirizzo cliccabile (apre Google Maps).
+   - place_id:  Google Place ID, usato dallo script Apps Script per popolare "orari".
+   - orari:     orari settimanali sincronizzati da Google (una riga per giorno,
+                separate da \n, es. "lunedì: 18:00–01:00"). Facoltativo: se
+                vuoto, il blocco orari non viene mostrato.
    ============================================================================ */
 
 const BRAND = {
@@ -103,6 +108,8 @@ const T = {
     send: "Invia richiesta", sending: "Invio…",
     thanks: "Richiesta inviata", thanksSub: "Non è ancora una conferma: il local ti risponde via email entro 24 ore.",
     whatsapp: "Scrivi su WhatsApp", close: "Chiudi", required: "Compila i campi obbligatori.",
+    openNow: "Aperto ora", closedNow: "Chiuso ora", closesAt: "chiude alle", opensAt: "apre alle",
+    hoursTitle: "Orari", hoursSynced: "Orari sincronizzati da Google",
   },
   en: {
     loading: "Loading…",
@@ -140,6 +147,8 @@ const T = {
     send: "Send request", sending: "Sending…",
     thanks: "Request sent", thanksSub: "Not a confirmation yet: the local will email you within 24 hours.",
     whatsapp: "Message on WhatsApp", close: "Close", required: "Please fill in the required fields.",
+    openNow: "Open now", closedNow: "Closed now", closesAt: "closes at", opensAt: "opens at",
+    hoursTitle: "Hours", hoursSynced: "Hours synced from Google",
   },
 };
 
@@ -151,6 +160,61 @@ const save = (k, v) => { try { store.setItem(k, JSON.stringify(v)); } catch {} }
 const hasInterest = (p, id) => String(p.interests || "").split(",").map((s) => s.trim()).includes(id);
 const isDoc = (p) => String(p.doc || "").trim().toLowerCase() === "yes";
 const isMadeInBo = (p) => String(p.madeinbo || "").trim().toLowerCase() === "yes";
+
+/* --------------------------- ORARI (Google sync) --------------------------- */
+const IT_DAYS = ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"];
+
+function parseOrariRows(orari) {
+  if (!orari) return [];
+  return String(orari).split("\n").map((r) => r.trim()).filter(Boolean);
+}
+
+function parseTimeRange(line) {
+  const m = line.match(/(\d{1,2}):(\d{2})\s*[–-]\s*(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  const toMin = (h, mm) => Number(h) * 60 + Number(mm);
+  let start = toMin(m[1], m[2]);
+  let end = toMin(m[3], m[4]);
+  if (end <= start) end += 24 * 60; // fascia che attraversa la mezzanotte
+  return { start, end };
+}
+
+function minToLabel(min) {
+  const h = Math.floor(min / 60) % 24;
+  const m = min % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+// Calcola aperto/chiuso ora leggendo la riga del giorno (e, se serve, quella
+// di ieri per le fasce che sconfinano dopo mezzanotte). Best-effort: se il
+// formato non combacia, torna null e si mostra solo l'elenco settimanale.
+function getOpenStatus(orari) {
+  const rows = parseOrariRows(orari);
+  if (rows.length === 0) return null;
+
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const todayName = IT_DAYS[now.getDay()];
+  const yesterdayName = IT_DAYS[(now.getDay() + 6) % 7];
+
+  const todayLine = rows.find((r) => r.toLowerCase().startsWith(todayName));
+  const yesterdayLine = rows.find((r) => r.toLowerCase().startsWith(yesterdayName));
+
+  if (yesterdayLine) {
+    const yRange = parseTimeRange(yesterdayLine);
+    if (yRange && yRange.end > 24 * 60 && nowMin < yRange.end - 24 * 60) {
+      return { open: true, closesAt: minToLabel(yRange.end - 24 * 60) };
+    }
+  }
+
+  if (!todayLine) return null;
+  const range = parseTimeRange(todayLine);
+  if (!range) return { open: false }; // es. "chiuso"
+
+  if (nowMin >= range.start && nowMin < range.end) return { open: true, closesAt: minToLabel(range.end % (24 * 60)) };
+  if (nowMin < range.start) return { open: false, opensAt: minToLabel(range.start) };
+  return { open: false };
+}
 
 /* --------------------------- LOGO ----------------------------------------- */
 function Logo({ height = 26 }) {
@@ -462,6 +526,37 @@ function DetailGallery({ images, alt }) {
   );
 }
 
+/* --------------------------- OPENING HOURS --------------------------------- */
+function OpeningHours({ orari, t }) {
+  const [open, setOpen] = useState(false);
+  const rows = parseOrariRows(orari);
+  if (rows.length === 0) return null;
+  const status = getOpenStatus(orari);
+
+  const label = !status
+    ? t.hoursTitle
+    : status.open
+    ? `${t.openNow} · ${t.closesAt} ${status.closesAt}`
+    : status.opensAt
+    ? `${t.closedNow} · ${t.opensAt} ${status.opensAt}`
+    : t.closedNow;
+
+  return (
+    <div style={{ border: `1.5px solid ${BRAND.border}`, borderRadius: 14, padding: "13px 15px", marginBottom: 24 }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ all: "unset", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+        <span style={{ fontSize: 14.5, fontWeight: 600, color: status?.open ? BRAND.greenDark : BRAND.ink }}>🕒 {label}</span>
+        <span style={{ fontSize: 13, color: BRAND.muted, transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }}>▾</span>
+      </button>
+      {open && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${BRAND.border}` }}>
+          {rows.map((r, i) => <div key={i} style={{ fontSize: 13, color: "#4a463d", padding: "2px 0" }}>{r}</div>)}
+          <p style={{ fontSize: 11, color: BRAND.muted, margin: "8px 0 0" }}>{t.hoursSynced}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* --------------------------- DETAIL MODAL --------------------------------- */
 function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inItin }) {
   const title = place[`title_${lang}`];
@@ -503,6 +598,8 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
               <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.green }}>{lang === "it" ? "Apri" : "Open"} →</span>
             </a>
           )}
+
+          <OpeningHours orari={place.orari} t={t} />
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {bookable && <button onClick={() => { track("start_booking", { card: place.title_it || place.id, from: "detail" }); onBook(place); }} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 16, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>}
