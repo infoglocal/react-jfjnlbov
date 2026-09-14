@@ -381,19 +381,8 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
           </section>
         );
       })}
-      {/* BOLOGNA DOC — sezione fissa IN FONDO, sempre visibile, uguale per tutti */}
-      {docs.length > 0 && (
-        <section style={{ marginTop: 36 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-            <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{t.docTitle}</h2>
-          </div>
-          <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 12px" }}>{t.docSub}</p>
-          <Deck items={docs} lang={lang} t={t} onBook={onBook} onDetail={onDetail} onTip={onTip}
-            itinerary={itinerary} onToggleItin={onToggleItin} isDocDeck />
-        </section>
-      )}
 
-      {/* 100% MADE IN BO — sezione fissa, sotto Bologna doc, sempre visibile */}
+      {/* 100% MADE IN BO — sezione fissa, ORA sopra Bologna doc, sempre visibile */}
       {made.length > 0 && (
         <section style={{ marginTop: 36 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
@@ -402,6 +391,18 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
           <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 12px" }}>{t.madeSub}</p>
           <Deck items={made} lang={lang} t={t} onBook={onBook} onDetail={onDetail} onTip={onTip}
             itinerary={itinerary} onToggleItin={onToggleItin} />
+        </section>
+      )}
+
+      {/* BOLOGNA DOC — sezione fissa, sotto Made in Bo, sempre visibile, uguale per tutti */}
+      {docs.length > 0 && (
+        <section style={{ marginTop: 36 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{t.docTitle}</h2>
+          </div>
+          <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 12px" }}>{t.docSub}</p>
+          <Deck items={docs} lang={lang} t={t} onBook={onBook} onDetail={onDetail} onTip={onTip}
+            itinerary={itinerary} onToggleItin={onToggleItin} isDocDeck />
         </section>
       )}
 
