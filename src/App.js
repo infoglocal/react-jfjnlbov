@@ -113,8 +113,8 @@ const T = {
   },
   en: {
     loading: "Loading…",
-    pickTitle: "What are you into?",
-    pickSub: "Pick one or more themes. We'll show you only what you like.",
+    pickTitle: "What would you like to do in Bologna?",
+    pickSub: "Pick one or more themes. We’ll show you the best places, hand-picked just for you, as if we were your local friend.",
     pickCta: "See results", pickHint: "Pick at least one",
     editInterests: "Interests",
     docTitle: "Bologna doc", docSub: "The classics, with a local's tip",
