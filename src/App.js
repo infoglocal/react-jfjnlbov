@@ -74,8 +74,8 @@ function track(event, params) {
 const T = {
   it: {
     loading: "Caricamento…",
-    pickTitle: "Cosa ti interessa?",
-    pickSub: "Scegli uno o più temi. Ti mostriamo solo quello che ti piace.",
+    pickTitle: "Cosa ti interessa fare a Bologna?",
+    pickSub: "Scegli uno o più temi. Ti mostriamo i posti migliori scelti per te, come fossimo il tuo amico del posto.",
     pickCta: "Vedi i risultati", pickHint: "Scegline almeno uno",
     editInterests: "Interessi",
     docTitle: "Bologna doc", docSub: "I classici, col consiglio di un local",
