@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Papa from "papaparse";
 
 /* ============================================================================
@@ -106,11 +106,7 @@ const T = {
     itinTitle: "Il tuo itinerario",
     itinEmpty: "Aggiungi luoghi ed esperienze dalla Home per costruire il tuo itinerario.",
     remove: "Rimuovi", clearAll: "Svuota", goHome: "Vai alla Home",
-    tripDates: "Date del viaggio", from: "Dal", to: "Al",
-    planBtn: "✨ Suggerisci un itinerario", planning: "Sto pianificando…",
-    planTitle: "Il tuo itinerario giorno per giorno", planRegen: "Rigenera",
-    planMorning: "Mattina", planLunch: "Pranzo", planAfternoon: "Pomeriggio", planEvening: "Sera",
-    openInMaps: "Apri in Google Maps", shareWa: "Condividi su WhatsApp", day: "Giorno",
+    openInMaps: "Apri in Google Maps", shareWa: "Condividi su WhatsApp",
     booking: "Prenota", name: "Nome e cognome", email: "Email",
     phone: "Cellulare", people: "Persone", date: "Data", notes: "Note (facoltative)",
     send: "Invia richiesta", sending: "Invio…",
@@ -148,11 +144,7 @@ const T = {
     itinTitle: "Your itinerary",
     itinEmpty: "Add places and experiences from Home to build your itinerary.",
     remove: "Remove", clearAll: "Clear", goHome: "Go to Home",
-    tripDates: "Trip dates", from: "From", to: "To",
-    planBtn: "✨ Suggest an itinerary", planning: "Planning…",
-    planTitle: "Your day-by-day itinerary", planRegen: "Regenerate",
-    planMorning: "Morning", planLunch: "Lunch", planAfternoon: "Afternoon", planEvening: "Evening",
-    openInMaps: "Open in Google Maps", shareWa: "Share on WhatsApp", day: "Day",
+    openInMaps: "Open in Google Maps", shareWa: "Share on WhatsApp",
     booking: "Book", name: "Full name", email: "Email",
     phone: "Mobile", people: "People", date: "Date", notes: "Notes (optional)",
     send: "Send request", sending: "Sending…",
@@ -247,8 +239,6 @@ export default function App() {
   const [detail, setDetail] = useState(null);
   const [tipPlace, setTipPlace] = useState(null);
   const [itinerary, setItinerary] = useState(() => load("gl_itin", []));
-  const [dateFrom, setDateFrom] = useState(() => load("gl_dfrom", ""));
-  const [dateTo, setDateTo] = useState(() => load("gl_dto", ""));
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -257,8 +247,6 @@ export default function App() {
 
   useEffect(() => save("gl_lang", lang), [lang]);
   useEffect(() => save("gl_itin", itinerary), [itinerary]);
-  useEffect(() => save("gl_dfrom", dateFrom), [dateFrom]);
-  useEffect(() => save("gl_dto", dateTo), [dateTo]);
 
   useEffect(() => {
     initGA();
@@ -310,8 +298,7 @@ export default function App() {
         )}
         {tab === "itin" && (
           <ItineraryTab t={t} lang={lang} items={itinerary.map(byId).filter(Boolean)}
-            onRemove={(id) => toggleIn(itinerary, setItinerary, id)} onClear={() => setItinerary([])} onGoHome={() => setTab("home")}
-            dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} />
+            onRemove={(id) => toggleIn(itinerary, setItinerary, id)} onClear={() => setItinerary([])} onGoHome={() => setTab("home")} />
         )}
       </main>
 
@@ -668,91 +655,7 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
   );
 }
 
-/* --------------------- PLANNER (a regole, geografico) ---------------------- */
-// Bologna è a ~44.5°N: un grado di longitudine "vale" meno km di uno di
-// latitudine. Questo fattore serve per confrontare correttamente le distanze.
-const LAT_KM = 111.2;
-const LNG_KM = 111.2 * Math.cos((44.5 * Math.PI) / 180); // ~79.4 km/grado
-
-function geoDist(a, b) {
-  const dLat = (a.lat - b.lat) * LAT_KM;
-  const dLng = (a.lng - b.lng) * LNG_KM;
-  return Math.sqrt(dLat * dLat + dLng * dLng);
-}
-
-// Divide i punti in `k` gruppi geograficamente compatti e bilanciati,
-// tagliando ricorsivamente lungo l'asse (lat o lng) con l'estensione maggiore
-// — così ogni giorno copre una zona percorribile a piedi, non tutta la città.
-function splitGeo(points, k) {
-  if (k <= 1 || points.length <= 1) return [points];
-  const lats = points.map((p) => p.lat), lngs = points.map((p) => p.lng);
-  const spreadLat = (Math.max(...lats) - Math.min(...lats)) * LAT_KM;
-  const spreadLng = (Math.max(...lngs) - Math.min(...lngs)) * LNG_KM;
-  const byLat = spreadLat >= spreadLng;
-  const sorted = [...points].sort((a, b) => (byLat ? a.lat - b.lat : a.lng - b.lng));
-  const kLeft = Math.floor(k / 2) || 1;
-  const kRight = k - kLeft;
-  const cut = Math.min(sorted.length - 1, Math.max(1, Math.round((sorted.length * kLeft) / k)));
-  const left = sorted.slice(0, cut);
-  const right = sorted.slice(cut);
-  if (right.length === 0) return splitGeo(left, k);
-  return [...splitGeo(left, kLeft), ...splitGeo(right, kRight)];
-}
-
-// Ordina le tappe di un giorno con un percorso "vicino più vicino": parte da
-// quella più a nord-ovest e visita sempre la più vicina non ancora fatta —
-// evita di fare avanti e indietro nella stessa giornata.
-function nearestNeighborPath(points) {
-  if (points.length <= 1) return [...points];
-  const remaining = [...points].sort((a, b) => a.lat - b.lat || a.lng - b.lng);
-  const path = [remaining.shift()];
-  while (remaining.length) {
-    const last = path[path.length - 1];
-    let bestI = 0, bestD = Infinity;
-    remaining.forEach((p, i) => { const d = geoDist(last, p); if (d < bestD) { bestD = d; bestI = i; } });
-    path.push(remaining.splice(bestI, 1)[0]);
-  }
-  return path;
-}
-
-function buildPlan(items, nDays) {
-  const isFood = (p) => hasInterest(p, "food");
-  const isDrinkOnly = (p) => hasInterest(p, "drink") && !isFood(p);
-  const days = Math.max(1, nDays || 1);
-
-  const withCoords = items.filter((p) => p.lat && p.lng);
-  const withoutCoords = items.filter((p) => !(p.lat && p.lng));
-
-  // Raggruppa geograficamente in `days` zone compatte; le tappe senza
-  // coordinate (rare) vengono aggiunte a rotazione, un giorno alla volta.
-  const groups = withCoords.length ? splitGeo(withCoords, days) : Array.from({ length: days }, () => []);
-  while (groups.length < days) groups.push([]);
-  withoutCoords.forEach((p, i) => groups[i % days].push(p));
-
-  return groups.map((group) => {
-    const withGeo = group.filter((p) => p.lat && p.lng);
-    const noGeo = group.filter((p) => !(p.lat && p.lng));
-    const path = [...nearestNeighborPath(withGeo), ...noGeo];
-
-    const food = path.filter(isFood);
-    const drink = path.filter(isDrinkOnly);
-    const rest = path.filter((p) => !isFood(p) && !isDrinkOnly(p));
-
-    // Pranzo: la tappa food più centrale nel percorso del giorno, per non
-    // dover tornare indietro apposta. Eventuale food extra va in pomeriggio.
-    const lunch = food.length ? [food[Math.floor(food.length / 2)]] : [];
-    const extraFood = food.filter((p) => p !== lunch[0]);
-    const half = Math.ceil(rest.length / 2);
-
-    return {
-      morning: rest.slice(0, half),
-      lunch,
-      afternoon: [...rest.slice(half), ...extraFood],
-      evening: drink,
-    };
-  });
-}
-
+/* --------------------------- GOOGLE MAPS ROUTE ------------------------------ */
 function googleMapsDirUrl(items) {
   // Usa l'indirizzo testuale (stessa fonte affidabile della card singola) e
   // ricade su lat/lng solo se un posto non ha l'address compilato.
@@ -774,39 +677,11 @@ function googleMapsDirUrl(items) {
 }
 
 /* --------------------------- ITINERARY TAB -------------------------------- */
-function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, dateTo, setDateFrom, setDateTo }) {
-  const [plan, setPlan] = useState(null);
-  const [planning, setPlanning] = useState(false);
-
-  const nDays = useMemo(() => {
-    if (!dateFrom || !dateTo) return 1;
-    const d = Math.round((new Date(dateTo) - new Date(dateFrom)) / 86400000) + 1;
-    return Math.min(Math.max(d, 1), 14);
-  }, [dateFrom, dateTo]);
-
-  const runPlan = () => { setPlanning(true); setPlan(null); setTimeout(() => { setPlan(buildPlan(items, nDays)); setPlanning(false); }, 700); };
-
-  const slotLabel = { morning: t.planMorning, lunch: t.planLunch, afternoon: t.planAfternoon, evening: t.planEvening };
-  const slotEmoji = { morning: "🌅", lunch: "🍽️", afternoon: "☀️", evening: "🌙" };
-
+function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome }) {
   const shareWhatsApp = () => {
     const lines = [`${t.itinTitle} — Bologna`, ""];
-    if (plan) {
-      plan.forEach((d, i) => {
-        const hasAny = ["morning", "lunch", "afternoon", "evening"].some((s) => d[s].length);
-        if (!hasAny) return;
-        if (plan.length > 1) lines.push(`📅 ${t.day} ${i + 1}`);
-        ["morning", "lunch", "afternoon", "evening"].forEach((slot) => {
-          if (!d[slot].length) return;
-          lines.push(`${slotEmoji[slot]} ${slotLabel[slot]}`);
-          d[slot].forEach((p) => lines.push(`• ${p[`title_${lang}`]}${p.price ? ` (${p.price})` : ""}`));
-        });
-        lines.push("");
-      });
-    } else {
-      items.forEach((p) => lines.push(`• ${p[`title_${lang}`]}${p.price ? ` (${p.price})` : ""}`));
-      lines.push("");
-    }
+    items.forEach((p) => lines.push(`• ${p[`title_${lang}`]}${p.price ? ` (${p.price})` : ""}`));
+    lines.push("");
     lines.push("📲 Scopri altre esperienze a Bologna: https://app.g-local.it");
     window.open(`https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
   };
@@ -824,48 +699,7 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, d
         <EmptyState msg={t.itinEmpty} cta={t.goHome} onCta={onGoHome} icon="🗺️" />
       ) : (
         <>
-          <div style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 16, padding: 16, marginBottom: 16 }}>
-            <p style={{ ...sheetLabel, marginBottom: 10 }}>{t.tripDates}</p>
-            <div style={{ display: "flex", gap: 10 }}>
-              <label style={{ flex: 1 }}><span style={{ display: "block", fontSize: 12, color: BRAND.muted, marginBottom: 4 }}>{t.from}</span><input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={inp} /></label>
-              <label style={{ flex: 1 }}><span style={{ display: "block", fontSize: 12, color: BRAND.muted, marginBottom: 4 }}>{t.to}</span><input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={inp} /></label>
-            </div>
-          </div>
-
-          <button onClick={runPlan} disabled={planning} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 16, padding: 16, fontSize: 16, fontWeight: 700, cursor: planning ? "default" : "pointer", fontFamily: "inherit", marginBottom: 16, opacity: planning ? 0.7 : 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            {planning ? <><Spinner />{t.planning}</> : t.planBtn}
-          </button>
-
-          {plan && (
-            <div style={{ background: BRAND.card, border: `1.5px solid ${BRAND.green}`, borderRadius: 18, padding: 18, marginBottom: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 18, margin: 0 }}>{t.planTitle}</h3>
-                <button onClick={runPlan} style={{ background: "none", border: "none", color: BRAND.green, fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>↻ {t.planRegen}</button>
-              </div>
-              {plan.map((d, i) => {
-                const hasAny = ["morning", "lunch", "afternoon", "evening"].some((s) => d[s].length);
-                if (!hasAny) return null;
-                return (
-                  <div key={i} style={{ marginBottom: i < plan.length - 1 ? 18 : 0 }}>
-                    {plan.length > 1 && <div style={{ fontWeight: 700, fontSize: 14, color: BRAND.red, marginBottom: 8 }}>{t.day} {i + 1}</div>}
-                    {["morning", "lunch", "afternoon", "evening"].map((slot) => (
-                      d[slot].length > 0 && (
-                        <div key={slot} style={{ display: "flex", gap: 10, marginBottom: 8 }}>
-                          <span style={{ fontSize: 16, flexShrink: 0 }}>{slotEmoji[slot]}</span>
-                          <div>
-                            <span style={{ fontSize: 12.5, fontWeight: 700, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{slotLabel[slot]}</span>
-                            <div translate="no" className="notranslate" style={{ fontSize: 14.5, color: BRAND.ink }}>{d[slot].map((p) => p[`title_${lang}`]).join(" · ")}</div>
-                          </div>
-                        </div>
-                      )
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
+          <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
             {mapsUrl && (
               <a href={mapsUrl} target="_blank" rel="noreferrer" style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: BRAND.card, color: BRAND.ink, textDecoration: "none", border: `1.5px solid ${BRAND.border}`, borderRadius: 14, padding: "13px 12px", fontSize: 14, fontWeight: 700 }}>
                 <span>🗺️</span>{t.openInMaps}
@@ -876,27 +710,19 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, d
             </button>
           </div>
 
-          {!plan && (
-            <>
-              <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
-                <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 18 }}>{t.itinTitle}</span>
-                <span style={{ flex: 1, height: 2, background: BRAND.green, opacity: 0.8, borderRadius: 2 }} />
-              </div>
-              <ul style={listReset}>
-                {items.map((p) => (
-                  <li key={p.id} style={rowCard}>
-                    <img src={p.image} alt="" style={{ width: 56, height: 56, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div translate="no" className="notranslate" style={{ fontWeight: 600, fontSize: 15.5, lineHeight: 1.25 }}>{p[`title_${lang}`]}</div>
-                      {p.location && <div style={{ fontSize: 12.5, color: BRAND.muted, marginTop: 1 }}>📍 {p.location}</div>}
-                      {p.price && <div style={{ fontSize: 13.5, color: BRAND.red, marginTop: 2, fontWeight: 600 }}>{p.price}</div>}
-                    </div>
-                    <button onClick={() => onRemove(p.id)} aria-label={t.remove} style={rowX}>×</button>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
+          <ul style={listReset}>
+            {items.map((p) => (
+              <li key={p.id} style={rowCard}>
+                <img src={p.image} alt="" style={{ width: 56, height: 56, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div translate="no" className="notranslate" style={{ fontWeight: 600, fontSize: 15.5, lineHeight: 1.25 }}>{p[`title_${lang}`]}</div>
+                  {p.location && <div style={{ fontSize: 12.5, color: BRAND.muted, marginTop: 1 }}>📍 {p.location}</div>}
+                  {p.price && <div style={{ fontSize: 13.5, color: BRAND.red, marginTop: 2, fontWeight: 600 }}>{p.price}</div>}
+                </div>
+                <button onClick={() => onRemove(p.id)} aria-label={t.remove} style={rowX}>×</button>
+              </li>
+            ))}
+          </ul>
         </>
       )}
     </div>
