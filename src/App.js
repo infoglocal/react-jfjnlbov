@@ -315,7 +315,11 @@ export default function App() {
       <FontLink />
       <header style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "14px 18px", position: "sticky", top: 0, background: "rgba(251,248,240,0.92)", backdropFilter: "blur(10px)", zIndex: 30, borderBottom: `1px solid ${BRAND.border}` }}>
         <span style={{ justifySelf: "start" }}>{loading && <Spinner />}</span>
-        <div style={{ justifySelf: "center" }}><Logo /></div>
+        <div style={{ justifySelf: "center" }}>
+          <button onClick={() => { track("open_interest_picker_from_logo"); setPicking(true); }} aria-label={t.editInterests} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block" }}>
+            <Logo />
+          </button>
+        </div>
         <div style={{ justifySelf: "end" }}><LangToggle lang={lang} setLang={setLang} /></div>
       </header>
 
@@ -361,8 +365,9 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone }) {
           {SECTIONS.map((o, i) => {
             const active = chosen.includes(o.id);
             return (
-              <button key={o.id} onClick={() => onToggle(o.id)} className="gl-pick-card" style={{ animationDelay: `${i * 60}ms`, display: "flex", alignItems: "center", gap: 11, padding: "18px 18px", borderRadius: 16, cursor: "pointer", background: active ? BRAND.green : BRAND.card, color: active ? "#fff" : BRAND.ink, border: `1.5px solid ${active ? BRAND.green : BRAND.border}`, fontSize: 15.5, fontWeight: 500, fontFamily: "inherit", textAlign: "left", boxShadow: active ? "0 10px 24px rgba(196,120,60,0.28)" : "none", transition: "background .15s, box-shadow .15s" }}>
+              <button key={o.id} onClick={() => onToggle(o.id)} className="gl-pick-card" style={{ animationDelay: `${i * 60}ms`, position: "relative", display: "flex", alignItems: "center", gap: 11, padding: "18px 18px", borderRadius: 16, cursor: "pointer", background: active ? BRAND.green : BRAND.card, color: active ? "#fff" : BRAND.ink, border: `1.5px solid ${active ? BRAND.green : BRAND.border}`, fontSize: 15.5, fontWeight: 500, fontFamily: "inherit", textAlign: "left", boxShadow: active ? "0 10px 24px rgba(196,120,60,0.28)" : "none", transition: "background .15s, box-shadow .15s" }}>
                 <span style={{ width: 26, height: 26, flexShrink: 0, display: "inline-flex" }}><img src={o.icon} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></span><span>{o[lang]}</span>
+                {active && <span className="gl-check-pop" style={{ position: "absolute", top: 8, right: 8, width: 22, height: 22, borderRadius: "50%", background: "#fff", color: BRAND.green, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, boxShadow: "0 2px 6px rgba(0,0,0,0.18)" }}>✓</span>}
               </button>
             );
           })}
@@ -1009,6 +1014,8 @@ function FontLink() {
       .gl-card:active { transform: scale(0.975) translateY(1px); box-shadow: 0 2px 10px rgba(40,30,15,0.10) !important; }
       .gl-pick-card { opacity: 0; animation: glFadeUp .5s ease forwards; }
       @keyframes glFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+      .gl-check-pop { animation: glCheckPop .35s cubic-bezier(.34,1.56,.64,1); }
+      @keyframes glCheckPop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
       .gl-rotator-img { animation: glFade 2.6s ease-in-out; }
       @keyframes glFade { 0% { opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
       .gl-rotator-wrap { position: fixed; z-index: 6; pointer-events: none; animation: glRoam 15s ease-in-out infinite; }
@@ -1027,7 +1034,7 @@ function FontLink() {
       .gl-spin { animation: glspin 0.8s linear infinite; }
       @keyframes glspin { to { transform: rotate(360deg) } }
       @media (hover:hover) { .gl-deck-arrow:hover { background: #fff; } }
-      @media (prefers-reduced-motion: reduce) { *, .gl-pulse, .gl-spin, .gl-card, .gl-pick-card, .gl-rotator-img, .gl-rotator-float, .gl-rotator-wrap { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; } }
+      @media (prefers-reduced-motion: reduce) { *, .gl-pulse, .gl-spin, .gl-card, .gl-pick-card, .gl-check-pop, .gl-rotator-img, .gl-rotator-float, .gl-rotator-wrap { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; } }
     `}</style>
   );
 }
