@@ -53,6 +53,13 @@ const SPOTIFY_PLAYLIST_ID = "0PtXUavyTbZMVzvGrgHLKt";
 const SPOTIFY_EMBED_URL = `https://open.spotify.com/embed/playlist/${SPOTIFY_PLAYLIST_ID}?utm_source=generator&theme=0`;
 const SPOTIFY_LINK_URL = `https://open.spotify.com/playlist/${SPOTIFY_PLAYLIST_ID}?si=d13dfa5fe7ab4985`;
 
+// -------- BADGE ROTANTE — Nettuno / tortellino / Due Torri, si alternano con un "flip" --
+const ROTATOR_ITEMS = [
+  { src: "/icons/badge-nettuno.png", alt: "Il Nettuno" },
+  { src: "/icons/badge-tortellino.png", alt: "Un tortellino" },
+  { src: "/icons/badge-duetorri.png", alt: "Le Due Torri" },
+];
+
 // -------- GOOGLE ANALYTICS 4 -----------------------------------------------
 const GA_ID = "G-SDH5FJLQSP";
 // carica lo script GA una sola volta
@@ -228,6 +235,30 @@ function Logo({ height = 26 }) {
   return <img src="/glocal-logo.png" alt="Glocal" style={{ height, width: "auto", display: "block" }} />;
 }
 
+/* --------------------------- BADGE ROTANTE --------------------------------- */
+// Vaga per tutta la schermata di selezione interessi (posizione fixed, percorso
+// ampio in loop) mentre cicla Nettuno / tortellino / Due Torri: ogni ~2.6s
+// l'immagine si "assottiglia" (scaleX verso 0) e a metà del movimento, quando è
+// di taglio, cambia soggetto — stessa illusione dell'effetto sul sito del Forno
+// Brisa, dove la faccia gira per la pagina E cambia. Nessun badge/cerchio intorno:
+// solo l'immagine già scontornata, con una leggera ombra per dare senso di "volo".
+function RotatingBadge({ height = 108 }) {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const period = 2600; // deve combaciare con la durata dell'animazione glFlip
+    const loop = setInterval(() => setIdx((i) => (i + 1) % ROTATOR_ITEMS.length), period);
+    return () => clearInterval(loop);
+  }, []);
+  const item = ROTATOR_ITEMS[idx];
+  return (
+    <div className="gl-rotator-wrap" style={{ height }} aria-hidden="true">
+      <div className="gl-rotator-float" style={{ height: "100%" }}>
+        <img key={idx} src={item.src} alt="" className="gl-rotator-img" style={{ height: "100%", width: "auto", display: "block", filter: "drop-shadow(0 10px 16px rgba(20,16,10,0.28))" }} />
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------- APP -------------------------------------- */
 export default function App() {
   const [lang, setLang] = useState(() => load("gl_lang", "it"));
@@ -275,6 +306,7 @@ export default function App() {
           <div style={{ justifySelf: "end" }}><LangToggle lang={lang} setLang={setLang} /></div>
         </header>
         <InterestPicker t={t} lang={lang} chosen={chosen} onToggle={toggleChosen} onDone={() => { track("select_interests", { interests: chosen.join(",") }); setTab("home"); setPicking(false); }} />
+        <RotatingBadge />
       </div>
     );
   }
@@ -978,12 +1010,25 @@ function FontLink() {
       .gl-card:active { transform: scale(0.975) translateY(1px); box-shadow: 0 2px 10px rgba(40,30,15,0.10) !important; }
       .gl-pick-card { opacity: 0; animation: glFadeUp .5s ease forwards; }
       @keyframes glFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+      .gl-rotator-img { animation: glFlip 2.6s linear; }
+      @keyframes glFlip { 0% { transform: scaleX(0.05); } 18% { transform: scaleX(1); } 82% { transform: scaleX(1); } 100% { transform: scaleX(0.05); } }
+      .gl-rotator-wrap { position: fixed; z-index: 6; pointer-events: none; animation: glRoam 15s ease-in-out infinite; }
+      @keyframes glRoam {
+        0%   { top: 16%; left: 8%; }
+        20%  { top: 9%;  left: 66%; }
+        40%  { top: 58%; left: 80%; }
+        60%  { top: 74%; left: 18%; }
+        80%  { top: 40%; left: 50%; }
+        100% { top: 16%; left: 8%; }
+      }
+      .gl-rotator-float { animation: glOrbit 6.5s ease-in-out infinite; }
+      @keyframes glOrbit { 0% { transform: rotate(0deg); } 25% { transform: rotate(5deg); } 50% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } 100% { transform: rotate(0deg); } }
       .gl-pulse { animation: glpulse 1.4s ease-in-out infinite; }
       @keyframes glpulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }
       .gl-spin { animation: glspin 0.8s linear infinite; }
       @keyframes glspin { to { transform: rotate(360deg) } }
       @media (hover:hover) { .gl-deck-arrow:hover { background: #fff; } }
-      @media (prefers-reduced-motion: reduce) { *, .gl-pulse, .gl-spin, .gl-card, .gl-pick-card { animation: none !important; transition: none !important; opacity: 1 !important; } }
+      @media (prefers-reduced-motion: reduce) { *, .gl-pulse, .gl-spin, .gl-card, .gl-pick-card, .gl-rotator-img, .gl-rotator-float, .gl-rotator-wrap { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; } }
     `}</style>
   );
 }
