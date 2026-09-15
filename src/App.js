@@ -39,11 +39,11 @@ const BRAND = {
 
 // Le SEZIONI dell'app = interessi. L'ordine qui è l'ordine in Home.
 const SECTIONS = [
-  { id: "food",     it: "Cibo",                  en: "Food",             emoji: "🍝" },
-  { id: "drink",    it: "Bere",                  en: "Drinks",           emoji: "🍷" },
-  { id: "nature",   it: "Natura",                en: "Nature",           emoji: "🌿" },
-  { id: "museums",  it: "Musei, arte e cultura", en: "Museums & culture",emoji: "🏛️" },
-  { id: "shopping", it: "Shopping",              en: "Shopping",         emoji: "🛍️" },
+  { id: "food",     it: "Cibo",                  en: "Food",             icon: "/icons/food.png" },
+  { id: "drink",    it: "Bere",                  en: "Drinks",           icon: "/icons/drink.png" },
+  { id: "nature",   it: "Natura",                en: "Nature",           icon: "/icons/nature.png" },
+  { id: "museums",  it: "Musei, arte e cultura", en: "Museums & culture",icon: "/icons/museums.png" },
+  { id: "shopping", it: "Shopping",              en: "Shopping",         icon: "/icons/shopping.png" },
 ];
 
 // -------- CONTENUTI dal Google Sheet pubblicato come CSV --------------------
@@ -332,7 +332,7 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone }) {
             const active = chosen.includes(o.id);
             return (
               <button key={o.id} onClick={() => onToggle(o.id)} style={{ display: "flex", alignItems: "center", gap: 11, padding: "18px 18px", borderRadius: 16, cursor: "pointer", background: active ? BRAND.green : BRAND.card, color: active ? "#fff" : BRAND.ink, border: `1.5px solid ${active ? BRAND.green : BRAND.border}`, fontSize: 15.5, fontWeight: 500, fontFamily: "inherit", textAlign: "left", transition: "all .15s" }}>
-                <span style={{ fontSize: 24 }}>{o.emoji}</span><span>{o[lang]}</span>
+                <span style={{ width: 26, height: 26, flexShrink: 0, display: "inline-flex" }}><img src={o.icon} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></span><span>{o[lang]}</span>
               </button>
             );
           })}
@@ -383,7 +383,7 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
         return (
           <section key={sec.id} style={{ marginTop: 32 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <span style={{ fontSize: 22 }}>{sec.emoji}</span>
+              <span style={{ width: 24, height: 24, flexShrink: 0, display: "inline-flex" }}><img src={sec.icon} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></span>
               <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{sec[lang]}</h2>
             </div>
             <Deck items={normal} lang={lang} t={t} onBook={onBook} onDetail={onDetail} onTip={onTip}
