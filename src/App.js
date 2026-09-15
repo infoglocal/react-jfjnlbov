@@ -49,7 +49,6 @@ const SECTIONS = [
 // -------- CONTENUTI dal Google Sheet pubblicato come CSV --------------------
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTDteVaj56DqRzerlc3EP5YqmpeQYOydBBadXfBE0CozUnO3lcTRN6zrWSghznYtBd5aWYp8D2ALcbL/pub?gid=1251495453&single=true&output=csv";
 
-// -------- SPOTIFY — "La colonna sonora di Bologna" --------------------------
 const SPOTIFY_PLAYLIST_ID = "0PtXUavyTbZMVzvGrgHLKt";
 const SPOTIFY_EMBED_URL = `https://open.spotify.com/embed/playlist/${SPOTIFY_PLAYLIST_ID}?utm_source=generator&theme=0`;
 const SPOTIFY_LINK_URL = `https://open.spotify.com/playlist/${SPOTIFY_PLAYLIST_ID}?si=d13dfa5fe7ab4985`;
@@ -328,10 +327,10 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone }) {
         <h1 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(30px, 7vw, 42px)", letterSpacing: "-0.02em", margin: "0 0 10px", lineHeight: 1.08 }}>{t.pickTitle}</h1>
         <p style={{ color: BRAND.muted, margin: "0 0 30px", fontSize: 16, lineHeight: 1.5 }}>{t.pickSub}</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12, alignContent: "start" }}>
-          {SECTIONS.map((o) => {
+          {SECTIONS.map((o, i) => {
             const active = chosen.includes(o.id);
             return (
-              <button key={o.id} onClick={() => onToggle(o.id)} style={{ display: "flex", alignItems: "center", gap: 11, padding: "18px 18px", borderRadius: 16, cursor: "pointer", background: active ? BRAND.green : BRAND.card, color: active ? "#fff" : BRAND.ink, border: `1.5px solid ${active ? BRAND.green : BRAND.border}`, fontSize: 15.5, fontWeight: 500, fontFamily: "inherit", textAlign: "left", transition: "all .15s" }}>
+              <button key={o.id} onClick={() => onToggle(o.id)} className="gl-pick-card" style={{ animationDelay: `${i * 60}ms`, display: "flex", alignItems: "center", gap: 11, padding: "18px 18px", borderRadius: 16, cursor: "pointer", background: active ? BRAND.green : BRAND.card, color: active ? "#fff" : BRAND.ink, border: `1.5px solid ${active ? BRAND.green : BRAND.border}`, fontSize: 15.5, fontWeight: 500, fontFamily: "inherit", textAlign: "left", boxShadow: active ? "0 10px 24px rgba(196,120,60,0.28)" : "none", transition: "background .15s, box-shadow .15s" }}>
                 <span style={{ width: 26, height: 26, flexShrink: 0, display: "inline-flex" }}><img src={o.icon} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></span><span>{o[lang]}</span>
               </button>
             );
@@ -977,12 +976,14 @@ function FontLink() {
       .gl-gallery-img { flex: 0 0 100%; width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; scroll-snap-align: center; }
       .gl-card { transition: transform .15s ease, box-shadow .15s ease; }
       .gl-card:active { transform: scale(0.975) translateY(1px); box-shadow: 0 2px 10px rgba(40,30,15,0.10) !important; }
+      .gl-pick-card { opacity: 0; animation: glFadeUp .5s ease forwards; }
+      @keyframes glFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
       .gl-pulse { animation: glpulse 1.4s ease-in-out infinite; }
       @keyframes glpulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }
       .gl-spin { animation: glspin 0.8s linear infinite; }
       @keyframes glspin { to { transform: rotate(360deg) } }
       @media (hover:hover) { .gl-deck-arrow:hover { background: #fff; } }
-      @media (prefers-reduced-motion: reduce) { *, .gl-pulse, .gl-spin, .gl-card { animation: none !important; transition: none !important; } }
+      @media (prefers-reduced-motion: reduce) { *, .gl-pulse, .gl-spin, .gl-card, .gl-pick-card { animation: none !important; transition: none !important; opacity: 1 !important; } }
     `}</style>
   );
 }
