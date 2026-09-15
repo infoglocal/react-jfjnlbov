@@ -869,9 +869,10 @@ function Field({ label, children, flex }) {
   return (<label style={{ display: "block", marginBottom: 14, flex: flex ? 1 : undefined }}><span style={{ display: "block", fontSize: 12.5, fontWeight: 700, marginBottom: 6, color: "#3a3630" }}>{label}</span>{children}</label>);
 }
 function LangToggle({ lang, setLang }) {
+  const FLAG = { it: "🇮🇹", en: "🇬🇧" };
   return (
     <div style={{ display: "flex", border: `1.5px solid ${BRAND.border}`, borderRadius: 999, overflow: "hidden" }}>
-      {["it", "en"].map((l) => (<button key={l} onClick={() => setLang(l)} style={{ padding: "6px 13px", border: "none", cursor: "pointer", fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", background: lang === l ? BRAND.ink : "transparent", color: lang === l ? "#fff" : "#999", textTransform: "uppercase", letterSpacing: "0.05em" }}>{l}</button>))}
+      {["it", "en"].map((l) => (<button key={l} onClick={() => setLang(l)} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", border: "none", cursor: "pointer", fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", background: lang === l ? BRAND.ink : "transparent", color: lang === l ? "#fff" : "#999", textTransform: "uppercase", letterSpacing: "0.05em" }}><span style={{ fontSize: 14 }}>{FLAG[l]}</span>{l}</button>))}
     </div>
   );
 }
