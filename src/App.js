@@ -403,6 +403,7 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
       {made.length > 0 && (
         <section style={{ marginTop: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <span style={{ width: 24, height: 24, flexShrink: 0, display: "inline-flex" }}><img src="/icons/stamp.png" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></span>
             <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{t.madeTitle}</h2>
           </div>
           <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 12px" }}>{t.madeSub}</p>
@@ -431,6 +432,7 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
       {docs.length > 0 && (
         <section style={{ marginTop: 36 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <span style={{ width: 24, height: 24, flexShrink: 0, display: "inline-flex" }}><img src="/icons/star.png" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></span>
             <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{t.docTitle}</h2>
           </div>
           <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 12px" }}>{t.docSub}</p>
