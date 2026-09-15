@@ -238,10 +238,9 @@ function Logo({ height = 26 }) {
 /* --------------------------- BADGE ROTANTE --------------------------------- */
 // Vaga per tutta la schermata di selezione interessi (posizione fixed, percorso
 // ampio in loop) mentre cicla Nettuno / tortellino / Due Torri: ogni ~2.6s
-// l'immagine si "assottiglia" (scaleX verso 0) e a metà del movimento, quando è
-// di taglio, cambia soggetto — stessa illusione dell'effetto sul sito del Forno
-// Brisa, dove la faccia gira per la pagina E cambia. Nessun badge/cerchio intorno:
-// solo l'immagine già scontornata, con una leggera ombra per dare senso di "volo".
+// l'immagine cambia soggetto con una dissolvenza automatica (nessun effetto di
+// rotazione/flip). Nessun badge/cerchio intorno: solo l'immagine già scontornata,
+// con una leggera ombra per dare senso di "volo".
 function RotatingBadge({ height = 108 }) {
   const [idx, setIdx] = useState(0);
   useEffect(() => {
@@ -1010,8 +1009,8 @@ function FontLink() {
       .gl-card:active { transform: scale(0.975) translateY(1px); box-shadow: 0 2px 10px rgba(40,30,15,0.10) !important; }
       .gl-pick-card { opacity: 0; animation: glFadeUp .5s ease forwards; }
       @keyframes glFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-      .gl-rotator-img { animation: glFlip 2.6s linear; }
-      @keyframes glFlip { 0% { transform: scaleX(0.05); } 18% { transform: scaleX(1); } 82% { transform: scaleX(1); } 100% { transform: scaleX(0.05); } }
+      .gl-rotator-img { animation: glFade 2.6s ease-in-out; }
+      @keyframes glFade { 0% { opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
       .gl-rotator-wrap { position: fixed; z-index: 6; pointer-events: none; animation: glRoam 15s ease-in-out infinite; }
       @keyframes glRoam {
         0%   { top: 16%; left: 8%; }
