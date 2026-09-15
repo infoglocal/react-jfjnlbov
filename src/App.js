@@ -49,6 +49,11 @@ const SECTIONS = [
 // -------- CONTENUTI dal Google Sheet pubblicato come CSV --------------------
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTDteVaj56DqRzerlc3EP5YqmpeQYOydBBadXfBE0CozUnO3lcTRN6zrWSghznYtBd5aWYp8D2ALcbL/pub?gid=1251495453&single=true&output=csv";
 
+// -------- SPOTIFY — "La colonna sonora di Bologna" --------------------------
+const SPOTIFY_PLAYLIST_ID = "0PtXUavyTbZMVzvGrgHLKt";
+const SPOTIFY_EMBED_URL = `https://open.spotify.com/embed/playlist/${SPOTIFY_PLAYLIST_ID}?utm_source=generator&theme=0`;
+const SPOTIFY_LINK_URL = `https://open.spotify.com/playlist/${SPOTIFY_PLAYLIST_ID}?si=d13dfa5fe7ab4985`;
+
 // -------- GOOGLE ANALYTICS 4 -----------------------------------------------
 const GA_ID = "G-SDH5FJLQSP";
 // carica lo script GA una sola volta
@@ -80,6 +85,9 @@ const T = {
     editInterests: "Interessi",
     docTitle: "Bologna doc", docSub: "I classici, col consiglio di un local",
     madeTitle: "100% Made in Bo", madeSub: "Esperienze autentiche, nate qui",
+    soundtrackTitle: "La colonna sonora di Bologna",
+    soundtrackSub: "La playlist scelta da chi ci vive, per il tuo viaggio",
+    soundtrackOpen: "Apri in Spotify",
     betaBar: "🚧 Versione in anteprima", fbPill: "💬 Lascia un feedback",
     betaTitle: "Glocal è in costruzione 🚧",
     betaBody: "Stai provando una versione in anteprima. Alcune cose potrebbero cambiare: il tuo parere ci aiuta a migliorare.",
@@ -119,6 +127,9 @@ const T = {
     editInterests: "Interests",
     docTitle: "Bologna doc", docSub: "The classics, with a local's tip",
     madeTitle: "100% Made in Bo", madeSub: "Authentic experiences, born here",
+    soundtrackTitle: "Bologna's soundtrack",
+    soundtrackSub: "The playlist picked by locals, for your trip",
+    soundtrackOpen: "Open in Spotify",
     betaBar: "🚧 Preview version", fbPill: "💬 Leave feedback",
     betaTitle: "Glocal is under construction 🚧",
     betaBody: "You're trying a preview version. Some things may change: your feedback helps us improve.",
@@ -354,7 +365,7 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
   if (loading) return <div style={{ padding: "22px 18px" }}><DeckSkeleton /></div>;
   const visibleSections = SECTIONS.filter((s) => chosen.length === 0 || chosen.includes(s.id));
   const docs = places.filter(isDoc); // TUTTI i classici, sempre, a prescindere dagli interessi
-  const made = places.filter(isMadeInBo); // esperienze fisse Made in Bo, sempre
+  const made = places.filter(isMadeInBo); // esperienze fisse Made in Bo, sempre, in cima
 
   return (
     <div style={{ padding: "8px 18px 0" }}>
@@ -365,6 +376,18 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
           {chosen.length > 0 && <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: BRAND.green, color: "#fff", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>{chosen.length}</span>}
         </button>
       </div>
+
+      {/* 100% MADE IN BO — sezione fissa, SEMPRE IN CIMA, a prescindere dagli interessi scelti */}
+      {made.length > 0 && (
+        <section style={{ marginTop: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{t.madeTitle}</h2>
+          </div>
+          <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 12px" }}>{t.madeSub}</p>
+          <Deck items={made} lang={lang} t={t} onBook={onBook} onDetail={onDetail} onTip={onTip}
+            itinerary={itinerary} onToggleItin={onToggleItin} />
+        </section>
+      )}
 
       {/* SEZIONI per interesse scelto — solo contenuti NON doc */}
       {visibleSections.map((sec) => {
@@ -382,19 +405,7 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
         );
       })}
 
-      {/* 100% MADE IN BO — sezione fissa, ORA sopra Bologna doc, sempre visibile */}
-      {made.length > 0 && (
-        <section style={{ marginTop: 36 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-            <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{t.madeTitle}</h2>
-          </div>
-          <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 12px" }}>{t.madeSub}</p>
-          <Deck items={made} lang={lang} t={t} onBook={onBook} onDetail={onDetail} onTip={onTip}
-            itinerary={itinerary} onToggleItin={onToggleItin} />
-        </section>
-      )}
-
-      {/* BOLOGNA DOC — sezione fissa, sotto Made in Bo, sempre visibile, uguale per tutti */}
+      {/* BOLOGNA DOC — sezione fissa, sempre visibile, uguale per tutti */}
       {docs.length > 0 && (
         <section style={{ marginTop: 36 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
@@ -406,7 +417,43 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
         </section>
       )}
 
+      {/* LA COLONNA SONORA DI BOLOGNA — sezione fissa, sempre visibile, in fondo */}
+      <section style={{ marginTop: 36 }}>
+        <SoundtrackCard t={t} />
+      </section>
+
       <div style={{ height: 20 }} />
+    </div>
+  );
+}
+
+/* --------------------------- SOUNDTRACK CARD ------------------------------- */
+function SoundtrackCard({ t }) {
+  return (
+    <div style={{ background: BRAND.card, borderRadius: 22, overflow: "hidden", border: `1px solid ${BRAND.border}`, boxShadow: "0 6px 22px rgba(40,30,15,0.08)" }}>
+      <div style={{ padding: "18px 18px 4px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <span style={{ fontSize: 22 }}>🎧</span>
+          <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(22px, 5vw, 26px)", margin: 0, letterSpacing: "-0.02em" }}>{t.soundtrackTitle}</h2>
+        </div>
+        <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 14px" }}>{t.soundtrackSub}</p>
+      </div>
+      <iframe
+        title="La colonna sonora di Bologna — Spotify"
+        style={{ display: "block", border: "none" }}
+        src={SPOTIFY_EMBED_URL}
+        width="100%"
+        height="152"
+        frameBorder="0"
+        allowFullScreen=""
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy"
+      />
+      <a href={SPOTIFY_LINK_URL} target="_blank" rel="noreferrer"
+        onClick={() => track("open_spotify_playlist")}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px 12px", fontSize: 14, fontWeight: 700, color: BRAND.greenDark, textDecoration: "none" }}>
+        {t.soundtrackOpen} ↗
+      </a>
     </div>
   );
 }
@@ -479,7 +526,7 @@ function DeckCard({ place, lang, t, onBook, onDetail, onTip, inItin, onToggleIti
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.72), rgba(20,16,10,0) 42%)" }} />
         {place.location && <span style={{ position: "absolute", top: 14, left: 14, background: "rgba(255,255,255,0.92)", color: BRAND.ink, fontSize: 12.5, fontWeight: 700, padding: "6px 12px", borderRadius: 999 }}>{place.location}</span>}
         <div style={{ position: "absolute", left: 18, bottom: 14, right: 18 }}>
-          <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 6.5vw, 32px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: "#fff", margin: 0 }}>{title}</h3>
+          <h3 translate="no" className="notranslate" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 6.5vw, 32px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: "#fff", margin: 0 }}>{title}</h3>
         </div>
       </div>
 
@@ -583,7 +630,7 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
           <button onClick={onClose} aria-label={t.close} style={{ position: "absolute", top: 14, right: 14, width: 38, height: 38, borderRadius: "50%", background: "rgba(0,0,0,0.5)", color: "#fff", border: "none", fontSize: 22, cursor: "pointer", lineHeight: 1, backdropFilter: "blur(4px)", zIndex: 3 }}>×</button>
           <div style={{ position: "absolute", left: 20, bottom: 16, right: 20, pointerEvents: "none" }}>
             {place.location && <span style={{ display: "inline-block", fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#fff", opacity: 0.9, marginBottom: 6 }}>📍 {place.location}</span>}
-            <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(26px, 6vw, 34px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: "#fff", margin: 0 }}>{title}</h2>
+            <h2 translate="no" className="notranslate" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(26px, 6vw, 34px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: "#fff", margin: 0 }}>{title}</h2>
           </div>
         </div>
 
@@ -807,7 +854,7 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, d
                           <span style={{ fontSize: 16, flexShrink: 0 }}>{slotEmoji[slot]}</span>
                           <div>
                             <span style={{ fontSize: 12.5, fontWeight: 700, color: BRAND.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{slotLabel[slot]}</span>
-                            <div style={{ fontSize: 14.5, color: BRAND.ink }}>{d[slot].map((p) => p[`title_${lang}`]).join(" · ")}</div>
+                            <div translate="no" className="notranslate" style={{ fontSize: 14.5, color: BRAND.ink }}>{d[slot].map((p) => p[`title_${lang}`]).join(" · ")}</div>
                           </div>
                         </div>
                       )
@@ -840,7 +887,7 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, dateFrom, d
                   <li key={p.id} style={rowCard}>
                     <img src={p.image} alt="" style={{ width: 56, height: 56, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 15.5, lineHeight: 1.25 }}>{p[`title_${lang}`]}</div>
+                      <div translate="no" className="notranslate" style={{ fontWeight: 600, fontSize: 15.5, lineHeight: 1.25 }}>{p[`title_${lang}`]}</div>
                       {p.location && <div style={{ fontSize: 12.5, color: BRAND.muted, marginTop: 1 }}>📍 {p.location}</div>}
                       {p.price && <div style={{ fontSize: 13.5, color: BRAND.red, marginTop: 2, fontWeight: 600 }}>{p.price}</div>}
                     </div>
@@ -930,7 +977,7 @@ function BookingModal({ place, lang, t, onClose }) {
               <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.14em", color: BRAND.green, fontWeight: 700 }}>{t.booking}</span>
               <button onClick={onClose} style={xBtn}>×</button>
             </div>
-            <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 23, margin: "0 0 20px" }}>{title}</h3>
+            <h3 translate="no" className="notranslate" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 23, margin: "0 0 20px" }}>{title}</h3>
             <Field label={t.name}><input style={inp} value={form.name} onChange={set("name")} /></Field>
             <Field label={t.email}><input style={inp} type="email" value={form.email} onChange={set("email")} /></Field>
             <Field label={t.phone}><input style={inp} type="tel" value={form.phone} onChange={set("phone")} placeholder="+39 ..." /></Field>
@@ -1059,7 +1106,7 @@ function LocalTipSheet({ place, tip, lang, t, onClose }) {
           <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.14em", color: BRAND.green, fontWeight: 700 }}>{t.localTip}</span>
           <button onClick={onClose} style={xBtn}>×</button>
         </div>
-        <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 23, margin: "0 0 20px" }}>{title}</h3>
+        <h3 translate="no" className="notranslate" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 23, margin: "0 0 20px" }}>{title}</h3>
         <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#3a3630", margin: 0, whiteSpace: "pre-line" }}>{tip}</p>
       </div>
     </div>
