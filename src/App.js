@@ -409,8 +409,28 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
         <SoundtrackCard t={t} />
       </section>
 
+      {/* INSTAGRAM — link minimale, in fondo alla pagina */}
+      <div style={{ display: "flex", justifyContent: "center", marginTop: 28 }}>
+        <a href="https://www.instagram.com/g.localapp/" target="_blank" rel="noreferrer" aria-label="Instagram"
+          onClick={() => track("open_instagram")}
+          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: "50%", border: `1.5px solid ${BRAND.border}`, color: BRAND.muted, transition: "all .15s" }}>
+          <InstagramIcon />
+        </a>
+      </div>
+
       <div style={{ height: 20 }} />
     </div>
+  );
+}
+
+/* --------------------------- INSTAGRAM ICON -------------------------------- */
+function InstagramIcon() {
+  return (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" />
+    </svg>
   );
 }
 
