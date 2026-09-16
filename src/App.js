@@ -14,7 +14,7 @@ import Papa from "papaparse";
    Colonne foglio:
    id | interests | title_it | title_en | desc_it | desc_en | image | images |
    bookable | price | location | address | lat | lng | contact | doc | tip_it | tip_en |
-   place_id | orari
+   place_id | orari | bookings_week
 
    - interests: una o più tra food, drink, nature, museums, shopping (virgola).
                 Determina in quale/quali sezioni appare la card.
@@ -28,6 +28,10 @@ import Papa from "papaparse";
    - orari:     orari settimanali sincronizzati da Google (una riga per giorno,
                 separate da \n, es. "lunedì: 18:00–01:00"). Facoltativo: se
                 vuoto, il blocco orari non viene mostrato.
+   - bookings_week: (facoltativo, solo per righe con bookable = yes) numero
+                inserito A MANO nel foglio da Giulio. Alimenta il banner
+                "X persone hanno prenotato X questa settimana": vuoto o 0 =
+                quel posto non entra in rotazione nel banner.
    ============================================================================ */
 
 const BRAND = {
@@ -120,6 +124,11 @@ const T = {
     whatsapp: "Scrivi su WhatsApp", close: "Chiudi", required: "Compila i campi obbligatori.",
     openNow: "Aperto ora", closedNow: "Chiuso ora", closesAt: "chiude alle", opensAt: "apre alle",
     hoursTitle: "Orari", hoursSynced: "Orari sincronizzati da Google", open24h: "Aperto 24 ore su 24",
+    abandonedTitle: "Ancora indecis*? 👀",
+    abandonedBody: "Non hai ancora prenotato nessuna esperienza. Dare un'occhiata è gratis e senza impegno.",
+    abandonedCta: "Scopri le esperienze",
+    abandonedClose: "Continua a guardare",
+    socialProofWeek: "persone hanno prenotato questa settimana",
   },
   en: {
     loading: "Loading…",
@@ -158,6 +167,11 @@ const T = {
     whatsapp: "Message on WhatsApp", close: "Close", required: "Please fill in the required fields.",
     openNow: "Open now", closedNow: "Closed now", closesAt: "closes at", opensAt: "opens at",
     hoursTitle: "Hours", hoursSynced: "Hours synced from Google", open24h: "Open 24 hours",
+    abandonedTitle: "Still deciding? 👀",
+    abandonedBody: "You haven't booked an experience yet. Taking a look is free, no commitment.",
+    abandonedCta: "See experiences",
+    abandonedClose: "Keep browsing",
+    socialProofWeek: "people booked this week",
   },
 };
 
@@ -258,6 +272,114 @@ function RotatingBadge({ height = 108 }) {
   );
 }
 
+/* --------------------------- ABANDONED CART -------------------------------- */
+const INACTIVITY_MS = 45000;
+const AWAY_MS = 20000;
+
+function shouldShowAbandonedToday() {
+  return load("gl_abandoned_seen_date", null) !== new Date().toDateString();
+}
+function markAbandonedSeenToday() { save("gl_abandoned_seen_date", new Date().toDateString()); }
+
+// Trigger semplice: inattività 45s, oppure mouse che scappa verso l'alto
+// (exit-intent desktop), oppure torna sulla tab dopo essere stato via 20s+
+// (su mobile corrisponde a mettere l'app in background e tornare). Al
+// massimo una volta al giorno, e solo se l'utente non ha ancora prenotato.
+function useAbandonedCartTrigger({ enabled, onTrigger }) {
+  const firedRef = useRef(false);
+  const hiddenAtRef = useRef(null);
+
+  useEffect(() => {
+    if (!enabled || firedRef.current || !shouldShowAbandonedToday()) return;
+    let idleTimer = null;
+    const fire = () => {
+      if (firedRef.current) return;
+      firedRef.current = true;
+      markAbandonedSeenToday();
+      onTrigger();
+    };
+    const resetIdle = () => { if (idleTimer) clearTimeout(idleTimer); idleTimer = setTimeout(fire, INACTIVITY_MS); };
+    const onMouseLeave = (e) => { if (e.clientY <= 0) fire(); };
+    const onVisibility = () => {
+      if (document.hidden) hiddenAtRef.current = Date.now();
+      else if (hiddenAtRef.current && Date.now() - hiddenAtRef.current > AWAY_MS) fire();
+    };
+
+    resetIdle();
+    const events = ["scroll", "touchstart", "click", "keydown"];
+    events.forEach((ev) => window.addEventListener(ev, resetIdle, { passive: true }));
+    window.addEventListener("mouseleave", onMouseLeave);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      events.forEach((ev) => window.removeEventListener(ev, resetIdle));
+      window.removeEventListener("mouseleave", onMouseLeave);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [enabled, onTrigger]);
+}
+
+function AbandonedCartModal({ t, onClose, onCta }) {
+  return (
+    <div onClick={onClose} style={overlay}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 440, padding: 26, textAlign: "center" }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>👀</div>
+        <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 24, margin: "0 0 10px" }}>{t.abandonedTitle}</h3>
+        <p style={{ fontSize: 15.5, lineHeight: 1.55, color: "#4a463d", margin: "0 0 22px" }}>{t.abandonedBody}</p>
+        <button onClick={onCta} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 15, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}>{t.abandonedCta}</button>
+        <button onClick={onClose} style={{ width: "100%", background: "transparent", color: BRAND.muted, border: "none", padding: 8, fontSize: 14.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{t.abandonedClose}</button>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------- SOCIAL PROOF TOAST ---------------------------- */
+// Legge la colonna "bookings_week" del foglio: Giulio la compila a mano sulle
+// righe bookable = yes. Il banner ruota solo tra le righe con un numero > 0;
+// vuoto/0 = quel posto non entra in rotazione.
+const SOCIAL_PROOF_SHOW_MS = 6000;
+const SOCIAL_PROOF_GAP_MS = 14000;
+
+function SocialProofToast({ places, lang, t }) {
+  const candidates = places.filter(
+    (p) => String(p.bookable).trim().toLowerCase() === "yes" && Number(p.bookings_week) > 0
+  );
+  const [i, setI] = useState(0);
+  const [visible, setVisible] = useState(false);
+  const [dismissed, setDismissed] = useState(() => load("gl_social_proof_dismissed", false));
+
+  useEffect(() => {
+    if (dismissed || candidates.length === 0) return;
+    let showTimer, hideTimer;
+    const cycle = () => {
+      setVisible(true);
+      showTimer = setTimeout(() => {
+        setVisible(false);
+        hideTimer = setTimeout(() => { setI((n) => (n + 1) % candidates.length); cycle(); }, SOCIAL_PROOF_GAP_MS);
+      }, SOCIAL_PROOF_SHOW_MS);
+    };
+    const start = setTimeout(cycle, 3000);
+    return () => { clearTimeout(start); clearTimeout(showTimer); clearTimeout(hideTimer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dismissed, candidates.length]);
+
+  if (dismissed || candidates.length === 0 || !visible) return null;
+  const p = candidates[i % candidates.length];
+  const name = p[`title_${lang}`];
+
+  return (
+    <div style={{ position: "fixed", left: 14, bottom: 78, zIndex: 44, maxWidth: 280, display: "flex", alignItems: "center", gap: 10, background: "#fff", border: `1px solid ${BRAND.border}`, borderRadius: 16, padding: "11px 13px", boxShadow: "0 8px 26px rgba(0,0,0,0.18)", animation: "glFadeUp .35s ease" }}>
+      {p.image && <img src={p.image} alt="" style={{ width: 38, height: 38, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1.3 }}>🔥 {Number(p.bookings_week)} {t.socialProofWeek}</div>
+        <div translate="no" className="notranslate" style={{ fontSize: 12, color: BRAND.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
+      </div>
+      <button onClick={() => { setDismissed(true); save("gl_social_proof_dismissed", true); }} aria-label={t.close} style={{ background: "none", border: "none", color: "#bbb", fontSize: 16, cursor: "pointer", flexShrink: 0, lineHeight: 1 }}>×</button>
+    </div>
+  );
+}
+
 /* ------------------------------- APP -------------------------------------- */
 export default function App() {
   const [lang, setLang] = useState(() => load("gl_lang", "it"));
@@ -272,6 +394,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [showFeedback, setShowFeedback] = useState(false);
   const [cookieOk, setCookieOk] = useState(() => load("gl_cookie_ok", false));
+  const [hasBooked, setHasBooked] = useState(() => load("gl_has_booked", false));
+  const [showAbandoned, setShowAbandoned] = useState(false);
   const t = T[lang];
 
   useEffect(() => save("gl_lang", lang), [lang]);
@@ -290,9 +414,17 @@ export default function App() {
     });
   }, []);
 
+  // Popup "carrello abbandonato": al massimo una volta al giorno, solo se
+  // l'utente non ha ancora prenotato e non c'è già un altro pannello aperto.
+  useAbandonedCartTrigger({
+    enabled: !picking && !hasBooked && !detail && !booking && !showFeedback && !showAbandoned,
+    onTrigger: () => setShowAbandoned(true),
+  });
+
   const toggleIn = (list, setList, id) => setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
   const byId = (id) => places.find((p) => p.id === id);
   const toggleChosen = (id) => setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
+  const markBooked = () => { save("gl_has_booked", true); setHasBooked(true); };
 
   // schermata iniziale: scelta interessi (obbligatoria, rivista a ogni apertura)
   if (picking) {
@@ -343,12 +475,21 @@ export default function App() {
         </button>
       )}
 
+      {/* banner "X persone hanno prenotato X questa settimana", in rotazione */}
+      {tab === "home" && !detail && !booking && !showFeedback && (
+        <SocialProofToast places={places} lang={lang} t={t} />
+      )}
+
       <TabBar t={t} tab={tab} setTab={setTab} itinCount={itinerary.length} />
 
       {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} />}
-      {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} />}
+      {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} onBooked={markBooked} />}
       {tipPlace && <LocalTipSheet place={tipPlace} tip={tipPlace[`tip_${lang}`]} lang={lang} t={t} onClose={() => setTipPlace(null)} />}
       {showFeedback && <FeedbackModal t={t} lang={lang} onClose={() => setShowFeedback(false)} />}
+      {showAbandoned && (
+        <AbandonedCartModal t={t} onClose={() => setShowAbandoned(false)}
+          onCta={() => { setShowAbandoned(false); setTab("home"); }} />
+      )}
       {!cookieOk && <CookieBanner t={t} onOk={() => { setCookieOk(true); save("gl_cookie_ok", true); }} />}
     </div>
   );
@@ -824,7 +965,7 @@ function TabBar({ t, tab, setTab, itinCount }) {
 }
 
 /* --------------------------- BOOKING MODAL -------------------------------- */
-function BookingModal({ place, lang, t, onClose }) {
+function BookingModal({ place, lang, t, onClose, onBooked }) {
   const [form, setForm] = useState({ name: "", email: "", phone: "", people: "2", date: "", notes: "" });
   const [status, setStatus] = useState("idle");
   const title = place[`title_${lang}`];
@@ -836,7 +977,7 @@ function BookingModal({ place, lang, t, onClose }) {
     setStatus("sending");
     try {
       const res = await fetch(FORMSPREE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ esperienza: title, nome: form.name, email: form.email, cellulare: form.phone, persone: form.people, data: form.date, note: form.notes, _subject: `Nuova prenotazione Glocal: ${title}` }) });
-      if (res.ok) setStatus("done"); else setStatus("error");
+      if (res.ok) { setStatus("done"); onBooked?.(); } else setStatus("error");
     } catch { setStatus("error"); }
   };
   const waText = encodeURIComponent(lang === "it"
