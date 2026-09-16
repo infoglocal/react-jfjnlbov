@@ -118,7 +118,8 @@ const T = {
     remove: "Rimuovi", clearAll: "Svuota", goHome: "Vai alla Home",
     openInMaps: "Apri in Google Maps", shareWa: "Condividi su WhatsApp",
     booking: "Prenota", name: "Nome e cognome", email: "Email",
-    phone: "Cellulare", people: "Persone", date: "Data", notes: "Note (facoltative)",
+    phone: "Cellulare", people: "Persone", date: "Data",
+    bookingSubtitle: "Prenota in pochi click. Nessun pagamento, nessun impegno. Riceverai una conferma quando la tua prenotazione sarà effettiva.",
     send: "Invia richiesta", sending: "Invio…",
     thanks: "Richiesta inviata", thanksSub: "Non è ancora una conferma: il local ti risponde via email entro 24 ore.",
     whatsapp: "Scrivi su WhatsApp", close: "Chiudi", required: "Compila i campi obbligatori.",
@@ -161,7 +162,8 @@ const T = {
     remove: "Remove", clearAll: "Clear", goHome: "Go to Home",
     openInMaps: "Open in Google Maps", shareWa: "Share on WhatsApp",
     booking: "Book", name: "Full name", email: "Email",
-    phone: "Mobile", people: "People", date: "Date", notes: "Notes (optional)",
+    phone: "Mobile", people: "People", date: "Date",
+    bookingSubtitle: "Book in a few clicks. No payment, no commitment. You'll get a confirmation once your booking is finalized.",
     send: "Send request", sending: "Sending…",
     thanks: "Request sent", thanksSub: "Not a confirmation yet: the local will email you within 24 hours.",
     whatsapp: "Message on WhatsApp", close: "Close", required: "Please fill in the required fields.",
@@ -979,17 +981,18 @@ function TabBar({ t, tab, setTab, itinCount }) {
 
 /* --------------------------- BOOKING MODAL -------------------------------- */
 function BookingModal({ place, lang, t, onClose, onBooked }) {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", people: "2", date: "", notes: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", people: "2", date: "" });
   const [status, setStatus] = useState("idle");
   const title = place[`title_${lang}`];
   const contact = String(place.contact || "").replace(/[^0-9]/g, "");
+  const weekCount = Number(place.bookings_week) || 0;
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   const FORMSPREE_ENDPOINT = "https://formspree.io/f/mnpaapzq";
   const submit = async () => {
     if (!form.name || !form.email || !form.phone || !form.date) { setStatus("error"); return; }
     setStatus("sending");
     try {
-      const res = await fetch(FORMSPREE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ esperienza: title, nome: form.name, email: form.email, cellulare: form.phone, persone: form.people, data: form.date, note: form.notes, _subject: `Nuova prenotazione Glocal: ${title}` }) });
+      const res = await fetch(FORMSPREE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ esperienza: title, nome: form.name, email: form.email, cellulare: form.phone, persone: form.people, data: form.date, _subject: `Nuova prenotazione Glocal: ${title}` }) });
       if (res.ok) { setStatus("done"); onBooked?.(); } else setStatus("error");
     } catch { setStatus("error"); }
   };
@@ -1014,7 +1017,14 @@ function BookingModal({ place, lang, t, onClose, onBooked }) {
               <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.14em", color: BRAND.green, fontWeight: 700 }}>{t.booking}</span>
               <button onClick={onClose} style={xBtn}>×</button>
             </div>
-            <h3 translate="no" className="notranslate" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 23, margin: "0 0 20px" }}>{title}</h3>
+            <h3 translate="no" className="notranslate" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 23, margin: "0 0 6px" }}>{title}</h3>
+            <p style={{ fontSize: 13.5, lineHeight: 1.5, color: BRAND.muted, margin: "0 0 14px" }}>{t.bookingSubtitle}</p>
+            {weekCount > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(56,176,74,0.10)", border: `1px solid ${BRAND.green}`, borderRadius: 12, padding: "9px 13px", marginBottom: 18, fontSize: 13, fontWeight: 700, color: BRAND.greenDark }}>
+                <span style={{ fontSize: 15 }}>🔥</span>
+                <span>{weekCount} {t.socialProofWeek} <span translate="no" className="notranslate">{title}</span></span>
+              </div>
+            )}
             <Field label={t.name}><input style={inp} value={form.name} onChange={set("name")} /></Field>
             <Field label={t.email}><input style={inp} type="email" value={form.email} onChange={set("email")} /></Field>
             <Field label={t.phone}><input style={inp} type="tel" value={form.phone} onChange={set("phone")} placeholder="+39 ..." /></Field>
@@ -1022,7 +1032,6 @@ function BookingModal({ place, lang, t, onClose, onBooked }) {
               <Field label={t.people} flex><input style={inp} type="number" min="1" value={form.people} onChange={set("people")} /></Field>
               <Field label={t.date} flex><input style={inp} type="date" value={form.date} onChange={set("date")} /></Field>
             </div>
-            <Field label={t.notes}><textarea style={{ ...inp, minHeight: 72, resize: "vertical" }} value={form.notes} onChange={set("notes")} /></Field>
             {status === "error" && <p style={{ color: BRAND.red, fontSize: 14, margin: "4px 0 12px" }}>{t.required}</p>}
             <button onClick={submit} disabled={status === "sending"} style={{ width: "100%", background: BRAND.red, color: "#fff", border: "none", borderRadius: 14, padding: 15, fontSize: 16, fontWeight: 700, cursor: status === "sending" ? "default" : "pointer", fontFamily: "inherit", marginTop: 8, opacity: status === "sending" ? 0.7 : 1 }}>
               {status === "sending" ? t.sending : t.send}
