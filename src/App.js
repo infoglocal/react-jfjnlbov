@@ -118,7 +118,7 @@ const T = {
     remove: "Rimuovi", clearAll: "Svuota", goHome: "Vai alla Home",
     openInMaps: "Apri in Google Maps", shareWa: "Condividi su WhatsApp",
     booking: "Prenota", name: "Nome e cognome", email: "Email",
-    phone: "Cellulare", people: "Persone", date: "Data",
+    people: "Persone", date: "Data",
     bookingSubtitle: "Prenota in pochi click. Nessun pagamento, nessun impegno. Riceverai una conferma quando la tua prenotazione sarà effettiva.",
     send: "Invia richiesta", sending: "Invio…",
     thanks: "Richiesta inviata", thanksSub: "Non è ancora una conferma: il local ti risponde via email entro 24 ore.",
@@ -162,7 +162,7 @@ const T = {
     remove: "Remove", clearAll: "Clear", goHome: "Go to Home",
     openInMaps: "Open in Google Maps", shareWa: "Share on WhatsApp",
     booking: "Book", name: "Full name", email: "Email",
-    phone: "Mobile", people: "People", date: "Date",
+    people: "People", date: "Date",
     bookingSubtitle: "Book in a few clicks. No payment, no commitment. You'll get a confirmation once your booking is finalized.",
     send: "Send request", sending: "Sending…",
     thanks: "Request sent", thanksSub: "Not a confirmation yet: the local will email you within 24 hours.",
@@ -981,7 +981,7 @@ function TabBar({ t, tab, setTab, itinCount }) {
 
 /* --------------------------- BOOKING MODAL -------------------------------- */
 function BookingModal({ place, lang, t, onClose, onBooked }) {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", people: "2", date: "" });
+  const [form, setForm] = useState({ name: "", email: "", people: "2", date: "" });
   const [status, setStatus] = useState("idle");
   const title = place[`title_${lang}`];
   const contact = String(place.contact || "").replace(/[^0-9]/g, "");
@@ -989,10 +989,10 @@ function BookingModal({ place, lang, t, onClose, onBooked }) {
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   const FORMSPREE_ENDPOINT = "https://formspree.io/f/mnpaapzq";
   const submit = async () => {
-    if (!form.name || !form.email || !form.phone || !form.date) { setStatus("error"); return; }
+    if (!form.name || !form.email || !form.date) { setStatus("error"); return; }
     setStatus("sending");
     try {
-      const res = await fetch(FORMSPREE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ esperienza: title, nome: form.name, email: form.email, cellulare: form.phone, persone: form.people, data: form.date, _subject: `Nuova prenotazione Glocal: ${title}` }) });
+      const res = await fetch(FORMSPREE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ esperienza: title, nome: form.name, email: form.email, persone: form.people, data: form.date, _subject: `Nuova prenotazione Glocal: ${title}` }) });
       if (res.ok) { setStatus("done"); onBooked?.(); } else setStatus("error");
     } catch { setStatus("error"); }
   };
@@ -1027,7 +1027,6 @@ function BookingModal({ place, lang, t, onClose, onBooked }) {
             )}
             <Field label={t.name}><input style={inp} value={form.name} onChange={set("name")} /></Field>
             <Field label={t.email}><input style={inp} type="email" value={form.email} onChange={set("email")} /></Field>
-            <Field label={t.phone}><input style={inp} type="tel" value={form.phone} onChange={set("phone")} placeholder="+39 ..." /></Field>
             <div style={{ display: "flex", gap: 12 }}>
               <Field label={t.people} flex><input style={inp} type="number" min="1" value={form.people} onChange={set("people")} /></Field>
               <Field label={t.date} flex><input style={inp} type="date" value={form.date} onChange={set("date")} /></Field>
