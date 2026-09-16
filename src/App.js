@@ -98,13 +98,13 @@ const T = {
     soundtrackTitle: "La colonna sonora di Bologna",
     soundtrackSub: "La playlist scelta da chi ci vive, per il tuo viaggio",
     soundtrackOpen: "Apri in Spotify",
-    betaBar: "🚧 Versione in anteprima", fbPill: "💬 Lascia un feedback",
-    betaTitle: "Glocal è in costruzione 🚧",
-    betaBody: "Stai provando una versione in anteprima. Alcune cose potrebbero cambiare: il tuo parere ci aiuta a migliorare.",
-    betaCta: "Lascia un feedback", betaClose: "Continua a esplorare",
-    fbTitle: "Il tuo feedback", fbBody: "Cosa ne pensi di Glocal? Cosa miglioreresti?",
-    fbPlaceholder: "Scrivi qui il tuo parere…", fbSend: "Invia", fbSending: "Invio…",
-    fbThanks: "Grazie! Il tuo parere è prezioso.",
+    betaBar: "🚧 Versione in anteprima",
+    qfTitle: "Come ti stai trovando?", qfSub: "Bastano 10 secondi (facoltativo)",
+    qfRatingLabel: "Come valuti l'esperienza finora?",
+    qfImproveLabel: "Cosa miglioreresti?", qfImprovePlaceholder: "Scrivi qui (facoltativo)…",
+    qfExtraLabel: "C'è qualcosa che ti aspettavi di trovare e non hai trovato?", qfExtraPlaceholder: "Scrivi qui (facoltativo)…",
+    qfSkip: "Salta", qfSend: "Invia", qfSending: "Invio…",
+    qfThanks: "Grazie mille!",
     cookieText: "Usiamo cookie tecnici e di statistica per capire come viene usata l'app e migliorarla.",
     cookieOk: "Ho capito", cookiePolicy: "Privacy",
     localTip: "Il consiglio del local", localTipsBtn: "Local tips",
@@ -141,13 +141,13 @@ const T = {
     soundtrackTitle: "Bologna's soundtrack",
     soundtrackSub: "The playlist picked by locals, for your trip",
     soundtrackOpen: "Open in Spotify",
-    betaBar: "🚧 Preview version", fbPill: "💬 Leave feedback",
-    betaTitle: "Glocal is under construction 🚧",
-    betaBody: "You're trying a preview version. Some things may change: your feedback helps us improve.",
-    betaCta: "Leave feedback", betaClose: "Keep exploring",
-    fbTitle: "Your feedback", fbBody: "What do you think of Glocal? What would you improve?",
-    fbPlaceholder: "Write your thoughts here…", fbSend: "Send", fbSending: "Sending…",
-    fbThanks: "Thank you! Your feedback matters.",
+    betaBar: "🚧 Preview version",
+    qfTitle: "How's it going?", qfSub: "Takes 10 seconds (optional)",
+    qfRatingLabel: "How do you rate the experience so far?",
+    qfImproveLabel: "What would you improve?", qfImprovePlaceholder: "Write here (optional)…",
+    qfExtraLabel: "Is there anything you expected to find but didn't?", qfExtraPlaceholder: "Write here (optional)…",
+    qfSkip: "Skip", qfSend: "Send", qfSending: "Sending…",
+    qfThanks: "Thanks so much!",
     cookieText: "We use technical and analytics cookies to understand how the app is used and improve it.",
     cookieOk: "Got it", cookiePolicy: "Privacy",
     localTip: "The local's tip", localTipsBtn: "Local tips",
@@ -341,7 +341,7 @@ function AbandonedCartModal({ t, onClose, onCta }) {
 const SOCIAL_PROOF_SHOW_MS = 6000;
 const SOCIAL_PROOF_GAP_MS = 14000;
 
-function SocialProofToast({ places, lang, t }) {
+function SocialProofToast({ places, lang, t, onOpen }) {
   const candidates = places.filter(
     (p) => String(p.bookable).trim().toLowerCase() === "yes" && Number(p.bookings_week) > 0
   );
@@ -368,13 +368,15 @@ function SocialProofToast({ places, lang, t }) {
   const name = p[`title_${lang}`];
 
   return (
-    <div style={{ position: "fixed", left: 14, bottom: 78, zIndex: 44, maxWidth: 280, display: "flex", alignItems: "center", gap: 10, background: "#fff", border: `1px solid ${BRAND.border}`, borderRadius: 16, padding: "11px 13px", boxShadow: "0 8px 26px rgba(0,0,0,0.18)", animation: "glFadeUp .35s ease" }}>
+    <div
+      onClick={() => { track("open_social_proof", { card: p.title_it || p.id }); onOpen?.(p); }}
+      style={{ position: "fixed", left: 14, right: 14, bottom: 138, zIndex: 46, maxWidth: 340, marginInline: "auto", display: "flex", alignItems: "center", gap: 10, background: "#fff", border: `1px solid ${BRAND.border}`, borderRadius: 16, padding: "11px 13px", boxShadow: "0 8px 26px rgba(0,0,0,0.18)", animation: "glFadeUp .35s ease", cursor: "pointer" }}>
       {p.image && <img src={p.image} alt="" style={{ width: 38, height: 38, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1.3 }}>🔥 {Number(p.bookings_week)} {t.socialProofWeek}</div>
         <div translate="no" className="notranslate" style={{ fontSize: 12, color: BRAND.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
       </div>
-      <button onClick={() => { setDismissed(true); save("gl_social_proof_dismissed", true); }} aria-label={t.close} style={{ background: "none", border: "none", color: "#bbb", fontSize: 16, cursor: "pointer", flexShrink: 0, lineHeight: 1 }}>×</button>
+      <button onClick={(e) => { e.stopPropagation(); setDismissed(true); save("gl_social_proof_dismissed", true); }} aria-label={t.close} style={{ background: "none", border: "none", color: "#bbb", fontSize: 16, cursor: "pointer", flexShrink: 0, lineHeight: 1 }}>×</button>
     </div>
   );
 }
@@ -391,7 +393,7 @@ export default function App() {
   const [itinerary, setItinerary] = useState(() => load("gl_itin", []));
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showFeedback, setShowFeedback] = useState(false);
+  const [showQuickFeedback, setShowQuickFeedback] = useState(false);
   const [cookieOk, setCookieOk] = useState(() => load("gl_cookie_ok", false));
   const [hasBooked, setHasBooked] = useState(() => load("gl_has_booked", false));
   const [showAbandoned, setShowAbandoned] = useState(false);
@@ -416,9 +418,23 @@ export default function App() {
   // Popup "carrello abbandonato": al massimo una volta al giorno, solo se
   // l'utente non ha ancora prenotato e non c'è già un altro pannello aperto.
   useAbandonedCartTrigger({
-    enabled: !picking && !hasBooked && !detail && !booking && !showFeedback && !showAbandoned,
+    enabled: !picking && !hasBooked && !detail && !booking && !showQuickFeedback && !showAbandoned,
     onTrigger: () => setShowAbandoned(true),
   });
+
+  // Popup "quick feedback": compare da solo dopo un po' di utilizzo, al
+  // massimo una volta al giorno, mai più una volta che è già stato
+  // inviato/saltato una volta in quella giornata, e mai in sovrapposizione
+  // con un altro pannello aperto.
+  useEffect(() => {
+    if (picking || showQuickFeedback) return;
+    if (load("gl_qf_seen_date", null) === new Date().toDateString()) return;
+    const timer = setTimeout(() => {
+      if (!detail && !booking && !showAbandoned) setShowQuickFeedback(true);
+    }, 30000);
+    return () => clearTimeout(timer);
+  }, [picking]);
+  const markQuickFeedbackSeen = () => save("gl_qf_seen_date", new Date().toDateString());
 
   const toggleIn = (list, setList, id) => setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
   const byId = (id) => places.find((p) => p.id === id);
@@ -463,20 +479,14 @@ export default function App() {
         )}
         {tab === "itin" && (
           <ItineraryTab t={t} lang={lang} items={itinerary.map(byId).filter(Boolean)}
-            onRemove={(id) => toggleIn(itinerary, setItinerary, id)} onClear={() => setItinerary([])} onGoHome={() => setTab("home")} />
+            onRemove={(id) => toggleIn(itinerary, setItinerary, id)} onClear={() => setItinerary([])} onGoHome={() => setTab("home")}
+            onOpenDetail={setDetail} />
         )}
       </main>
 
-      {/* pillola feedback: nascosta quando un pannello è aperto, per non intralciare */}
-      {!detail && !booking && !showFeedback && (
-        <button onClick={() => setShowFeedback(true)} style={{ position: "fixed", right: 14, bottom: 78, zIndex: 45, display: "inline-flex", alignItems: "center", gap: 6, background: BRAND.ink, color: "#fff", border: "none", borderRadius: 999, padding: "9px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 20px rgba(0,0,0,0.25)" }}>
-          {t.fbPill}
-        </button>
-      )}
-
       {/* banner "X persone hanno prenotato X questa settimana", in rotazione */}
-      {tab === "home" && !detail && !booking && !showFeedback && (
-        <SocialProofToast places={places} lang={lang} t={t} />
+      {tab === "home" && !detail && !booking && !showQuickFeedback && (
+        <SocialProofToast places={places} lang={lang} t={t} onOpen={setDetail} />
       )}
 
       <TabBar t={t} tab={tab} setTab={setTab} itinCount={itinerary.length} />
@@ -484,7 +494,11 @@ export default function App() {
       {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} />}
       {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} onBooked={markBooked} />}
       {tipPlace && <LocalTipSheet place={tipPlace} tip={tipPlace[`tip_${lang}`]} lang={lang} t={t} onClose={() => setTipPlace(null)} />}
-      {showFeedback && <FeedbackModal t={t} lang={lang} onClose={() => setShowFeedback(false)} />}
+      {showQuickFeedback && (
+        <QuickFeedbackModal t={t} lang={lang}
+          onClose={() => setShowQuickFeedback(false)}
+          onSubmitted={markQuickFeedbackSeen} />
+      )}
       {showAbandoned && (
         <AbandonedCartModal t={t} onClose={() => setShowAbandoned(false)}
           onCta={() => { setShowAbandoned(false); setTab("home"); }} />
@@ -874,7 +888,7 @@ function googleMapsDirUrl(items) {
 }
 
 /* --------------------------- ITINERARY TAB -------------------------------- */
-function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome }) {
+function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, onOpenDetail }) {
   const shareWhatsApp = () => {
     const lines = [`${t.itinTitle} — Bologna`, ""];
     items.forEach((p) => lines.push(`• ${p[`title_${lang}`]}${p.price ? ` (${p.price})` : ""}`));
@@ -909,14 +923,14 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome }) {
 
           <ul style={listReset}>
             {items.map((p) => (
-              <li key={p.id} style={rowCard}>
+              <li key={p.id} style={{ ...rowCard, cursor: "pointer" }} onClick={() => { track("view_card", { card: p.title_it || p.id, from: "itinerary" }); onOpenDetail(p); }}>
                 <img src={p.image} alt="" style={{ width: 56, height: 56, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div translate="no" className="notranslate" style={{ fontWeight: 600, fontSize: 15.5, lineHeight: 1.25 }}>{p[`title_${lang}`]}</div>
                   {p.location && <div style={{ fontSize: 12.5, color: BRAND.muted, marginTop: 1 }}>📍 {p.location}</div>}
                   {p.price && <div style={{ fontSize: 13.5, color: BRAND.red, marginTop: 2, fontWeight: 600 }}>{p.price}</div>}
                 </div>
-                <button onClick={() => onRemove(p.id)} aria-label={t.remove} style={rowX}>×</button>
+                <button onClick={(e) => { e.stopPropagation(); onRemove(p.id); }} aria-label={t.remove} style={rowX}>×</button>
               </li>
             ))}
           </ul>
@@ -1054,51 +1068,63 @@ function LangToggle({ lang, setLang }) {
   );
 }
 /* --------------------------- BETA / FEEDBACK / COOKIE --------------------- */
-function BetaModal({ t, onFeedback, onClose }) {
+/* --------------------------- QUICK FEEDBACK -------------------------------- */
+
+function StarRating({ value, onChange }) {
   return (
-    <div onClick={onClose} style={{ ...overlay, alignItems: "center", zIndex: 70 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 22, maxWidth: 400, width: "calc(100% - 44px)", padding: 26, boxShadow: "0 20px 60px rgba(0,0,0,0.3)", textAlign: "center" }}>
-        <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 24, margin: "0 0 12px", letterSpacing: "-0.01em" }}>{t.betaTitle}</h3>
-        <p style={{ fontSize: 15.5, lineHeight: 1.55, color: "#4a463d", margin: "0 0 22px" }}>{t.betaBody}</p>
-        <button onClick={onFeedback} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 15, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}>{t.betaCta}</button>
-        <button onClick={onClose} style={{ width: "100%", background: "transparent", color: BRAND.muted, border: "none", padding: 8, fontSize: 14.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{t.betaClose}</button>
-      </div>
+    <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button key={n} type="button" onClick={() => onChange(n)} aria-label={`${n} stelle`}
+          style={{ background: "none", border: "none", padding: 2, cursor: "pointer", fontSize: 30, lineHeight: 1, color: n <= value ? BRAND.red : BRAND.border, transition: "color .15s" }}>
+          {n <= value ? "★" : "☆"}
+        </button>
+      ))}
     </div>
   );
 }
 
-function FeedbackModal({ t, lang, onClose }) {
-  const [text, setText] = useState("");
+function QuickFeedbackModal({ t, lang, onClose, onSubmitted }) {
+  const [rating, setRating] = useState(0);
+  const [improve, setImprove] = useState("");
+  const [extra, setExtra] = useState("");
   const [status, setStatus] = useState("idle");
   const FORMSPREE_ENDPOINT = "https://formspree.io/f/maewzgoa";
   const submit = async () => {
-    if (!text.trim()) return;
     setStatus("sending");
     try {
-      const res = await fetch(FORMSPREE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ tipo: "FEEDBACK", messaggio: text, lingua: lang, _subject: "Nuovo feedback Glocal" }) });
-      if (res.ok) setStatus("done"); else setStatus("error");
+      const res = await fetch(FORMSPREE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ tipo: "QUICK_FEEDBACK", valutazione: rating || "—", miglioreresti: improve, altro: extra, lingua: lang, _subject: "Nuovo quick feedback Glocal" }) });
+      if (res.ok) { setStatus("done"); onSubmitted?.(); } else setStatus("error");
     } catch { setStatus("error"); }
   };
+  const skip = () => { onSubmitted?.(); onClose(); };
+
   return (
-    <div onClick={onClose} style={{ ...overlay, alignItems: "center", zIndex: 95 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 22, maxWidth: 440, width: "calc(100% - 44px)", padding: 26, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+    <div onClick={skip} style={{ ...overlay, alignItems: "center", zIndex: 95 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 22, maxWidth: 420, width: "calc(100% - 44px)", padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
         {status === "done" ? (
           <div style={{ textAlign: "center", padding: "12px 4px" }}>
             <div style={{ width: 54, height: 54, borderRadius: "50%", background: "rgba(56,176,74,0.14)", color: BRAND.green, fontSize: 28, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>✓</div>
-            <p style={{ fontSize: 16, color: "#3a3630", margin: "0 0 20px" }}>{t.fbThanks}</p>
+            <p style={{ fontSize: 16, color: "#3a3630", margin: "0 0 20px" }}>{t.qfThanks}</p>
             <button onClick={onClose} style={{ background: BRAND.ink, color: "#fff", border: "none", borderRadius: 12, padding: "12px 28px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.close}</button>
           </div>
         ) : (
           <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-              <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 22, margin: 0 }}>{t.fbTitle}</h3>
-              <button onClick={onClose} style={xBtn}>×</button>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 2 }}>
+              <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 21, margin: 0 }}>{t.qfTitle}</h3>
+              <button onClick={skip} style={xBtn}>×</button>
             </div>
-            <p style={{ fontSize: 14.5, color: BRAND.muted, margin: "0 0 16px" }}>{t.fbBody}</p>
-            <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={t.fbPlaceholder} style={{ ...inp, minHeight: 110, resize: "vertical", marginBottom: 14 }} />
-            <button onClick={submit} disabled={status === "sending" || !text.trim()} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 15, fontSize: 16, fontWeight: 700, cursor: status === "sending" || !text.trim() ? "default" : "pointer", fontFamily: "inherit", opacity: status === "sending" || !text.trim() ? 0.6 : 1 }}>
-              {status === "sending" ? t.fbSending : t.fbSend}
-            </button>
+            <p style={{ fontSize: 13, color: BRAND.muted, margin: "0 0 16px" }}>{t.qfSub}</p>
+
+            <Field label={t.qfRatingLabel}><StarRating value={rating} onChange={setRating} /></Field>
+            <Field label={t.qfImproveLabel}><input style={inp} value={improve} onChange={(e) => setImprove(e.target.value)} placeholder={t.qfImprovePlaceholder} /></Field>
+            <Field label={t.qfExtraLabel}><input style={inp} value={extra} onChange={(e) => setExtra(e.target.value)} placeholder={t.qfExtraPlaceholder} /></Field>
+
+            <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+              <button onClick={skip} style={{ flex: 1, background: "transparent", color: BRAND.muted, border: `1.5px solid ${BRAND.border}`, borderRadius: 14, padding: 14, fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.qfSkip}</button>
+              <button onClick={submit} disabled={status === "sending"} style={{ flex: 1, background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 14, fontSize: 14.5, fontWeight: 700, cursor: status === "sending" ? "default" : "pointer", fontFamily: "inherit", opacity: status === "sending" ? 0.7 : 1 }}>
+                {status === "sending" ? t.qfSending : t.qfSend}
+              </button>
+            </div>
             {status === "error" && <p style={{ color: BRAND.red, fontSize: 13.5, margin: "10px 0 0", textAlign: "center" }}>{t.required}</p>}
           </>
         )}
