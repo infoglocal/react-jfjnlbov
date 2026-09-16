@@ -361,7 +361,6 @@ function SocialProofToast({ places, lang, t }) {
     };
     const start = setTimeout(cycle, 3000);
     return () => { clearTimeout(start); clearTimeout(showTimer); clearTimeout(hideTimer); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dismissed, candidates.length]);
 
   if (dismissed || candidates.length === 0 || !visible) return null;
