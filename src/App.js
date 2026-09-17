@@ -601,16 +601,17 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
 
   return (
     <div style={{ padding: "8px 18px 0" }}>
-      {/* barra: modifica interessi */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", paddingTop: 14 }}>
+      {/* BENVENUTO A BOLOGNA — banner fisso, sempre in cima */}
+      <WelcomeBanner t={t} />
+
+      {/* barra: modifica interessi — subito dopo il benvenuto, a ridosso dei contenuti che filtra */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginTop: 18 }}>
         <button onClick={onEditInterests} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 999, padding: "8px 15px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
           <span>⚙︎</span>{t.editInterests}
           {chosen.length > 0 && <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: BRAND.green, color: "#fff", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>{chosen.length}</span>}
         </button>
       </div>
 
-      {/* BENVENUTO A BOLOGNA — banner fisso, sempre in cima, sotto la barra interessi */}
-      <WelcomeBanner t={t} />
 
       {/* 100% MADE IN BO — sezione fissa, SEMPRE IN CIMA (dopo il benvenuto), a prescindere dagli interessi scelti */}
       {made.length > 0 && (
