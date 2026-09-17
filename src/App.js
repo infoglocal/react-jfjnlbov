@@ -6,9 +6,11 @@ import Papa from "papaparse";
    ----------------------------------------------------------------------------
    Si apre direttamente sulle sezioni per INTERESSE:
    Cibo · Bere · Natura · Musei, arte e cultura · Shopping.
-   In ogni sezione, in cima, il blocco "Bologna doc" (i classici col consiglio
-   da local) — le righe con doc = "yes".
-   Due tab: Home · Itinerario. Nessuna welcome, nessuna profilazione, no mappa.
+   In cima, sotto la barra "Interessi", il banner "Benvenuto a Bologna" con le
+   Due Torri. Poi il blocco "100% Made in Bo" e, in ogni sezione, in cima,
+   il blocco "Bologna doc" (i classici col consiglio da local) — le righe
+   con doc = "yes".
+   Due tab: Home · Itinerario. Nessuna welcome screen, nessuna profilazione, no mappa.
    Dati dal Google Sheet (CSV) + prenotazioni via Formspree.
 
    Colonne foglio:
@@ -64,6 +66,12 @@ const ROTATOR_ITEMS = [
   { src: "/icons/badge-duetorri.png", alt: "Le Due Torri" },
 ];
 
+// -------- BANNER "BENVENUTO A BOLOGNA" — in cima alla Home, sotto la barra
+// interessi. Usa la stessa immagine (ritagliata, sfondo trasparente) delle
+// Due Torri; sostituisci il file in /icons/due-torri-welcome.png con quello
+// fornito (già ritagliato: /mnt/user-data/outputs/due-torri-welcome.png).
+const WELCOME_IMG = "/icons/due-torri-welcome.png";
+
 // -------- GOOGLE ANALYTICS 4 -----------------------------------------------
 const GA_ID = "G-SDH5FJLQSP";
 // carica lo script GA una sola volta
@@ -93,6 +101,8 @@ const T = {
     pickSub: "Scegli uno o più temi. Ti mostriamo i posti migliori scelti per te, come fossimo il tuo amico del posto.",
     pickCta: "Vedi i risultati", pickHint: "Scegline almeno uno",
     editInterests: "Interessi",
+    welcomeTitle: "Benvenuto a Bologna",
+    welcomeSub: "Le esperienze scelte per te, come un amico del posto",
     docTitle: "Bologna doc", docSub: "I classici, col consiglio di un local",
     madeTitle: "100% Made in Bo", madeSub: "Esperienze autentiche, nate qui",
     soundtrackTitle: "La colonna sonora di Bologna",
@@ -137,6 +147,8 @@ const T = {
     pickSub: "Pick one or more themes. We’ll show you the best places, hand-picked just for you, as if we were your local friend.",
     pickCta: "See results", pickHint: "Pick at least one",
     editInterests: "Interests",
+    welcomeTitle: "Welcome to Bologna",
+    welcomeSub: "Experiences picked for you, like a local friend would",
     docTitle: "Bologna doc", docSub: "The classics, with a local's tip",
     madeTitle: "100% Made in Bo", madeSub: "Authentic experiences, born here",
     soundtrackTitle: "Bologna's soundtrack",
@@ -271,6 +283,48 @@ function RotatingBadge({ height = 108 }) {
         <img key={idx} src={item.src} alt="" className="gl-rotator-img" style={{ height: "100%", width: "auto", display: "block", filter: "drop-shadow(0 10px 16px rgba(20,16,10,0.28))" }} />
       </div>
     </div>
+  );
+}
+
+/* --------------------------- BANNER BENVENUTO ------------------------------ */
+// Card fissa in cima alla Home (dopo la scelta interessi), sopra "100% Made in
+// Bo": Due Torri + titolo "Benvenuto a Bologna" (IT/EN) + sottotitolo. Serve a
+// 1) rendere inequivocabile dove ci troviamo, 2) dare un punto d'appoggio
+// visivo prima del carosello di card, invece di aprire subito su un'esperienza.
+function WelcomeBanner({ t }) {
+  return (
+    <section
+      style={{
+        marginTop: 22,
+        display: "flex",
+        alignItems: "center",
+        gap: 16,
+      }}
+    >
+      <img
+        src={WELCOME_IMG}
+        alt=""
+        aria-hidden="true"
+        style={{ height: 68, width: "auto", flexShrink: 0, display: "block" }}
+      />
+      <div style={{ minWidth: 0 }}>
+        <h1
+          style={{
+            fontFamily: "'Fraunces', serif",
+            fontWeight: 600,
+            fontSize: "clamp(21px, 5.5vw, 27px)",
+            lineHeight: 1.12,
+            letterSpacing: "-0.02em",
+            margin: 0,
+          }}
+        >
+          {t.welcomeTitle}
+        </h1>
+        {t.welcomeSub && (
+          <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "5px 0 0", lineHeight: 1.4 }}>{t.welcomeSub}</p>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -555,7 +609,10 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
         </button>
       </div>
 
-      {/* 100% MADE IN BO — sezione fissa, SEMPRE IN CIMA, a prescindere dagli interessi scelti */}
+      {/* BENVENUTO A BOLOGNA — banner fisso, sempre in cima, sotto la barra interessi */}
+      <WelcomeBanner t={t} />
+
+      {/* 100% MADE IN BO — sezione fissa, SEMPRE IN CIMA (dopo il benvenuto), a prescindere dagli interessi scelti */}
       {made.length > 0 && (
         <section style={{ marginTop: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
