@@ -305,15 +305,15 @@ function WelcomeBanner({ t }) {
         src={WELCOME_IMG}
         alt=""
         aria-hidden="true"
-        style={{ height: 68, width: "auto", flexShrink: 0, display: "block" }}
+        style={{ height: 78, width: "auto", flexShrink: 0, display: "block" }}
       />
       <div style={{ minWidth: 0 }}>
         <h1
           style={{
             fontFamily: "'Fraunces', serif",
             fontWeight: 600,
-            fontSize: "clamp(21px, 5.5vw, 27px)",
-            lineHeight: 1.12,
+            fontSize: "clamp(28px, 7.5vw, 36px)",
+            lineHeight: 1.08,
             letterSpacing: "-0.02em",
             margin: 0,
           }}
