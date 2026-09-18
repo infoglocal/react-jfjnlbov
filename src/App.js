@@ -513,8 +513,7 @@ export default function App() {
     return (
       <div style={{ minHeight: "100vh", background: BRAND.bg, color: BRAND.ink, fontFamily: "'Archivo', system-ui, sans-serif" }}>
         <FontLink />
-        <GuideTab t={t} lang={lang} places={places} onBook={setBooking} onDetail={setDetail} onClose={() => setShowGuide(false)} />
-        {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} />}
+        <GuideTab t={t} lang={lang} places={places} onBook={setBooking} onClose={() => setShowGuide(false)} />
         {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} onBooked={markBooked} />}
       </div>
     );
@@ -605,16 +604,15 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone, onOpenGuide }) {
           })}
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "10px 0 0" }}>
-        <div style={{ flex: 1, height: 1, background: BRAND.border }} />
-        <span style={{ fontSize: 12.5, color: BRAND.muted, fontWeight: 600 }}>{t.pickOrGuide}</span>
-        <div style={{ flex: 1, height: 1, background: BRAND.border }} />
-      </div>
-      <button onClick={onOpenGuide} style={{ width: "100%", background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 16, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginTop: 14 }}>
-        {t.guideCta}
-      </button>
-
       <div style={{ position: "sticky", bottom: 0, background: BRAND.bg, paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0))", paddingTop: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 0 12px" }}>
+          <div style={{ flex: 1, height: 1, background: BRAND.border }} />
+          <span style={{ fontSize: 12.5, color: BRAND.muted, fontWeight: 600 }}>{t.pickOrGuide}</span>
+          <div style={{ flex: 1, height: 1, background: BRAND.border }} />
+        </div>
+        <button onClick={onOpenGuide} style={{ width: "100%", background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 16, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
+          {t.guideCta}
+        </button>
         <button onClick={onDone} disabled={chosen.length === 0} style={{ width: "100%", background: chosen.length ? BRAND.green : "#d9d3c4", color: "#fff", border: "none", borderRadius: 16, padding: 17, fontSize: 17, fontWeight: 700, cursor: chosen.length ? "pointer" : "default", fontFamily: "inherit", transition: "background .15s" }}>
           {chosen.length ? t.pickCta : t.pickHint}
         </button>
@@ -626,8 +624,9 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone, onOpenGuide }) {
 /* --------------------------- GUIDA 3 GIORNI -------------------------------- */
 const GUIDE_DAYS = [1, 2, 3];
 
-function GuideTab({ t, lang, places, onBook, onDetail, onClose }) {
+function GuideTab({ t, lang, places, onBook, onClose }) {
   const [day, setDay] = useState(1);
+  const [openId, setOpenId] = useState(null);
   const [unlocked, setUnlocked] = useState(() => load("gl_guide_unlocked", false));
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
@@ -680,7 +679,7 @@ function GuideTab({ t, lang, places, onBook, onDetail, onClose }) {
 
       <div style={{ display: "flex", gap: 20, borderBottom: `1px solid ${BRAND.border}`, marginBottom: 4 }}>
         {GUIDE_DAYS.map((n) => (
-          <button key={n} onClick={() => setDay(n)} style={{ background: "none", border: "none", padding: "10px 0", fontSize: 13, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer", borderBottom: `3px solid ${day === n ? BRAND.green : "transparent"}`, color: day === n ? BRAND.ink : BRAND.muted }}>
+          <button key={n} onClick={() => { setDay(n); setOpenId(null); }} style={{ background: "none", border: "none", padding: "10px 0", fontSize: 13, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer", borderBottom: `3px solid ${day === n ? BRAND.green : "transparent"}`, color: day === n ? BRAND.ink : BRAND.muted }}>
             {lang === "en" ? `Day 0${n}` : `Giorno 0${n}`}
           </button>
         ))}
@@ -691,23 +690,45 @@ function GuideTab({ t, lang, places, onBook, onDetail, onClose }) {
           {stops.map((stop) => {
             const name = lang === "en" ? stop.title_en || stop.title_it : stop.title_it;
             const note = lang === "en" ? stop.guida_nota_en || stop.guida_nota_it : stop.guida_nota_it;
+            const desc = lang === "en" ? stop.desc_en || stop.desc_it : stop.desc_it;
+            const address = String(stop.address || "").trim();
+            const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : null;
+            const open = openId === stop.id;
             return (
-              <div key={stop.id} onClick={() => onDetail(stop)} style={{ display: "flex", gap: 14, padding: "18px 0", borderBottom: `1px solid ${BRAND.border}`, cursor: "pointer" }}>
-                {stop.guida_ora && (
-                  <div style={{ width: 46, flexShrink: 0, fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 15, color: BRAND.green, paddingTop: 2 }}>
-                    {stop.guida_ora}
+              <div key={stop.id} style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+                <button onClick={() => setOpenId(open ? null : stop.id)} style={{ width: "100%", display: "flex", gap: 14, padding: "18px 0", background: "none", border: "none", textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}>
+                  {stop.guida_ora && (
+                    <div style={{ width: 46, flexShrink: 0, fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 15, color: BRAND.green, paddingTop: 2 }}>
+                      {stop.guida_ora}
+                    </div>
+                  )}
+                  <div style={{ width: 64, height: 64, flexShrink: 0, borderRadius: 12, background: `${BRAND.border}`, backgroundImage: stop.image ? `url(${stop.image})` : undefined, backgroundSize: "cover", backgroundPosition: "center" }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                      <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 17, color: BRAND.ink }}>{name}</div>
+                      <span style={{ flexShrink: 0, color: BRAND.muted, fontSize: 13, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s", paddingTop: 3 }}>&#9662;</span>
+                    </div>
+                    {note && <p style={{ margin: "4px 0 0", fontSize: 13, color: BRAND.muted, lineHeight: 1.4 }}>{note}</p>}
+                  </div>
+                </button>
+
+                {open && (
+                  <div style={{ padding: "0 0 20px 60px" }}>
+                    {desc && <p style={{ margin: "0 0 12px", fontSize: 14, lineHeight: 1.55, color: "#4a463d" }}>{desc}</p>}
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      {mapsUrl && (
+                        <a href={mapsUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 999, padding: "8px 14px", textDecoration: "none" }}>
+                          📍 {t.openInMaps}
+                        </a>
+                      )}
+                      {String(stop.bookable).toLowerCase() === "yes" && (
+                        <button onClick={() => onBook(stop)} style={{ background: BRAND.green, color: "#fff", border: "none", borderRadius: 999, padding: "8px 16px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                          {t.book}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
-                <div style={{ width: 64, height: 64, flexShrink: 0, borderRadius: 12, background: `${BRAND.border}`, backgroundImage: stop.image ? `url(${stop.image})` : undefined, backgroundSize: "cover", backgroundPosition: "center" }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 17 }}>{name}</div>
-                  {note && <p style={{ margin: "4px 0 8px", fontSize: 13, color: BRAND.muted, lineHeight: 1.4 }}>{note}</p>}
-                  {String(stop.bookable).toLowerCase() === "yes" && (
-                    <button onClick={(e) => { e.stopPropagation(); onBook(stop); }} style={{ background: BRAND.green, color: "#fff", border: "none", borderRadius: 12, padding: "8px 16px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                      {t.book}
-                    </button>
-                  )}
-                </div>
               </div>
             );
           })}
