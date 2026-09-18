@@ -105,6 +105,11 @@ const T = {
     welcomeSub: "Le esperienze scelte per te, come un amico del posto",
     docTitle: "Bologna doc", docSub: "I classici, col consiglio di un local",
     madeTitle: "100% Made in Bo", madeSub: "Esperienze autentiche, nate qui",
+    pickOrGuide: "Oppure", guideCta: "Scarica la guida gratis",
+    guideTitle: "La guida definitiva", guideSub: "Tre giorni a Bologna, già organizzati.",
+    guideBack: "Torna alle card",
+    guideGateTitle: "Sblocca la guida", guideGateSub: "Lasciaci la tua email, è gratis.",
+    guideUnlock: "Sblocca",
     soundtrackTitle: "La colonna sonora di Bologna",
     soundtrackSub: "La playlist scelta da chi ci vive, per il tuo viaggio",
     soundtrackOpen: "Apri in Spotify",
@@ -150,6 +155,11 @@ const T = {
     welcomeTitle: "Welcome to Bologna",
     welcomeSub: "Experiences picked for you, like a local friend would",
     docTitle: "Bologna doc", docSub: "The classics, with a local's tip",
+    pickOrGuide: "Or", guideCta: "Get the free guide",
+    guideTitle: "The definitive guide", guideSub: "Three days in Bologna, already planned.",
+    guideBack: "Back to cards",
+    guideGateTitle: "Unlock the guide", guideGateSub: "Leave your email, it's free.",
+    guideUnlock: "Unlock",
     madeTitle: "100% Made in Bo", madeSub: "Authentic experiences, born here",
     soundtrackTitle: "Bologna's soundtrack",
     soundtrackSub: "The playlist picked by locals, for your trip",
@@ -452,6 +462,7 @@ export default function App() {
   const [showQuickFeedback, setShowQuickFeedback] = useState(false);
   const [cookieOk, setCookieOk] = useState(() => load("gl_cookie_ok", false));
   const [hasBooked, setHasBooked] = useState(() => load("gl_has_booked", false));
+  const [showGuide, setShowGuide] = useState(false);
   const [showAbandoned, setShowAbandoned] = useState(false);
   const t = T[lang];
 
@@ -498,6 +509,16 @@ export default function App() {
   const markBooked = () => { save("gl_has_booked", true); setHasBooked(true); };
 
   // schermata iniziale: scelta interessi (obbligatoria, rivista a ogni apertura)
+  if (showGuide) {
+    return (
+      <div style={{ minHeight: "100vh", background: BRAND.bg, color: BRAND.ink, fontFamily: "'Archivo', system-ui, sans-serif" }}>
+        <FontLink />
+        <GuideTab t={t} lang={lang} places={places} onBook={setBooking} onClose={() => setShowGuide(false)} />
+        {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} onBooked={markBooked} />}
+      </div>
+    );
+  }
+
   if (picking) {
     return (
       <div style={{ minHeight: "100vh", background: BRAND.bg, color: BRAND.ink, fontFamily: "'Archivo', system-ui, sans-serif" }}>
@@ -507,7 +528,7 @@ export default function App() {
           <div style={{ justifySelf: "center" }}><Logo /></div>
           <div style={{ justifySelf: "end" }}><LangToggle lang={lang} setLang={setLang} /></div>
         </header>
-        <InterestPicker t={t} lang={lang} chosen={chosen} onToggle={toggleChosen} onDone={() => { track("select_interests", { interests: chosen.join(",") }); setTab("home"); setPicking(false); }} />
+        <InterestPicker t={t} lang={lang} chosen={chosen} onToggle={toggleChosen} onDone={() => { track("select_interests", { interests: chosen.join(",") }); setTab("home"); setPicking(false); }} onOpenGuide={() => setShowGuide(true)} />
         <RotatingBadge />
       </div>
     );
@@ -565,7 +586,7 @@ export default function App() {
 }
 
 /* --------------------------- INTEREST PICKER ------------------------------ */
-function InterestPicker({ t, lang, chosen, onToggle, onDone }) {
+function InterestPicker({ t, lang, chosen, onToggle, onDone, onOpenGuide }) {
   return (
     <main style={{ maxWidth: 560, margin: "0 auto", padding: "0 22px", minHeight: "calc(100vh - 60px)", display: "flex", flexDirection: "column" }}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", paddingTop: 44, paddingBottom: 28 }}>
@@ -583,10 +604,116 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone }) {
           })}
         </div>
       </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "22px 0 0" }}>
+        <div style={{ flex: 1, height: 1, background: BRAND.border }} />
+        <span style={{ fontSize: 12.5, color: BRAND.muted, fontWeight: 600 }}>{t.pickOrGuide}</span>
+        <div style={{ flex: 1, height: 1, background: BRAND.border }} />
+      </div>
+      <button onClick={onOpenGuide} style={{ width: "100%", background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 16, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginTop: 14 }}>
+        {t.guideCta}
+      </button>
+
       <div style={{ position: "sticky", bottom: 0, background: BRAND.bg, paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0))", paddingTop: 12 }}>
         <button onClick={onDone} disabled={chosen.length === 0} style={{ width: "100%", background: chosen.length ? BRAND.green : "#d9d3c4", color: "#fff", border: "none", borderRadius: 16, padding: 17, fontSize: 17, fontWeight: 700, cursor: chosen.length ? "pointer" : "default", fontFamily: "inherit", transition: "background .15s" }}>
           {chosen.length ? t.pickCta : t.pickHint}
         </button>
+      </div>
+    </main>
+  );
+}
+
+/* --------------------------- GUIDA 3 GIORNI -------------------------------- */
+const GUIDE_DAYS = [1, 2, 3];
+
+function GuideTab({ t, lang, places, onBook, onClose }) {
+  const [day, setDay] = useState(1);
+  const [unlocked, setUnlocked] = useState(() => load("gl_guide_unlocked", false));
+  const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [err, setErr] = useState(false);
+
+  const byGuideDay = (n) =>
+    places
+      .filter((p) => String(p.guida_giorno) === String(n))
+      .sort((a, b) => Number(a.guida_ordine || 0) - Number(b.guida_ordine || 0));
+
+  const stops = byGuideDay(day);
+
+  const submitEmail = async (e) => {
+    e.preventDefault();
+    if (!email.includes("@")) { setErr(true); return; }
+    setErr(false); setSending(true);
+    try {
+      await fetch("/.netlify/functions/subscribe-guide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, lang }),
+      });
+      save("gl_guide_unlocked", true);
+      setUnlocked(true);
+      track("unlock_guide", { email_domain: email.split("@")[1] || "" });
+    } catch {
+      setErr(true);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <main style={{ maxWidth: 720, margin: "0 auto", padding: "18px 18px 60px" }}>
+      <button onClick={onClose} style={{ background: "none", border: "none", color: BRAND.muted, fontSize: 13.5, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 18 }}>
+        &larr; {t.guideBack}
+      </button>
+
+      <h1 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(30px, 7vw, 42px)", letterSpacing: "-0.02em", margin: "0 0 6px", lineHeight: 1.05 }}>
+        {t.guideTitle}
+      </h1>
+      <p style={{ color: BRAND.muted, margin: "0 0 24px", fontSize: 15 }}>{t.guideSub}</p>
+
+      <div style={{ display: "flex", gap: 20, borderBottom: `1px solid ${BRAND.border}`, marginBottom: 4 }}>
+        {GUIDE_DAYS.map((n) => (
+          <button key={n} onClick={() => setDay(n)} style={{ background: "none", border: "none", padding: "10px 0", fontSize: 13, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer", borderBottom: `3px solid ${day === n ? BRAND.green : "transparent"}`, color: day === n ? BRAND.ink : BRAND.muted }}>
+            {lang === "en" ? `Day 0${n}` : `Giorno 0${n}`}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ position: "relative" }}>
+        <div style={{ filter: unlocked ? "none" : "blur(7px)", pointerEvents: unlocked ? "auto" : "none", userSelect: unlocked ? "auto" : "none" }}>
+          {stops.map((stop) => {
+            const name = lang === "en" ? stop.title_en || stop.title_it : stop.title_it;
+            const note = lang === "en" ? stop.guida_nota_en || stop.guida_nota_it : stop.guida_nota_it;
+            return (
+              <div key={stop.id} style={{ display: "flex", gap: 14, padding: "18px 0", borderBottom: `1px solid ${BRAND.border}` }}>
+                <div style={{ width: 64, height: 64, flexShrink: 0, borderRadius: 12, background: `${BRAND.border}`, backgroundImage: stop.image ? `url(${stop.image})` : undefined, backgroundSize: "cover", backgroundPosition: "center" }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 17 }}>{name}</div>
+                  {note && <p style={{ margin: "4px 0 8px", fontSize: 13, color: BRAND.muted, lineHeight: 1.4 }}>{note}</p>}
+                  {String(stop.bookable).toLowerCase() === "yes" && (
+                    <button onClick={() => onBook(stop)} style={{ background: BRAND.green, color: "#fff", border: "none", borderRadius: 12, padding: "8px 16px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      {t.book}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {!unlocked && (
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+            <form onSubmit={submitEmail} style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 18, padding: 24, maxWidth: 340, width: "100%", boxShadow: "0 12px 30px rgba(40,30,15,0.18)", textAlign: "center" }}>
+              <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 20, marginBottom: 6 }}>{t.guideGateTitle}</div>
+              <p style={{ fontSize: 13, color: BRAND.muted, margin: "0 0 16px" }}>{t.guideGateSub}</p>
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.email}
+                style={{ width: "100%", boxSizing: "border-box", padding: "12px 14px", borderRadius: 12, border: `1.5px solid ${err ? BRAND.red : BRAND.border}`, fontSize: 14.5, fontFamily: "inherit", marginBottom: 10 }} />
+              <button type="submit" disabled={sending} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 12, padding: 13, fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                {sending ? t.sending : t.guideUnlock}
+              </button>
+              {err && <div style={{ color: BRAND.red, fontSize: 12, marginTop: 8 }}>{t.required}</div>}
+            </form>
+          </div>
+        )}
       </div>
     </main>
   );
