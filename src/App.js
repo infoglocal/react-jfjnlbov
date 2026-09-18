@@ -591,7 +591,15 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone, onOpenGuide }) {
     <main style={{ maxWidth: 560, margin: "0 auto", padding: "0 22px", minHeight: "calc(100vh - 60px)", display: "flex", flexDirection: "column" }}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", paddingTop: 44, paddingBottom: 28 }}>
         <h1 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(30px, 7vw, 42px)", letterSpacing: "-0.02em", margin: "0 0 10px", lineHeight: 1.08 }}>{t.pickTitle}</h1>
-        <p style={{ color: BRAND.muted, margin: "0 0 30px", fontSize: 16, lineHeight: 1.5 }}>{t.pickSub}</p>
+        <p style={{ color: BRAND.muted, margin: "0 0 20px", fontSize: 16, lineHeight: 1.5 }}>{t.pickSub}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 0 20px" }}>
+          <div style={{ flex: 1, height: 1, background: BRAND.border }} />
+          <span style={{ fontSize: 12.5, color: BRAND.muted, fontWeight: 600 }}>{t.pickOrGuide}</span>
+          <div style={{ flex: 1, height: 1, background: BRAND.border }} />
+        </div>
+        <button onClick={onOpenGuide} style={{ width: "100%", background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 16, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 26 }}>
+          {t.guideCta}
+        </button>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12, alignContent: "start" }}>
           {SECTIONS.map((o, i) => {
             const active = chosen.includes(o.id);
@@ -604,15 +612,6 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone, onOpenGuide }) {
           })}
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "22px 0 0" }}>
-        <div style={{ flex: 1, height: 1, background: BRAND.border }} />
-        <span style={{ fontSize: 12.5, color: BRAND.muted, fontWeight: 600 }}>{t.pickOrGuide}</span>
-        <div style={{ flex: 1, height: 1, background: BRAND.border }} />
-      </div>
-      <button onClick={onOpenGuide} style={{ width: "100%", background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 16, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginTop: 14 }}>
-        {t.guideCta}
-      </button>
-
       <div style={{ position: "sticky", bottom: 0, background: BRAND.bg, paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0))", paddingTop: 12 }}>
         <button onClick={onDone} disabled={chosen.length === 0} style={{ width: "100%", background: chosen.length ? BRAND.green : "#d9d3c4", color: "#fff", border: "none", borderRadius: 16, padding: 17, fontSize: 17, fontWeight: 700, cursor: chosen.length ? "pointer" : "default", fontFamily: "inherit", transition: "background .15s" }}>
           {chosen.length ? t.pickCta : t.pickHint}
@@ -644,15 +643,22 @@ function GuideTab({ t, lang, places, onBook, onClose }) {
     if (!email.includes("@")) { setErr(true); return; }
     setErr(false); setSending(true);
     try {
-      await fetch("/.netlify/functions/subscribe-guide", {
+      const res = await fetch("/.netlify/functions/subscribe-guide", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, lang }),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        console.error("subscribe-guide failed", res.status, body);
+        setErr(true);
+        return;
+      }
       save("gl_guide_unlocked", true);
       setUnlocked(true);
       track("unlock_guide", { email_domain: email.split("@")[1] || "" });
-    } catch {
+    } catch (err) {
+      console.error("subscribe-guide network error", err);
       setErr(true);
     } finally {
       setSending(false);
@@ -685,6 +691,11 @@ function GuideTab({ t, lang, places, onBook, onClose }) {
             const note = lang === "en" ? stop.guida_nota_en || stop.guida_nota_it : stop.guida_nota_it;
             return (
               <div key={stop.id} style={{ display: "flex", gap: 14, padding: "18px 0", borderBottom: `1px solid ${BRAND.border}` }}>
+                {stop.guida_ora && (
+                  <div style={{ width: 46, flexShrink: 0, fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 15, color: BRAND.green, paddingTop: 2 }}>
+                    {stop.guida_ora}
+                  </div>
+                )}
                 <div style={{ width: 64, height: 64, flexShrink: 0, borderRadius: 12, background: `${BRAND.border}`, backgroundImage: stop.image ? `url(${stop.image})` : undefined, backgroundSize: "cover", backgroundPosition: "center" }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 17 }}>{name}</div>
