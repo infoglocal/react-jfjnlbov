@@ -1175,7 +1175,9 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
         <div style={{ position: "relative" }}>
           <DetailGallery images={gallery} alt={title} />
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.55), transparent 50%)", borderRadius: "22px 22px 0 0", pointerEvents: "none" }} />
-          <button onClick={onClose} aria-label={t.close} style={{ position: "absolute", top: 14, right: 14, width: 38, height: 38, borderRadius: "50%", background: "rgba(0,0,0,0.5)", color: "#fff", border: "none", fontSize: 22, cursor: "pointer", lineHeight: 1, backdropFilter: "blur(4px)", zIndex: 3 }}>×</button>
+          <div style={{ position: "sticky", top: 0, zIndex: 5, height: 0, overflow: "visible" }}>
+            <button onClick={onClose} aria-label={t.close} style={{ position: "absolute", top: 14, right: 14, width: 40, height: 40, borderRadius: "50%", background: "rgba(20,16,10,0.7)", color: "#fff", border: "none", fontSize: 22, cursor: "pointer", lineHeight: 1, backdropFilter: "blur(4px)", boxShadow: "0 2px 12px rgba(0,0,0,0.3)" }}>×</button>
+          </div>
           <div style={{ position: "absolute", left: 20, bottom: 16, right: 20, pointerEvents: "none" }}>
             {place.location && <span style={{ display: "inline-block", fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#fff", opacity: 0.9, marginBottom: 6 }}>📍 {place.location}</span>}
             <h2 translate="no" className="notranslate" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(26px, 6vw, 34px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: "#fff", margin: 0 }}>{title}</h2>
