@@ -605,15 +605,15 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone, onOpenGuide }) {
             );
           })}
         </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0 0" }}>
+          <div style={{ flex: 1, height: 1, background: BRAND.border }} />
+          <span style={{ fontSize: 12.5, color: BRAND.muted, fontWeight: 600 }}>{t.pickOrGuide}</span>
+          <div style={{ flex: 1, height: 1, background: BRAND.border }} />
+        </div>
+        <button onClick={onOpenGuide} style={{ width: "100%", background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 16, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginTop: 14 }}>
+          {t.guideCta}
+        </button>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "14px 0 0" }}>
-        <div style={{ flex: 1, height: 1, background: BRAND.border }} />
-        <span style={{ fontSize: 12.5, color: BRAND.muted, fontWeight: 600 }}>{t.pickOrGuide}</span>
-        <div style={{ flex: 1, height: 1, background: BRAND.border }} />
-      </div>
-      <button onClick={onOpenGuide} style={{ width: "100%", background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 16, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginTop: 14 }}>
-        {t.guideCta}
-      </button>
 
       <div style={{ position: "sticky", bottom: 0, background: BRAND.bg, paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0))", paddingTop: 12 }}>
         <button onClick={onDone} disabled={chosen.length === 0} style={{ width: "100%", background: chosen.length ? BRAND.green : "#d9d3c4", color: "#fff", border: "none", borderRadius: 16, padding: 17, fontSize: 17, fontWeight: 700, cursor: chosen.length ? "pointer" : "default", fontFamily: "inherit", transition: "background .15s" }}>
