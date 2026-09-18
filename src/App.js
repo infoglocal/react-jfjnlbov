@@ -1171,20 +1171,20 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
 
   return (
     <div onClick={onClose} style={overlay}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 540, padding: 0, maxHeight: "94vh" }}>
-        <div style={{ position: "sticky", top: 0, zIndex: 5, display: "flex", justifyContent: "flex-end", padding: "10px 14px", background: "rgba(251,248,240,0.95)", backdropFilter: "blur(8px)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 540, padding: 0, maxHeight: "94vh", overflowY: "hidden", display: "flex", flexDirection: "column" }}>
+        <div style={{ flexShrink: 0, display: "flex", justifyContent: "flex-end", padding: "10px 14px", background: BRAND.bg }}>
           <button onClick={onClose} aria-label={t.close} style={xBtn}>×</button>
         </div>
-        <div style={{ position: "relative" }}>
+        <div style={{ flexShrink: 0, position: "relative" }}>
           <DetailGallery images={gallery} alt={title} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.55), transparent 50%)", borderRadius: "22px 22px 0 0", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.55), transparent 50%)", pointerEvents: "none" }} />
           <div style={{ position: "absolute", left: 20, bottom: 16, right: 20, pointerEvents: "none" }}>
             {place.location && <span style={{ display: "inline-block", fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#fff", opacity: 0.9, marginBottom: 6 }}>📍 {place.location}</span>}
             <h2 translate="no" className="notranslate" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(26px, 6vw, 34px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: "#fff", margin: 0 }}>{title}</h2>
           </div>
         </div>
 
-        <div style={{ padding: 22, overflowY: "auto" }}>
+        <div style={{ flex: 1, minHeight: 0, padding: 22, overflowY: "auto" }}>
           {place.price && <p style={{ fontSize: 22, fontWeight: 600, margin: "0 0 16px", color: BRAND.red, fontFamily: "'Fraunces', serif" }}>{place.price}</p>}
           <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#4a463d", margin: "0 0 20px", whiteSpace: "pre-line" }}>{desc}</p>
 
