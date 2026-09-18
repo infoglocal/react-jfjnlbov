@@ -605,7 +605,7 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone, onOpenGuide }) {
           })}
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "22px 0 0" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "10px 0 0" }}>
         <div style={{ flex: 1, height: 1, background: BRAND.border }} />
         <span style={{ fontSize: 12.5, color: BRAND.muted, fontWeight: 600 }}>{t.pickOrGuide}</span>
         <div style={{ flex: 1, height: 1, background: BRAND.border }} />
