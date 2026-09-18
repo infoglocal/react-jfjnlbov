@@ -111,6 +111,10 @@ const T = {
     guideGateTitle: "Sblocca la guida", guideGateSub: "Lasciaci la tua email, è gratis.",
     guideUnlock: "Sblocca",
     guideConsent: "Accetto di ricevere la guida via email, secondo la",
+    installTitle: "Aggiungi Glocal alla Home",
+    installIosStep: "Tocca l'icona Condividi qui sotto, poi \"Aggiungi alla schermata Home\".",
+    installAndroidStep: "Apri il menu del browser (⋮) e tocca \"Aggiungi alla schermata Home\" o \"Installa app\".",
+    installCta: "Installa ora", installGotIt: "Ho capito", installLater: "Più tardi",
     soundtrackTitle: "La colonna sonora di Bologna",
     soundtrackSub: "La playlist scelta da chi ci vive, per il tuo viaggio",
     soundtrackOpen: "Apri in Spotify",
@@ -130,6 +134,8 @@ const T = {
     of: "di",
     tabHome: "Home", tabItin: "Itinerario",
     itinTitle: "Il tuo itinerario",
+    itinReminderOne: "posto nel tuo itinerario", itinReminderMany: "posti nel tuo itinerario",
+    itinReminderCta: "Vedi il percorso",
     itinEmpty: "Aggiungi luoghi ed esperienze dalla Home per costruire il tuo itinerario.",
     remove: "Rimuovi", clearAll: "Svuota", goHome: "Vai alla Home",
     openInMaps: "Apri in Google Maps", shareWa: "Condividi su WhatsApp",
@@ -162,6 +168,10 @@ const T = {
     guideGateTitle: "Unlock the guide", guideGateSub: "Leave your email, it's free.",
     guideUnlock: "Unlock",
     guideConsent: "I agree to receive the guide by email, per the",
+    installTitle: "Add Glocal to your Home Screen",
+    installIosStep: "Tap the Share icon below, then \"Add to Home Screen\".",
+    installAndroidStep: "Open the browser menu (⋮) and tap \"Add to Home Screen\" or \"Install app\".",
+    installCta: "Install now", installGotIt: "Got it", installLater: "Later",
     madeTitle: "100% Made in Bo", madeSub: "Authentic experiences, born here",
     soundtrackTitle: "Bologna's soundtrack",
     soundtrackSub: "The playlist picked by locals, for your trip",
@@ -182,6 +192,8 @@ const T = {
     of: "of",
     tabHome: "Home", tabItin: "Itinerary",
     itinTitle: "Your itinerary",
+    itinReminderOne: "place in your itinerary", itinReminderMany: "places in your itinerary",
+    itinReminderCta: "View route",
     itinEmpty: "Add places and experiences from Home to build your itinerary.",
     remove: "Remove", clearAll: "Clear", goHome: "Go to Home",
     openInMaps: "Open in Google Maps", shareWa: "Share on WhatsApp",
@@ -465,6 +477,23 @@ export default function App() {
   const [cookieOk, setCookieOk] = useState(() => load("gl_cookie_ok", false));
   const [hasBooked, setHasBooked] = useState(() => load("gl_has_booked", false));
   const [showGuide, setShowGuide] = useState(false);
+  const [installEvent, setInstallEvent] = useState(null);
+  const [showInstallHint, setShowInstallHint] = useState(false);
+
+  useEffect(() => {
+    const onBip = (e) => { e.preventDefault(); setInstallEvent(e); };
+    window.addEventListener("beforeinstallprompt", onBip);
+    return () => window.removeEventListener("beforeinstallprompt", onBip);
+  }, []);
+
+  useEffect(() => {
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    if (isStandalone || load("gl_install_hint_seen", false)) return;
+    const timer = setTimeout(() => setShowInstallHint(true), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const dismissInstallHint = () => { save("gl_install_hint_seen", true); setShowInstallHint(false); };
   const [showAbandoned, setShowAbandoned] = useState(false);
   const t = T[lang];
 
@@ -532,6 +561,7 @@ export default function App() {
         </header>
         <InterestPicker t={t} lang={lang} chosen={chosen} onToggle={toggleChosen} onDone={() => { track("select_interests", { interests: chosen.join(",") }); setTab("home"); setPicking(false); }} onOpenGuide={() => setShowGuide(true)} />
         <RotatingBadge />
+        {showInstallHint && <InstallHint t={t} lang={lang} installEvent={installEvent} onClose={dismissInstallHint} />}
       </div>
     );
   }
@@ -554,7 +584,8 @@ export default function App() {
           <HomeTab t={t} lang={lang} loading={loading} places={places} chosen={chosen}
             onEditInterests={() => setPicking(true)}
             onBook={setBooking} onDetail={setDetail} onTip={setTipPlace}
-            itinerary={itinerary} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} />
+            itinerary={itinerary} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)}
+            onOpenItin={() => setTab("itin")} />
         )}
         {tab === "itin" && (
           <ItineraryTab t={t} lang={lang} items={itinerary.map(byId).filter(Boolean)}
@@ -583,6 +614,38 @@ export default function App() {
           onCta={() => { setShowAbandoned(false); setTab("home"); }} />
       )}
       {!cookieOk && <CookieBanner t={t} onOk={() => { setCookieOk(true); save("gl_cookie_ok", true); }} />}
+    </div>
+  );
+}
+
+/* --------------------------- INSTALL HINT ---------------------------------- */
+function InstallHint({ t, lang, installEvent, onClose }) {
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+
+  const install = async () => {
+    if (!installEvent) return;
+    installEvent.prompt();
+    await installEvent.userChoice;
+    onClose();
+  };
+
+  return (
+    <div onClick={onClose} style={overlay}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 440, padding: 24, textAlign: "center" }}>
+        <div style={{ fontSize: 34, marginBottom: 10 }}>📲</div>
+        <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 21, margin: "0 0 10px" }}>{t.installTitle}</h3>
+        <p style={{ fontSize: 14.5, lineHeight: 1.55, color: "#4a463d", margin: "0 0 20px" }}>
+          {isIOS ? t.installIosStep : t.installAndroidStep}
+        </p>
+        {installEvent ? (
+          <button onClick={install} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 14, fontSize: 15.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}>
+            {t.installCta}
+          </button>
+        ) : null}
+        <button onClick={onClose} style={{ width: "100%", background: "transparent", color: BRAND.muted, border: "none", padding: 8, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+          {installEvent ? t.installLater : t.installGotIt}
+        </button>
+      </div>
     </div>
   );
 }
@@ -765,7 +828,7 @@ function GuideTab({ t, lang, places, onBook, onClose }) {
 }
 
 /* ------------------------------ HOME TAB ---------------------------------- */
-function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, onDetail, onTip, itinerary, onToggleItin }) {
+function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, onDetail, onTip, itinerary, onToggleItin, onOpenItin }) {
   if (loading) return <div style={{ padding: "22px 18px" }}><DeckSkeleton /></div>;
   const visibleSections = SECTIONS.filter((s) => chosen.length === 0 || chosen.includes(s.id));
   const docs = places.filter(isDoc); // TUTTI i classici, sempre, a prescindere dagli interessi
@@ -783,6 +846,15 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
           {chosen.length > 0 && <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: BRAND.green, color: "#fff", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>{chosen.length}</span>}
         </button>
       </div>
+
+      {itinerary.length > 0 && (
+        <button onClick={onOpenItin} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, width: "100%", marginTop: 14, background: "rgba(56,176,74,0.10)", border: `1.5px solid ${BRAND.green}`, borderRadius: 14, padding: "12px 16px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: BRAND.greenDark }}>
+            🗺️ {itinerary.length} {itinerary.length === 1 ? t.itinReminderOne : t.itinReminderMany}
+          </span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.greenDark, whiteSpace: "nowrap" }}>{t.itinReminderCta} ›</span>
+        </button>
+      )}
 
 
       {/* 100% MADE IN BO — sezione fissa, SEMPRE IN CIMA (dopo il benvenuto), a prescindere dagli interessi scelti */}
@@ -893,7 +965,23 @@ function Deck({ items, lang, t, onBook, onDetail, onTip, itinerary, onToggleItin
   const ref = useRef(null);
   const [idx, setIdx] = useState(0);
   const drag = useRef({ down: false, x: 0, s: 0, moved: false });
-  const onScroll = () => { const el = ref.current; if (!el) return; setIdx(Math.round(el.scrollLeft / el.clientWidth)); };
+  const scrollTimer = useRef(null);
+  const loopItems = items.length > 1 ? [...items, items[0]] : items;
+  const onScroll = () => {
+    const el = ref.current; if (!el) return;
+    const raw = Math.round(el.scrollLeft / el.clientWidth);
+    setIdx(Math.min(raw, items.length - 1));
+    // debounce: aspetta che lo scroll/swipe si sia fermato prima di controllare
+    // se siamo atterrati sulla card clonata (= la prima, di nuovo) e nel caso
+    // saltare istantaneamente all'inizio vero, senza che si veda il salto.
+    clearTimeout(scrollTimer.current);
+    scrollTimer.current = setTimeout(() => {
+      if (items.length > 1 && raw >= items.length) {
+        el.scrollLeft = 0;
+        setIdx(0);
+      }
+    }, 120);
+  };
   const go = (dir) => {
     const el = ref.current; if (!el) return;
     const n = items.length;
@@ -913,8 +1001,8 @@ function Deck({ items, lang, t, onBook, onDetail, onTip, itinerary, onToggleItin
         <span style={{ fontSize: 12.5, color: BRAND.muted, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{idx + 1} {t.of} {items.length}</span>
       </div>
       <div ref={ref} className="gl-deck" onScroll={onScroll} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={end} onMouseLeave={end} onClickCapture={onClickCapture}>
-        {items.map((p) => (
-          <div key={p.id} className="gl-deck-slide">
+        {loopItems.map((p, i) => (
+          <div key={i < items.length ? p.id : `${p.id}-loop`} className="gl-deck-slide">
             <DeckCard place={p} lang={lang} t={t} onBook={onBook} onDetail={onDetail} onTip={onTip}
               inItin={itinerary.includes(p.id)} onToggleItin={() => onToggleItin(p.id)} />
           </div>
@@ -1288,7 +1376,7 @@ function Spinner() { return <span style={{ width: 14, height: 14, border: `2px s
 const overlay = { position: "fixed", inset: 0, background: "rgba(26,20,12,0.55)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 90 };
 const sheet = { background: BRAND.bg, width: "100%", borderRadius: "22px 22px 0 0", overflowY: "auto", maxHeight: "92vh", boxShadow: "0 -10px 50px rgba(0,0,0,0.25)" };
 const inp = { width: "100%", boxSizing: "border-box", padding: "12px 14px", borderRadius: 12, border: `1.5px solid ${BRAND.border}`, background: BRAND.card, fontSize: 15, fontFamily: "inherit", color: BRAND.ink, outline: "none" };
-const xBtn = { background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "#999", lineHeight: 1 };
+const xBtn = { width: 34, height: 34, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(26,20,12,0.08)", border: "none", borderRadius: "50%", fontSize: 20, cursor: "pointer", color: BRAND.ink, lineHeight: 1 };
 const sheetLabel = { fontSize: 12.5, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: BRAND.muted, margin: "0 0 12px" };
 const listReset = { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 };
 const rowCard = { display: "flex", gap: 13, alignItems: "center", background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 14, padding: 11 };
