@@ -1171,7 +1171,7 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
 
   return (
     <div onClick={onClose} style={overlay}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 540, padding: 0, maxHeight: "94vh", overflowY: "hidden", display: "flex", flexDirection: "column" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 540, padding: 0, maxHeight: "88vh", overflowY: "hidden", display: "flex", flexDirection: "column" }}>
         <div style={{ flexShrink: 0, display: "flex", justifyContent: "flex-end", padding: "22px 14px 10px", background: BRAND.bg }}>
           <button onClick={onClose} aria-label={t.close} style={xBtn}>×</button>
         </div>
