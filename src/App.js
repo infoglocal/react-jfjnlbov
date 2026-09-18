@@ -111,10 +111,13 @@ const T = {
     guideGateTitle: "Sblocca la guida", guideGateSub: "Lasciaci la tua email, è gratis.",
     guideUnlock: "Sblocca",
     guideConsent: "Accetto di ricevere la guida via email, secondo la",
-    installTitle: "Aggiungi Glocal alla Home",
-    installIosStep: "Tocca l'icona Condividi qui sotto, poi \"Aggiungi alla schermata Home\".",
-    installAndroidStep: "Apri il menu del browser (⋮) e tocca \"Aggiungi alla schermata Home\" o \"Installa app\".",
-    installCta: "Installa ora", installGotIt: "Ho capito", installLater: "Più tardi",
+    installTitle: "Porta Glocal sul telefono!",
+    installSub: "Come un'app vera, in 10 secondi ✨",
+    installIosStep1: "Tocca qui sotto", installIosStep1Detail: "l'icona Condividi",
+    installIosStep2: "Poi tocca", installIosStep2Detail: "\"Aggiungi alla schermata Home\"",
+    installAndroidStep1: "Tocca i tre puntini", installAndroidStep1Detail: "in alto nel browser",
+    installAndroidStep2: "Poi tocca", installAndroidStep2Detail: "\"Aggiungi alla schermata Home\"",
+    installCta: "Installa ora, un tap!", installGotIt: "Fatto, ho capito", installLater: "Più tardi",
     soundtrackTitle: "La colonna sonora di Bologna",
     soundtrackSub: "La playlist scelta da chi ci vive, per il tuo viaggio",
     soundtrackOpen: "Apri in Spotify",
@@ -168,10 +171,13 @@ const T = {
     guideGateTitle: "Unlock the guide", guideGateSub: "Leave your email, it's free.",
     guideUnlock: "Unlock",
     guideConsent: "I agree to receive the guide by email, per the",
-    installTitle: "Add Glocal to your Home Screen",
-    installIosStep: "Tap the Share icon below, then \"Add to Home Screen\".",
-    installAndroidStep: "Open the browser menu (⋮) and tap \"Add to Home Screen\" or \"Install app\".",
-    installCta: "Install now", installGotIt: "Got it", installLater: "Later",
+    installTitle: "Get Glocal on your phone!",
+    installSub: "Just like a real app, in 10 seconds ✨",
+    installIosStep1: "Tap here below", installIosStep1Detail: "the Share icon",
+    installIosStep2: "Then tap", installIosStep2Detail: "\"Add to Home Screen\"",
+    installAndroidStep1: "Tap the three dots", installAndroidStep1Detail: "at the top of the browser",
+    installAndroidStep2: "Then tap", installAndroidStep2Detail: "\"Add to Home Screen\"",
+    installCta: "Install now, one tap!", installGotIt: "Done, got it", installLater: "Later",
     madeTitle: "100% Made in Bo", madeSub: "Authentic experiences, born here",
     soundtrackTitle: "Bologna's soundtrack",
     soundtrackSub: "The playlist picked by locals, for your trip",
@@ -629,14 +635,38 @@ function InstallHint({ t, lang, installEvent, onClose }) {
     onClose();
   };
 
+  const steps = isIOS
+    ? [
+        { icon: "📤", label: t.installIosStep1, detail: t.installIosStep1Detail },
+        { icon: "➕", label: t.installIosStep2, detail: t.installIosStep2Detail },
+      ]
+    : [
+        { icon: "⋮", label: t.installAndroidStep1, detail: t.installAndroidStep1Detail },
+        { icon: "➕", label: t.installAndroidStep2, detail: t.installAndroidStep2Detail },
+      ];
+
   return (
     <div onClick={onClose} style={overlay}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 440, padding: 24, textAlign: "center" }}>
-        <div style={{ fontSize: 34, marginBottom: 10 }}>📲</div>
-        <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 21, margin: "0 0 10px" }}>{t.installTitle}</h3>
-        <p style={{ fontSize: 14.5, lineHeight: 1.55, color: "#4a463d", margin: "0 0 20px" }}>
-          {isIOS ? t.installIosStep : t.installAndroidStep}
-        </p>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 440, padding: 26, textAlign: "center" }}>
+        <div style={{ fontSize: 40, marginBottom: 8 }}>📲</div>
+        <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 23, margin: "0 0 4px" }}>{t.installTitle}</h3>
+        <p style={{ fontSize: 14.5, color: BRAND.muted, margin: "0 0 22px" }}>{t.installSub}</p>
+
+        {!installEvent && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 22 }}>
+            {steps.map((s, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, background: "rgba(56,176,74,0.08)", border: `1.5px solid ${BRAND.border}`, borderRadius: 16, padding: "12px 16px", textAlign: "left" }}>
+                <div style={{ width: 34, height: 34, borderRadius: "50%", background: BRAND.green, color: "#fff", fontSize: 15, fontWeight: 800, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>{i + 1}</div>
+                <div style={{ fontSize: 26, flexShrink: 0 }}>{s.icon}</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700 }}>{s.label}</div>
+                  <div style={{ fontSize: 13, color: BRAND.muted }}>{s.detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {installEvent ? (
           <button onClick={install} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 14, fontSize: 15.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}>
             {t.installCta}
