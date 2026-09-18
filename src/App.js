@@ -110,6 +110,7 @@ const T = {
     guideBack: "Torna alle card",
     guideGateTitle: "Sblocca la guida", guideGateSub: "Lasciaci la tua email, è gratis.",
     guideUnlock: "Sblocca",
+    guideConsent: "Accetto di ricevere la guida via email, secondo la",
     soundtrackTitle: "La colonna sonora di Bologna",
     soundtrackSub: "La playlist scelta da chi ci vive, per il tuo viaggio",
     soundtrackOpen: "Apri in Spotify",
@@ -160,6 +161,7 @@ const T = {
     guideBack: "Back to cards",
     guideGateTitle: "Unlock the guide", guideGateSub: "Leave your email, it's free.",
     guideUnlock: "Unlock",
+    guideConsent: "I agree to receive the guide by email, per the",
     madeTitle: "100% Made in Bo", madeSub: "Authentic experiences, born here",
     soundtrackTitle: "Bologna's soundtrack",
     soundtrackSub: "The playlist picked by locals, for your trip",
@@ -604,15 +606,16 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone, onOpenGuide }) {
           })}
         </div>
       </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "14px 0 0" }}>
+        <div style={{ flex: 1, height: 1, background: BRAND.border }} />
+        <span style={{ fontSize: 12.5, color: BRAND.muted, fontWeight: 600 }}>{t.pickOrGuide}</span>
+        <div style={{ flex: 1, height: 1, background: BRAND.border }} />
+      </div>
+      <button onClick={onOpenGuide} style={{ width: "100%", background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 16, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginTop: 14 }}>
+        {t.guideCta}
+      </button>
+
       <div style={{ position: "sticky", bottom: 0, background: BRAND.bg, paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0))", paddingTop: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 0 12px" }}>
-          <div style={{ flex: 1, height: 1, background: BRAND.border }} />
-          <span style={{ fontSize: 12.5, color: BRAND.muted, fontWeight: 600 }}>{t.pickOrGuide}</span>
-          <div style={{ flex: 1, height: 1, background: BRAND.border }} />
-        </div>
-        <button onClick={onOpenGuide} style={{ width: "100%", background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 16, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
-          {t.guideCta}
-        </button>
         <button onClick={onDone} disabled={chosen.length === 0} style={{ width: "100%", background: chosen.length ? BRAND.green : "#d9d3c4", color: "#fff", border: "none", borderRadius: 16, padding: 17, fontSize: 17, fontWeight: 700, cursor: chosen.length ? "pointer" : "default", fontFamily: "inherit", transition: "background .15s" }}>
           {chosen.length ? t.pickCta : t.pickHint}
         </button>
@@ -629,6 +632,7 @@ function GuideTab({ t, lang, places, onBook, onClose }) {
   const [openId, setOpenId] = useState(null);
   const [unlocked, setUnlocked] = useState(() => load("gl_guide_unlocked", false));
   const [email, setEmail] = useState("");
+  const [consent, setConsent] = useState(false);
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState(false);
 
@@ -641,7 +645,7 @@ function GuideTab({ t, lang, places, onBook, onClose }) {
 
   const submitEmail = async (e) => {
     e.preventDefault();
-    if (!email.includes("@")) { setErr(true); return; }
+    if (!email.includes("@") || !consent) { setErr(true); return; }
     setErr(false); setSending(true);
     try {
       const res = await fetch("/.netlify/functions/subscribe-guide", {
@@ -741,7 +745,14 @@ function GuideTab({ t, lang, places, onBook, onClose }) {
               <p style={{ fontSize: 13, color: BRAND.muted, margin: "0 0 16px" }}>{t.guideGateSub}</p>
               <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.email}
                 style={{ width: "100%", boxSizing: "border-box", padding: "12px 14px", borderRadius: 12, border: `1.5px solid ${err ? BRAND.red : BRAND.border}`, fontSize: 14.5, fontFamily: "inherit", marginBottom: 10 }} />
-              <button type="submit" disabled={sending} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 12, padding: 13, fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 8, textAlign: "left", fontSize: 12, color: BRAND.muted, lineHeight: 1.4, marginBottom: 12, cursor: "pointer" }}>
+                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
+                <span>
+                  {t.guideConsent}{" "}
+                  <a href="https://www.iubenda.com/privacy-policy/67582598" target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: BRAND.ink, textDecoration: "underline" }}>{t.cookiePolicy}</a>
+                </span>
+              </label>
+              <button type="submit" disabled={sending || !consent} style={{ width: "100%", background: consent ? BRAND.green : "#d9d3c4", color: "#fff", border: "none", borderRadius: 12, padding: 13, fontSize: 14.5, fontWeight: 700, cursor: consent ? "pointer" : "default", fontFamily: "inherit" }}>
                 {sending ? t.sending : t.guideUnlock}
               </button>
               {err && <div style={{ color: BRAND.red, fontSize: 12, marginTop: 8 }}>{t.required}</div>}
