@@ -703,7 +703,7 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone, onOpenGuide }) {
           <span style={{ fontSize: 12.5, color: BRAND.muted, fontWeight: 600 }}>{t.pickOrGuide}</span>
           <div style={{ flex: 1, height: 1, background: BRAND.border }} />
         </div>
-        <button onClick={onOpenGuide} style={{ width: "100%", background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 16, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginTop: 14 }}>
+        <button onClick={onOpenGuide} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 16, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginTop: 14 }}>
           {t.guideCta}
         </button>
       </div>
@@ -1071,7 +1071,7 @@ function DeckCard({ place, lang, t, onBook, onDetail, onTip, inItin, onToggleIti
     <article className="gl-card" style={{ background: BRAND.card, borderRadius: 22, overflow: "hidden", border: `1px solid ${BRAND.border}`, boxShadow: "0 6px 22px rgba(40,30,15,0.08)", height: "100%", display: "flex", flexDirection: "column" }}>
       <div onClick={() => { track("view_card", { card: place.title_it || place.id, section: place.interests }); onDetail(place); }} style={{ position: "relative", aspectRatio: "4/3", background: "#eee", overflow: "hidden", cursor: "pointer" }}>
         <img src={place.image} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.55), rgba(20,16,10,0) 32%)" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.38), rgba(20,16,10,0) 26%)" }} />
         {place.location && <span style={{ position: "absolute", top: 14, left: 14, background: "rgba(255,255,255,0.92)", color: BRAND.ink, fontSize: 12.5, fontWeight: 700, padding: "6px 12px", borderRadius: 999 }}>{place.location}</span>}
         <div style={{ position: "absolute", left: 18, bottom: 14, right: 18 }}>
           <h3 translate="no" className="notranslate" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 6.5vw, 32px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: "#fff", margin: 0, textShadow: "0 1px 8px rgba(0,0,0,0.35)" }}>{title}</h3>
@@ -1177,7 +1177,7 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
         </div>
         <div style={{ flexShrink: 0, position: "relative" }}>
           <DetailGallery images={gallery} alt={title} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.40), transparent 38%)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.28), transparent 30%)", pointerEvents: "none" }} />
           <div style={{ position: "absolute", left: 20, bottom: 16, right: 20, pointerEvents: "none" }}>
             {place.location && <span style={{ display: "inline-block", fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#fff", opacity: 0.9, marginBottom: 6, textShadow: "0 1px 6px rgba(0,0,0,0.4)" }}>📍 {place.location}</span>}
             <h2 translate="no" className="notranslate" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(26px, 6vw, 34px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: "#fff", margin: 0, textShadow: "0 1px 8px rgba(0,0,0,0.4)" }}>{title}</h2>
