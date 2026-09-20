@@ -492,12 +492,16 @@ export default function App() {
     return () => window.removeEventListener("beforeinstallprompt", onBip);
   }, []);
 
-  useEffect(() => {
+  // Popup "installa sul telefono": NON più automatico all'apertura. Si attiva
+  // solo su azione esplicita dell'utente (click su "Vedi i risultati" o su
+  // "Visualizza la guida gratis" nella schermata di scelta interessi), con un
+  // piccolo ritardo perché non compaia nello stesso istante del tap. Rispetta
+  // comunque il check standalone e il flag "già visto" di sempre.
+  const triggerInstallHint = () => {
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
     if (isStandalone || load("gl_install_hint_seen", false)) return;
-    const timer = setTimeout(() => setShowInstallHint(true), 1500);
-    return () => clearTimeout(timer);
-  }, []);
+    setTimeout(() => setShowInstallHint(true), 1500);
+  };
 
   const dismissInstallHint = () => { save("gl_install_hint_seen", true); setShowInstallHint(false); };
   const [showAbandoned, setShowAbandoned] = useState(false);
@@ -552,6 +556,7 @@ export default function App() {
         <FontLink />
         <GuideTab t={t} lang={lang} places={places} onBook={setBooking} onClose={() => setShowGuide(false)} />
         {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} onBooked={markBooked} />}
+        {showInstallHint && <InstallHint t={t} lang={lang} installEvent={installEvent} onClose={dismissInstallHint} />}
       </div>
     );
   }
@@ -565,9 +570,20 @@ export default function App() {
           <div style={{ justifySelf: "center" }}><Logo /></div>
           <div style={{ justifySelf: "end" }}><LangToggle lang={lang} setLang={setLang} /></div>
         </header>
-        <InterestPicker t={t} lang={lang} chosen={chosen} onToggle={toggleChosen} onDone={() => { track("select_interests", { interests: chosen.join(",") }); setTab("home"); setPicking(false); }} onOpenGuide={() => setShowGuide(true)} />
+        <InterestPicker
+          t={t} lang={lang} chosen={chosen} onToggle={toggleChosen}
+          onDone={() => {
+            track("select_interests", { interests: chosen.join(",") });
+            setTab("home");
+            setPicking(false);
+            triggerInstallHint();
+          }}
+          onOpenGuide={() => {
+            setShowGuide(true);
+            triggerInstallHint();
+          }}
+        />
         <RotatingBadge />
-        {showInstallHint && <InstallHint t={t} lang={lang} installEvent={installEvent} onClose={dismissInstallHint} />}
       </div>
     );
   }
@@ -620,6 +636,7 @@ export default function App() {
           onCta={() => { setShowAbandoned(false); setTab("home"); }} />
       )}
       {!cookieOk && <CookieBanner t={t} onOk={() => { setCookieOk(true); save("gl_cookie_ok", true); }} />}
+      {showInstallHint && <InstallHint t={t} lang={lang} installEvent={installEvent} onClose={dismissInstallHint} />}
     </div>
   );
 }
@@ -698,19 +715,21 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone, onOpenGuide }) {
             );
           })}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0 0" }}>
+      </div>
+
+      {/* area sticky in basso: 1) pulsante "vedi risultati" (azione primaria)  2) sotto, la guida gratuita in rosso */}
+      <div style={{ position: "sticky", bottom: 0, background: BRAND.bg, paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0))", paddingTop: 12 }}>
+        <button onClick={onDone} disabled={chosen.length === 0} style={{ width: "100%", background: chosen.length ? BRAND.green : "#d9d3c4", color: "#fff", border: "none", borderRadius: 16, padding: 17, fontSize: 17, fontWeight: 700, cursor: chosen.length ? "pointer" : "default", fontFamily: "inherit", transition: "background .15s" }}>
+          {chosen.length ? t.pickCta : t.pickHint}
+        </button>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "14px 0" }}>
           <div style={{ flex: 1, height: 1, background: BRAND.border }} />
           <span style={{ fontSize: 12.5, color: BRAND.muted, fontWeight: 600 }}>{t.pickOrGuide}</span>
           <div style={{ flex: 1, height: 1, background: BRAND.border }} />
         </div>
-        <button onClick={onOpenGuide} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 16, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginTop: 14 }}>
+        <button onClick={onOpenGuide} style={{ width: "100%", background: BRAND.red, color: "#fff", border: "none", borderRadius: 16, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
           {t.guideCta}
-        </button>
-      </div>
-
-      <div style={{ position: "sticky", bottom: 0, background: BRAND.bg, paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0))", paddingTop: 12 }}>
-        <button onClick={onDone} disabled={chosen.length === 0} style={{ width: "100%", background: chosen.length ? BRAND.green : "#d9d3c4", color: "#fff", border: "none", borderRadius: 16, padding: 17, fontSize: 17, fontWeight: 700, cursor: chosen.length ? "pointer" : "default", fontFamily: "inherit", transition: "background .15s" }}>
-          {chosen.length ? t.pickCta : t.pickHint}
         </button>
       </div>
     </main>
