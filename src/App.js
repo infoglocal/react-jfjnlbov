@@ -82,6 +82,20 @@ function initGA() {
   gtag("js", new Date());
   gtag("config", GA_ID);
 }
+// Converte il prezzo scritto sul foglio (es. "15€", "A partire da 40€") in una
+// fascia a simboli di euro (€ / €€ / €€€), come su tante app di recensioni.
+// Se nel testo non c'è un numero (es. "Gratis", "Su invito") lo lascia com'è.
+function priceSymbol(priceStr) {
+  if (!priceStr) return priceStr;
+  const match = String(priceStr).replace(",", ".").match(/\d+(\.\d+)?/);
+  if (!match) return priceStr;
+  const num = parseFloat(match[0]);
+  if (Number.isNaN(num)) return priceStr;
+  if (num <= 15) return "€";
+  if (num <= 35) return "€€";
+  return "€€€";
+}
+
 // invia un evento a GA (no-op se GA non è pronto)
 function track(event, params) {
   try { if (window.gtag) window.gtag("event", event, params || {}); } catch {}
@@ -450,8 +464,10 @@ export default function App() {
     return (
       <div style={{ minHeight: "100vh", background: BRAND.bg, color: BRAND.ink, fontFamily: "'Archivo', system-ui, sans-serif" }}>
         <FontLink />
-        <GuideTab t={t} lang={lang} places={places} onBook={setBooking} onClose={() => setShowGuide(false)} />
+        <GuideTab t={t} lang={lang} places={places} onClose={() => setShowGuide(false)} onOpenDetail={setDetail} />
+        {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} />}
         {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} onBooked={markBooked} />}
+        {tipPlace && <LocalTipSheet place={tipPlace} tip={tipPlace[`tip_${lang}`]} lang={lang} t={t} onClose={() => setTipPlace(null)} />}
       </div>
     );
   }
@@ -553,9 +569,8 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone }) {
 /* --------------------------- GUIDA 3 GIORNI -------------------------------- */
 const GUIDE_DAYS = [1, 2, 3];
 
-function GuideTab({ t, lang, places, onBook, onClose }) {
+function GuideTab({ t, lang, places, onClose, onOpenDetail }) {
   const [day, setDay] = useState(1);
-  const [openId, setOpenId] = useState(null);
   const [unlocked, setUnlocked] = useState(() => load("gl_guide_unlocked", false));
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
@@ -609,7 +624,7 @@ function GuideTab({ t, lang, places, onBook, onClose }) {
 
       <div style={{ display: "flex", gap: 20, borderBottom: `1px solid ${BRAND.border}`, marginBottom: 4 }}>
         {GUIDE_DAYS.map((n) => (
-          <button key={n} onClick={() => { setDay(n); setOpenId(null); }} style={{ background: "none", border: "none", padding: "10px 0", fontSize: 13, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer", borderBottom: `3px solid ${day === n ? BRAND.green : "transparent"}`, color: day === n ? BRAND.ink : BRAND.muted }}>
+          <button key={n} onClick={() => setDay(n)} style={{ background: "none", border: "none", padding: "10px 0", fontSize: 13, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer", borderBottom: `3px solid ${day === n ? BRAND.green : "transparent"}`, color: day === n ? BRAND.ink : BRAND.muted }}>
             {lang === "en" ? `Day 0${n}` : `Giorno 0${n}`}
           </button>
         ))}
@@ -620,13 +635,12 @@ function GuideTab({ t, lang, places, onBook, onClose }) {
           {stops.map((stop) => {
             const name = lang === "en" ? stop.title_en || stop.title_it : stop.title_it;
             const note = lang === "en" ? stop.guida_nota_en || stop.guida_nota_it : stop.guida_nota_it;
-            const desc = lang === "en" ? stop.desc_en || stop.desc_it : stop.desc_it;
-            const address = String(stop.address || "").trim();
-            const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : null;
-            const open = openId === stop.id;
+            // L'intera riga apre la scheda completa (foto, descrizione, prezzo,
+            // prenota, aggiungi a itinerario) — stessa esperienza delle card
+            // ovunque nell'app, invece del vecchio accordion che si apriva sul posto.
             return (
               <div key={stop.id} style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                <button onClick={() => setOpenId(open ? null : stop.id)} style={{ width: "100%", display: "flex", gap: 14, padding: "18px 0", background: "none", border: "none", textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}>
+                <button onClick={() => { track("view_card", { card: stop.title_it || stop.id, from: "guide" }); onOpenDetail(stop); }} style={{ width: "100%", display: "flex", gap: 14, padding: "18px 0", background: "none", border: "none", textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}>
                   {stop.guida_ora && (
                     <div style={{ width: 46, flexShrink: 0, fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 15, color: BRAND.green, paddingTop: 2 }}>
                       {stop.guida_ora}
@@ -636,29 +650,11 @@ function GuideTab({ t, lang, places, onBook, onClose }) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                       <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 17, color: BRAND.ink }}>{name}</div>
-                      <span style={{ flexShrink: 0, color: BRAND.muted, fontSize: 13, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s", paddingTop: 3 }}>&#9662;</span>
+                      {stop.price && <div style={{ flexShrink: 0, fontSize: 13.5, fontWeight: 700, color: BRAND.red, paddingTop: 2 }}>{priceSymbol(stop.price)}</div>}
                     </div>
                     {note && <p style={{ margin: "4px 0 0", fontSize: 13, color: BRAND.muted, lineHeight: 1.4 }}>{note}</p>}
                   </div>
                 </button>
-
-                {open && (
-                  <div style={{ padding: "0 0 20px 60px" }}>
-                    {desc && <p style={{ margin: "0 0 12px", fontSize: 14, lineHeight: 1.55, color: "#4a463d" }}>{desc}</p>}
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      {mapsUrl && (
-                        <a href={mapsUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 999, padding: "8px 14px", textDecoration: "none" }}>
-                          📍 {t.openInMaps}
-                        </a>
-                      )}
-                      {String(stop.bookable).toLowerCase() === "yes" && (
-                        <button onClick={() => onBook(stop)} style={{ background: BRAND.green, color: "#fff", border: "none", borderRadius: 999, padding: "8px 16px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                          {t.book}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
@@ -832,7 +828,7 @@ function FilterChips({ t, lang, filter, setFilter }) {
 // delle altre (per titolo su 2 righe) spinga in giù/su le vicine.
 function PlaceCard({ place, lang, t, badge, onClick, inItin, onToggleItin }) {
   const title = place[`title_${lang}`];
-  const subtitle = place.price || (badge ? t.freeByInvite : place.location || "");
+  const subtitle = priceSymbol(place.price) || (badge ? t.freeByInvite : place.location || "");
   return (
     <button onClick={onClick} style={{ flexShrink: 0, width: "44%", minWidth: 154, maxWidth: 200, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", flexDirection: "column" }}>
       <div style={{ position: "relative", aspectRatio: "4/3", borderRadius: 18, overflow: "hidden", background: "#eee" }}>
@@ -1033,7 +1029,7 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
 
         {/* flex:1 + minHeight:0 (non height:100%) è quello che permette a questo
             blocco di restare scrollabile dentro un contenitore con solo maxHeight */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} onScroll={onContentScroll}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }} onScroll={onContentScroll}>
           <div ref={heroRef} style={{ position: "relative", transformOrigin: "top center", willChange: "transform, opacity" }}>
             <DetailGallery images={gallery} alt={title} />
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.28), transparent 30%)", pointerEvents: "none" }} />
@@ -1044,7 +1040,7 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
           </div>
 
           <div style={{ position: "relative", background: BRAND.bg, padding: 22 }}>
-            {place.price && <p style={{ fontSize: 22, fontWeight: 600, margin: "0 0 16px", color: BRAND.red, fontFamily: "'Fraunces', serif" }}>{place.price}</p>}
+            {place.price && <p style={{ fontSize: 22, fontWeight: 600, margin: "0 0 16px", color: BRAND.red, fontFamily: "'Fraunces', serif" }}>{priceSymbol(place.price)}</p>}
             <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#4a463d", margin: "0 0 20px", whiteSpace: "pre-line" }}>{desc}</p>
 
             {tip && (
@@ -1105,7 +1101,7 @@ function googleMapsDirUrl(items) {
 function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, onOpenDetail }) {
   const shareWhatsApp = () => {
     const lines = [`${t.itinTitle} — Bologna`, ""];
-    items.forEach((p) => lines.push(`• ${p[`title_${lang}`]}${p.price ? ` (${p.price})` : ""}`));
+    items.forEach((p) => lines.push(`• ${p[`title_${lang}`]}${p.price ? ` (${priceSymbol(p.price)})` : ""}`));
     lines.push("");
     lines.push("📲 Scopri altre esperienze a Bologna: https://app.g-local.it");
     window.open(`https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
@@ -1142,7 +1138,7 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, onOpenDetai
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div translate="no" className="notranslate" style={{ fontWeight: 600, fontSize: 15.5, lineHeight: 1.25 }}>{p[`title_${lang}`]}</div>
                   {p.location && <div style={{ fontSize: 12.5, color: BRAND.muted, marginTop: 1 }}>📍 {p.location}</div>}
-                  {p.price && <div style={{ fontSize: 13.5, color: BRAND.red, marginTop: 2, fontWeight: 600 }}>{p.price}</div>}
+                  {p.price && <div style={{ fontSize: 13.5, color: BRAND.red, marginTop: 2, fontWeight: 600 }}>{priceSymbol(p.price)}</div>}
                 </div>
                 <button onClick={(e) => { e.stopPropagation(); onRemove(p.id); }} aria-label={t.remove} style={rowX}>×</button>
               </li>
@@ -1274,7 +1270,12 @@ const xBtn = { width: 44, height: 44, flexShrink: 0, display: "flex", alignItems
 // Freccia "indietro" del DetailModal: fissa in alto a sinistra sopra al
 // foglio (non dentro l'area che scorre), così resta visibile mentre la foto
 // scorre via dietro di lei.
-const backBtn = { position: "absolute", top: 14, left: 14, zIndex: 20, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.92)", border: "none", borderRadius: "50%", fontSize: 19, fontWeight: 700, cursor: "pointer", color: BRAND.ink, lineHeight: 1, boxShadow: "0 3px 12px rgba(0,0,0,0.22)" };
+// position:"fixed" (non "absolute") + zIndex sopra l'overlay (90): così il
+// pulsante resta sempre visibile e cliccabile sullo schermo, qualsiasi cosa
+// succeda con lo scroll del foglio sotto — su alcuni iPhone/Safari un bottone
+// "absolute" dentro un contenitore che scorre può finire coperto durante lo
+// scroll. env(safe-area-inset-top) lo tiene lontano dalla notch/isola dinamica.
+const backBtn = { position: "fixed", top: "calc(14px + env(safe-area-inset-top, 0px))", left: 14, zIndex: 95, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.92)", border: "none", borderRadius: "50%", fontSize: 19, fontWeight: 700, cursor: "pointer", color: BRAND.ink, lineHeight: 1, boxShadow: "0 3px 12px rgba(0,0,0,0.22)" };
 const sheetLabel = { fontSize: 12.5, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: BRAND.muted, margin: "0 0 12px" };
 const listReset = { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 };
 const rowCard = { display: "flex", gap: 13, alignItems: "center", background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 14, padding: 11 };
