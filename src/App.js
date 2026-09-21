@@ -66,12 +66,6 @@ const ROTATOR_ITEMS = [
   { src: "/icons/badge-duetorri.png", alt: "Le Due Torri" },
 ];
 
-// -------- BANNER "BENVENUTO A BOLOGNA" — in cima alla Home, sotto la barra
-// interessi. Usa la stessa immagine (ritagliata, sfondo trasparente) delle
-// Due Torri; sostituisci il file in /icons/due-torri-welcome.png con quello
-// fornito (già ritagliato: /mnt/user-data/outputs/due-torri-welcome.png).
-const WELCOME_IMG = "/icons/due-torri-welcome.png";
-
 // -------- GOOGLE ANALYTICS 4 -----------------------------------------------
 const GA_ID = "G-SDH5FJLQSP";
 // carica lo script GA una sola volta
@@ -103,9 +97,19 @@ const T = {
     editInterests: "Interessi",
     welcomeTitle: "Benvenuto a Bologna",
     welcomeSub: "Le esperienze scelte per te, come un amico del posto",
+    homeTitle: "Cosa ti va di fare a Bologna?",
+    filterAll: "Tutti",
+    experiencesTitle: "Esperienze", experienceBadge: "Esperienza",
+    freeByInvite: "Gratis · su invito", free: "Gratis",
     docTitle: "Bologna doc", docSub: "I classici, col consiglio di un local",
     madeTitle: "100% Made in Bo", madeSub: "Esperienze autentiche, nate qui",
     pickOrGuide: "Oppure", guideCta: "Visualizza la guida gratis",
+    guideBannerKicker: "Guida gratuita",
+    guideBannerTitle: "La guida definitiva a Bologna in {n} giorni",
+    guideBannerStops: "posti · giorno per giorno",
+    guideBannerCta: "Guarda",
+    recommendedBy: "Consigliato da",
+    itinFloatingCta: "Itinerario",
     guideTitle: "La guida definitiva", guideSub: "Tre giorni a Bologna, già organizzati.",
     guideBack: "Torna alle card",
     guideGateTitle: "Sblocca la guida", guideGateSub: "Lasciaci la tua email, è gratis.",
@@ -131,6 +135,7 @@ const T = {
     cookieText: "Usiamo cookie tecnici e di statistica per capire come viene usata l'app e migliorarla.",
     cookieOk: "Ho capito", cookiePolicy: "Privacy",
     localTip: "Il consiglio del local", localTipsBtn: "Local tips",
+    localTipTitle: "Consiglio locale",
     emptySection: "Presto nuovi contenuti in questa sezione.",
     book: "Prenota gratuitamente", addItinShort: "Itinerario", inItinShort: "Aggiunto",
     addItin: "Aggiungi all'itinerario", inItin: "Nell'itinerario",
@@ -147,7 +152,7 @@ const T = {
     bookingSubtitle: "Prenota in pochi click. Nessun pagamento, nessun impegno. Riceverai una conferma quando la tua prenotazione sarà effettiva.",
     send: "Invia richiesta", sending: "Invio…",
     thanks: "Richiesta inviata", thanksSub: "Non è ancora una conferma: il local ti risponde via email entro 24 ore.",
-    whatsapp: "Scrivi su WhatsApp", close: "Chiudi", required: "Compila i campi obbligatori.",
+    whatsapp: "Scrivi su WhatsApp", close: "Chiudi", back: "Indietro", required: "Compila i campi obbligatori.",
     openNow: "Aperto ora", closedNow: "Chiuso ora", closesAt: "chiude alle", opensAt: "apre alle",
     hoursTitle: "Orari", hoursSynced: "Orari sincronizzati da Google", open24h: "Aperto 24 ore su 24",
     abandonedTitle: "Ancora indecis*? 👀",
@@ -164,8 +169,18 @@ const T = {
     editInterests: "Interests",
     welcomeTitle: "Welcome to Bologna",
     welcomeSub: "Experiences picked for you, like a local friend would",
+    homeTitle: "What would you like to do in Bologna?",
+    filterAll: "All",
+    experiencesTitle: "Experiences", experienceBadge: "Experience",
+    freeByInvite: "Free · by invitation", free: "Free",
     docTitle: "Bologna doc", docSub: "The classics, with a local's tip",
     pickOrGuide: "Or", guideCta: "View the free guide",
+    guideBannerKicker: "Free guide",
+    guideBannerTitle: "The definitive guide to Bologna in {n} days",
+    guideBannerStops: "stops · day by day",
+    guideBannerCta: "See",
+    recommendedBy: "Recommended by",
+    itinFloatingCta: "Itinerary",
     guideTitle: "The definitive guide", guideSub: "Three days in Bologna, already planned.",
     guideBack: "Back to cards",
     guideGateTitle: "Unlock the guide", guideGateSub: "Leave your email, it's free.",
@@ -192,6 +207,7 @@ const T = {
     cookieText: "We use technical and analytics cookies to understand how the app is used and improve it.",
     cookieOk: "Got it", cookiePolicy: "Privacy",
     localTip: "The local's tip", localTipsBtn: "Local tips",
+    localTipTitle: "Local tip",
     emptySection: "New content coming soon in this section.",
     book: "Book for free", addItinShort: "Itinerary", inItinShort: "Added",
     addItin: "Add to itinerary", inItin: "In itinerary",
@@ -208,7 +224,7 @@ const T = {
     bookingSubtitle: "Book in a few clicks. No payment, no commitment. You'll get a confirmation once your booking is finalized.",
     send: "Send request", sending: "Sending…",
     thanks: "Request sent", thanksSub: "Not a confirmation yet: the local will email you within 24 hours.",
-    whatsapp: "Message on WhatsApp", close: "Close", required: "Please fill in the required fields.",
+    whatsapp: "Message on WhatsApp", close: "Close", back: "Back", required: "Please fill in the required fields.",
     openNow: "Open now", closedNow: "Closed now", closesAt: "closes at", opensAt: "opens at",
     hoursTitle: "Hours", hoursSynced: "Hours synced from Google", open24h: "Open 24 hours",
     abandonedTitle: "Still deciding? 👀",
@@ -316,48 +332,6 @@ function RotatingBadge({ height = 108 }) {
   );
 }
 
-/* --------------------------- BANNER BENVENUTO ------------------------------ */
-// Card fissa in cima alla Home (dopo la scelta interessi), sopra "100% Made in
-// Bo": Due Torri + titolo "Benvenuto a Bologna" (IT/EN) + sottotitolo. Serve a
-// 1) rendere inequivocabile dove ci troviamo, 2) dare un punto d'appoggio
-// visivo prima del carosello di card, invece di aprire subito su un'esperienza.
-function WelcomeBanner({ t }) {
-  return (
-    <section
-      style={{
-        marginTop: 22,
-        display: "flex",
-        alignItems: "center",
-        gap: 16,
-      }}
-    >
-      <img
-        src={WELCOME_IMG}
-        alt=""
-        aria-hidden="true"
-        style={{ height: 78, width: "auto", flexShrink: 0, display: "block" }}
-      />
-      <div style={{ minWidth: 0 }}>
-        <h1
-          style={{
-            fontFamily: "'Fraunces', serif",
-            fontWeight: 600,
-            fontSize: "clamp(28px, 7.5vw, 36px)",
-            lineHeight: 1.08,
-            letterSpacing: "-0.02em",
-            margin: 0,
-          }}
-        >
-          {t.welcomeTitle}
-        </h1>
-        {t.welcomeSub && (
-          <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "5px 0 0", lineHeight: 1.4 }}>{t.welcomeSub}</p>
-        )}
-      </div>
-    </section>
-  );
-}
-
 /* --------------------------- ABANDONED CART -------------------------------- */
 const INACTIVITY_MS = 45000;
 const AWAY_MS = 20000;
@@ -420,90 +394,24 @@ function AbandonedCartModal({ t, onClose, onCta }) {
   );
 }
 
-/* --------------------------- SOCIAL PROOF TOAST ---------------------------- */
-// Legge la colonna "bookings_week" del foglio: Giulio la compila a mano sulle
-// righe bookable = yes. Il banner ruota solo tra le righe con un numero > 0;
-// vuoto/0 = quel posto non entra in rotazione.
-const SOCIAL_PROOF_SHOW_MS = 6000;
-const SOCIAL_PROOF_GAP_MS = 14000;
-
-function SocialProofToast({ places, lang, t, onOpen }) {
-  const candidates = places.filter(
-    (p) => String(p.bookable).trim().toLowerCase() === "yes" && Number(p.bookings_week) > 0
-  );
-  const [i, setI] = useState(0);
-  const [visible, setVisible] = useState(false);
-  const [dismissed, setDismissed] = useState(() => load("gl_social_proof_dismissed", false));
-
-  useEffect(() => {
-    if (dismissed || candidates.length === 0) return;
-    let showTimer, hideTimer;
-    const cycle = () => {
-      setVisible(true);
-      showTimer = setTimeout(() => {
-        setVisible(false);
-        hideTimer = setTimeout(() => { setI((n) => (n + 1) % candidates.length); cycle(); }, SOCIAL_PROOF_GAP_MS);
-      }, SOCIAL_PROOF_SHOW_MS);
-    };
-    const start = setTimeout(cycle, 3000);
-    return () => { clearTimeout(start); clearTimeout(showTimer); clearTimeout(hideTimer); };
-  }, [dismissed, candidates.length]);
-
-  if (dismissed || candidates.length === 0 || !visible) return null;
-  const p = candidates[i % candidates.length];
-  const name = p[`title_${lang}`];
-
-  return (
-    <div
-      onClick={() => { track("open_social_proof", { card: p.title_it || p.id }); onOpen?.(p); }}
-      style={{ position: "fixed", left: 14, right: 14, bottom: 138, zIndex: 46, maxWidth: 340, marginInline: "auto", display: "flex", alignItems: "center", gap: 10, background: "#fff", border: `1px solid ${BRAND.border}`, borderRadius: 16, padding: "11px 13px", boxShadow: "0 8px 26px rgba(0,0,0,0.18)", animation: "glFadeUp .35s ease", cursor: "pointer" }}>
-      {p.image && <img src={p.image} alt="" style={{ width: 38, height: 38, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1.3 }}>🔥 {Number(p.bookings_week)} {t.socialProofWeek}</div>
-        <div translate="no" className="notranslate" style={{ fontSize: 12, color: BRAND.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
-      </div>
-      <button onClick={(e) => { e.stopPropagation(); setDismissed(true); save("gl_social_proof_dismissed", true); }} aria-label={t.close} style={{ background: "none", border: "none", color: "#bbb", fontSize: 16, cursor: "pointer", flexShrink: 0, lineHeight: 1 }}>×</button>
-    </div>
-  );
-}
-
 /* ------------------------------- APP -------------------------------------- */
 export default function App() {
   const [lang, setLang] = useState(() => load("gl_lang", "it"));
   const [tab, setTab] = useState("home");
   const [chosen, setChosen] = useState([]);          // interessi scelti (rivisti ogni apertura)
-  const [picking, setPicking] = useState(true);      // true = schermata scelta interessi
+  // La app si apre SEMPRE sulla Home (cards cliccabili stile Airbnb Experience,
+  // filtrabili con le chip "Tutti/Cibo/Bere/…"), anche quando si arriva dal
+  // QR code. La schermata "scelta interessi" resta raggiungibile a mano
+  // (icona ingranaggio in Home o tap sul logo), ma non è più la prima vista.
+  const [picking, setPicking] = useState(false);     // true = schermata scelta interessi
   const [booking, setBooking] = useState(null);
   const [detail, setDetail] = useState(null);
   const [tipPlace, setTipPlace] = useState(null);
   const [itinerary, setItinerary] = useState(() => load("gl_itin", []));
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showQuickFeedback, setShowQuickFeedback] = useState(false);
-  const [cookieOk, setCookieOk] = useState(() => load("gl_cookie_ok", false));
   const [hasBooked, setHasBooked] = useState(() => load("gl_has_booked", false));
   const [showGuide, setShowGuide] = useState(false);
-  const [installEvent, setInstallEvent] = useState(null);
-  const [showInstallHint, setShowInstallHint] = useState(false);
-
-  useEffect(() => {
-    const onBip = (e) => { e.preventDefault(); setInstallEvent(e); };
-    window.addEventListener("beforeinstallprompt", onBip);
-    return () => window.removeEventListener("beforeinstallprompt", onBip);
-  }, []);
-
-  // Popup "installa sul telefono": NON più automatico all'apertura. Si attiva
-  // solo su azione esplicita dell'utente (click su "Vedi i risultati" o su
-  // "Visualizza la guida gratis" nella schermata di scelta interessi), con un
-  // piccolo ritardo perché non compaia nello stesso istante del tap. Rispetta
-  // comunque il check standalone e il flag "già visto" di sempre.
-  const triggerInstallHint = () => {
-    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
-    if (isStandalone || load("gl_install_hint_seen", false)) return;
-    setTimeout(() => setShowInstallHint(true), 1500);
-  };
-
-  const dismissInstallHint = () => { save("gl_install_hint_seen", true); setShowInstallHint(false); };
   const [showAbandoned, setShowAbandoned] = useState(false);
   const t = T[lang];
 
@@ -525,24 +433,12 @@ export default function App() {
 
   // Popup "carrello abbandonato": al massimo una volta al giorno, solo se
   // l'utente non ha ancora prenotato e non c'è già un altro pannello aperto.
+  // È rimasto l'UNICO popup automatico dell'app (gli altri sono stati tolti
+  // su richiesta: install hint, cookie banner, quick feedback, social proof).
   useAbandonedCartTrigger({
-    enabled: !picking && !hasBooked && !detail && !booking && !showQuickFeedback && !showAbandoned,
+    enabled: !picking && !hasBooked && !detail && !booking && !showAbandoned,
     onTrigger: () => setShowAbandoned(true),
   });
-
-  // Popup "quick feedback": compare da solo dopo un po' di utilizzo, al
-  // massimo una volta al giorno, mai più una volta che è già stato
-  // inviato/saltato una volta in quella giornata, e mai in sovrapposizione
-  // con un altro pannello aperto.
-  useEffect(() => {
-    if (picking || showQuickFeedback) return;
-    if (load("gl_qf_seen_date", null) === new Date().toDateString()) return;
-    const timer = setTimeout(() => {
-      if (!detail && !booking && !showAbandoned) setShowQuickFeedback(true);
-    }, 30000);
-    return () => clearTimeout(timer);
-  }, [picking]);
-  const markQuickFeedbackSeen = () => save("gl_qf_seen_date", new Date().toDateString());
 
   const toggleIn = (list, setList, id) => setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
   const byId = (id) => places.find((p) => p.id === id);
@@ -556,7 +452,6 @@ export default function App() {
         <FontLink />
         <GuideTab t={t} lang={lang} places={places} onBook={setBooking} onClose={() => setShowGuide(false)} />
         {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} onBooked={markBooked} />}
-        {showInstallHint && <InstallHint t={t} lang={lang} installEvent={installEvent} onClose={dismissInstallHint} />}
       </div>
     );
   }
@@ -576,11 +471,6 @@ export default function App() {
             track("select_interests", { interests: chosen.join(",") });
             setTab("home");
             setPicking(false);
-            triggerInstallHint();
-          }}
-          onOpenGuide={() => {
-            setShowGuide(true);
-            triggerInstallHint();
           }}
         />
         <RotatingBadge />
@@ -607,7 +497,8 @@ export default function App() {
             onEditInterests={() => setPicking(true)}
             onBook={setBooking} onDetail={setDetail} onTip={setTipPlace}
             itinerary={itinerary} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)}
-            onOpenItin={() => setTab("itin")} />
+            onOpenItin={() => setTab("itin")}
+            onOpenGuide={() => setShowGuide(true)} />
         )}
         {tab === "itin" && (
           <ItineraryTab t={t} lang={lang} items={itinerary.map(byId).filter(Boolean)}
@@ -616,89 +507,21 @@ export default function App() {
         )}
       </main>
 
-      {/* banner "X persone hanno prenotato X questa settimana", in rotazione */}
-      {tab === "home" && !detail && !booking && !showQuickFeedback && (
-        <SocialProofToast places={places} lang={lang} t={t} onOpen={setDetail} />
-      )}
-
       <TabBar t={t} tab={tab} setTab={setTab} itinCount={itinerary.length} />
 
       {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} />}
       {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} onBooked={markBooked} />}
       {tipPlace && <LocalTipSheet place={tipPlace} tip={tipPlace[`tip_${lang}`]} lang={lang} t={t} onClose={() => setTipPlace(null)} />}
-      {showQuickFeedback && (
-        <QuickFeedbackModal t={t} lang={lang}
-          onClose={() => setShowQuickFeedback(false)}
-          onSubmitted={markQuickFeedbackSeen} />
-      )}
       {showAbandoned && (
         <AbandonedCartModal t={t} onClose={() => setShowAbandoned(false)}
           onCta={() => { setShowAbandoned(false); setTab("home"); }} />
       )}
-      {!cookieOk && <CookieBanner t={t} onOk={() => { setCookieOk(true); save("gl_cookie_ok", true); }} />}
-      {showInstallHint && <InstallHint t={t} lang={lang} installEvent={installEvent} onClose={dismissInstallHint} />}
-    </div>
-  );
-}
-
-/* --------------------------- INSTALL HINT ---------------------------------- */
-function InstallHint({ t, lang, installEvent, onClose }) {
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
-
-  const install = async () => {
-    if (!installEvent) return;
-    installEvent.prompt();
-    await installEvent.userChoice;
-    onClose();
-  };
-
-  const steps = isIOS
-    ? [
-        { icon: "📤", label: t.installIosStep1, detail: t.installIosStep1Detail },
-        { icon: "➕", label: t.installIosStep2, detail: t.installIosStep2Detail },
-      ]
-    : [
-        { icon: "⋮", label: t.installAndroidStep1, detail: t.installAndroidStep1Detail },
-        { icon: "➕", label: t.installAndroidStep2, detail: t.installAndroidStep2Detail },
-      ];
-
-  return (
-    <div onClick={onClose} style={overlay}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 440, padding: 26, textAlign: "center" }}>
-        <div style={{ fontSize: 40, marginBottom: 8 }}>📲</div>
-        <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 23, margin: "0 0 4px" }}>{t.installTitle}</h3>
-        <p style={{ fontSize: 14.5, color: BRAND.muted, margin: "0 0 22px" }}>{t.installSub}</p>
-
-        {!installEvent && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 22 }}>
-            {steps.map((s, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, background: "rgba(56,176,74,0.08)", border: `1.5px solid ${BRAND.border}`, borderRadius: 16, padding: "12px 16px", textAlign: "left" }}>
-                <div style={{ width: 34, height: 34, borderRadius: "50%", background: BRAND.green, color: "#fff", fontSize: 15, fontWeight: 800, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>{i + 1}</div>
-                <div style={{ fontSize: 26, flexShrink: 0 }}>{s.icon}</div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700 }}>{s.label}</div>
-                  <div style={{ fontSize: 13, color: BRAND.muted }}>{s.detail}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {installEvent ? (
-          <button onClick={install} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 14, fontSize: 15.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}>
-            {t.installCta}
-          </button>
-        ) : null}
-        <button onClick={onClose} style={{ width: "100%", background: "transparent", color: BRAND.muted, border: "none", padding: 8, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-          {installEvent ? t.installLater : t.installGotIt}
-        </button>
-      </div>
     </div>
   );
 }
 
 /* --------------------------- INTEREST PICKER ------------------------------ */
-function InterestPicker({ t, lang, chosen, onToggle, onDone, onOpenGuide }) {
+function InterestPicker({ t, lang, chosen, onToggle, onDone }) {
   return (
     <main style={{ maxWidth: 560, margin: "0 auto", padding: "0 22px", minHeight: "calc(100vh - 60px)", display: "flex", flexDirection: "column" }}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", paddingTop: 44, paddingBottom: 28 }}>
@@ -717,19 +540,10 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone, onOpenGuide }) {
         </div>
       </div>
 
-      {/* area sticky in basso: 1) pulsante "vedi risultati" (azione primaria)  2) sotto, la guida gratuita in rosso */}
+      {/* area sticky in basso: pulsante "vedi risultati" (azione primaria) — il pulsante guida è stato tolto */}
       <div style={{ position: "sticky", bottom: 0, background: BRAND.bg, paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0))", paddingTop: 12 }}>
         <button onClick={onDone} disabled={chosen.length === 0} style={{ width: "100%", background: chosen.length ? BRAND.green : "#d9d3c4", color: "#fff", border: "none", borderRadius: 16, padding: 17, fontSize: 17, fontWeight: 700, cursor: chosen.length ? "pointer" : "default", fontFamily: "inherit", transition: "background .15s" }}>
           {chosen.length ? t.pickCta : t.pickHint}
-        </button>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "14px 0" }}>
-          <div style={{ flex: 1, height: 1, background: BRAND.border }} />
-          <span style={{ fontSize: 12.5, color: BRAND.muted, fontWeight: 600 }}>{t.pickOrGuide}</span>
-          <div style={{ flex: 1, height: 1, background: BRAND.border }} />
-        </div>
-        <button onClick={onOpenGuide} style={{ width: "100%", background: BRAND.red, color: "#fff", border: "none", borderRadius: 16, padding: 15, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-          {t.guideCta}
         </button>
       </div>
     </main>
@@ -851,8 +665,11 @@ function GuideTab({ t, lang, places, onBook, onClose }) {
         </div>
 
         {!unlocked && (
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-            <form onSubmit={submitEmail} style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 18, padding: 24, maxWidth: 340, width: "100%", boxShadow: "0 12px 30px rgba(40,30,15,0.18)", textAlign: "center" }}>
+          // alignItems: "flex-start" + paddingTop, invece di "center": così il
+          // popup email sta vicino alla cima (appena sotto i tab giorno) invece
+          // di centrarsi in mezzo a tutto l'elenco sfocato, che può essere lungo.
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "20px 20px 20px" }}>
+            <form onSubmit={submitEmail} style={{ marginTop: 28, background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 18, padding: 24, maxWidth: 340, width: "100%", boxShadow: "0 12px 30px rgba(40,30,15,0.18)", textAlign: "center" }}>
               <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 20, marginBottom: 6 }}>{t.guideGateTitle}</div>
               <p style={{ fontSize: 13, color: BRAND.muted, margin: "0 0 16px" }}>{t.guideGateSub}</p>
               <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.email}
@@ -877,27 +694,56 @@ function GuideTab({ t, lang, places, onBook, onClose }) {
 }
 
 /* ------------------------------ HOME TAB ---------------------------------- */
-function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, onDetail, onTip, itinerary, onToggleItin, onOpenItin }) {
+// Prima schermata dell'app (anche da QR code): titolo + chip filtro
+// "Tutti/Cibo/Bere/…", poi Esperienze (cards stile Airbnb Experience,
+// cliccabili), banner guida gratuita, e a seguire le sezioni per interesse /
+// Bologna doc / colonna sonora, come prima. Il filtro chip è indipendente
+// dagli "interessi" salvati (chosen): è solo per navigare la Home.
+function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, onDetail, onTip, itinerary, onToggleItin, onOpenItin, onOpenGuide }) {
+  const [filter, setFilter] = useState("all"); // "all" oppure un id di SECTIONS
   if (loading) return <div style={{ padding: "22px 18px" }}><DeckSkeleton /></div>;
-  const visibleSections = SECTIONS.filter((s) => chosen.length === 0 || chosen.includes(s.id));
+  const visibleSections = filter === "all" ? SECTIONS : SECTIONS.filter((s) => s.id === filter);
   const docs = places.filter(isDoc); // TUTTI i classici, sempre, a prescindere dagli interessi
-  const made = places.filter(isMadeInBo); // esperienze fisse Made in Bo, sempre, in cima
+  const made = places.filter(isMadeInBo); // esperienze fisse Made in Bo -> sezione "Esperienze" in cima
+  const guideStopsCount = places.filter((p) => p.guida_giorno).length;
 
   return (
     <div style={{ padding: "8px 18px 0" }}>
-      {/* BENVENUTO A BOLOGNA — banner fisso, sempre in cima */}
-      <WelcomeBanner t={t} />
+      {/* COSA TI VA DI FARE A BOLOGNA — titolo + sottotitolo Home, prima cosa che si vede aprendo l'app */}
+      <h1 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(28px, 7.5vw, 36px)", lineHeight: 1.08, letterSpacing: "-0.02em", margin: "14px 0 6px" }}>
+        {t.homeTitle}
+      </h1>
+      <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "0 0 16px", lineHeight: 1.4 }}>{t.welcomeSub}</p>
+      <FilterChips t={t} lang={lang} filter={filter} setFilter={setFilter} />
 
-      {/* barra: modifica interessi — subito dopo il benvenuto, a ridosso dei contenuti che filtra */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginTop: 18 }}>
+      {/* barra: modifica interessi — piccola, sotto le chip */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginTop: 14 }}>
         <button onClick={onEditInterests} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "transparent", color: BRAND.ink, border: `1.5px solid ${BRAND.border}`, borderRadius: 999, padding: "8px 15px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
           <span>⚙︎</span>{t.editInterests}
           {chosen.length > 0 && <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: BRAND.green, color: "#fff", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>{chosen.length}</span>}
         </button>
       </div>
 
+      {/* ESPERIENZE — cards Airbnb-style (badge + foto + titolo + prezzo), sempre in cima, cliccabili come le altre.
+          alignItems: "flex-start" evita che una card con titolo su 2 righe risulti più in alto/bassa delle altre. */}
+      {made.length > 0 && (
+        <section style={{ marginTop: 22 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: BRAND.muted, marginBottom: 10 }}>{t.experiencesTitle}</div>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 12, overflowX: "auto", paddingBottom: 4, marginInline: -18, paddingInline: 18 }} className="gl-exp-row">
+            {made.map((p) => (
+              <PlaceCard key={p.id} place={p} lang={lang} t={t} badge={t.experienceBadge}
+                onClick={() => { track("view_card", { card: p.title_it || p.id, section: "experiences" }); onDetail(p); }}
+                inItin={itinerary.includes(p.id)} onToggleItin={() => onToggleItin(p.id)} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* GUIDA GRATUITA — banner rosso, porta alla guida "3 giorni a Bologna" */}
+      <GuideBanner t={t} stopsCount={guideStopsCount} onOpen={onOpenGuide} />
+
       {itinerary.length > 0 && (
-        <button onClick={onOpenItin} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, width: "100%", marginTop: 14, background: "rgba(56,176,74,0.10)", border: `1.5px solid ${BRAND.green}`, borderRadius: 14, padding: "12px 16px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+        <button onClick={onOpenItin} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, width: "100%", marginTop: 22, background: "rgba(56,176,74,0.10)", border: `1.5px solid ${BRAND.green}`, borderRadius: 14, padding: "12px 16px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
           <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: BRAND.greenDark }}>
             🗺️ {itinerary.length} {itinerary.length === 1 ? t.itinReminderOne : t.itinReminderMany}
           </span>
@@ -905,21 +751,7 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
         </button>
       )}
 
-
-      {/* 100% MADE IN BO — sezione fissa, SEMPRE IN CIMA (dopo il benvenuto), a prescindere dagli interessi scelti */}
-      {made.length > 0 && (
-        <section style={{ marginTop: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-            <span style={{ width: 24, height: 24, flexShrink: 0, display: "inline-flex" }}><img src="/icons/stamp.png" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></span>
-            <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 5vw, 30px)", margin: 0, letterSpacing: "-0.02em" }}>{t.madeTitle}</h2>
-          </div>
-          <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "4px 0 12px" }}>{t.madeSub}</p>
-          <Deck items={made} lang={lang} t={t} onBook={onBook} onDetail={onDetail} onTip={onTip}
-            itinerary={itinerary} onToggleItin={onToggleItin} />
-        </section>
-      )}
-
-      {/* SEZIONI per interesse scelto — solo contenuti NON doc */}
+      {/* SEZIONI per interesse (filtrate dalla chip selezionata) — solo contenuti NON doc */}
       {visibleSections.map((sec) => {
         const normal = places.filter((p) => hasInterest(p, sec.id) && !isDoc(p));
         if (normal.length === 0) return null;
@@ -963,7 +795,91 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
       </div>
 
       <div style={{ height: 20 }} />
+
+      {/* pillola flottante "N · Itinerario" — visibile ovunque in Home quando c'è già qualcosa nell'itinerario */}
+      {itinerary.length > 0 && <ItinFloatingButton t={t} count={itinerary.length} onClick={onOpenItin} />}
     </div>
+  );
+}
+
+/* --------------------------- FILTER CHIPS ---------------------------------- */
+// Barra chip "Tutti / Cibo / Bere / Natura / …" sotto il titolo Home, con le
+// stesse icone della schermata "scelta interessi". Selezione singola (a
+// differenza della vecchia scelta interessi, multi-select): filtra solo le
+// sezioni per interesse più sotto nella pagina, non Esperienze/Doc.
+function FilterChips({ t, lang, filter, setFilter }) {
+  const chips = [{ id: "all", label: t.filterAll, icon: null }, ...SECTIONS.map((s) => ({ id: s.id, label: s[lang], icon: s.icon }))];
+  return (
+    <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2, marginInline: -18, paddingInline: 18 }} className="gl-chip-row">
+      {chips.map((c) => {
+        const active = filter === c.id;
+        return (
+          <button key={c.id} onClick={() => setFilter(c.id)} style={{ flexShrink: 0, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 7, background: active ? BRAND.ink : "transparent", color: active ? "#fff" : BRAND.ink, border: `1.5px solid ${active ? BRAND.ink : BRAND.border}`, borderRadius: 999, padding: "9px 17px 9px 14px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            {c.icon && <span style={{ width: 18, height: 18, flexShrink: 0, display: "inline-flex", filter: active ? "brightness(0) invert(1)" : "none" }}><img src={c.icon} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></span>}
+            {c.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* --------------------------- PLACE CARD ------------------------------------ */
+// Card unica per Esperienze + tutte le sezioni/Bologna doc: sempre in stile
+// Airbnb Experience, piccola (badge opzionale, foto, titolo, sottotitolo) e
+// cliccabile — apre il dettaglio, dove restano prenotazione/tip/itinerario.
+// "alignItems: flex-start" sul contenitore riga evita che una card più alta
+// delle altre (per titolo su 2 righe) spinga in giù/su le vicine.
+function PlaceCard({ place, lang, t, badge, onClick, inItin, onToggleItin }) {
+  const title = place[`title_${lang}`];
+  const subtitle = place.price || (badge ? t.freeByInvite : place.location || "");
+  return (
+    <button onClick={onClick} style={{ flexShrink: 0, width: "44%", minWidth: 154, maxWidth: 200, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", flexDirection: "column" }}>
+      <div style={{ position: "relative", aspectRatio: "4/3", borderRadius: 18, overflow: "hidden", background: "#eee" }}>
+        {place.image
+          ? <img src={place.image} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
+          : <div style={{ width: "100%", height: "100%", background: "#ece4d6" }} />}
+        {badge && <span style={{ position: "absolute", top: 10, left: 10, background: "rgba(20,16,10,0.72)", color: "#fff", fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "5px 10px", borderRadius: 999 }}>{badge}</span>}
+        {onToggleItin && (
+          <span
+            role="button"
+            aria-label={inItin ? t.inItinShort : t.addItinShort}
+            onClick={(e) => { e.stopPropagation(); if (!inItin) track("add_to_itinerary", { card: place.title_it || place.id }); onToggleItin(); }}
+            style={{ position: "absolute", top: 10, right: 10, width: 28, height: 28, borderRadius: "50%", background: inItin ? BRAND.greenDark : "rgba(255,255,255,0.92)", color: inItin ? "#fff" : BRAND.ink, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, boxShadow: "0 2px 8px rgba(0,0,0,0.2)", cursor: "pointer" }}>
+            {inItin ? "✓" : "＋"}
+          </span>
+        )}
+      </div>
+      <div translate="no" className="notranslate" style={{ fontWeight: 700, fontSize: 14.5, lineHeight: 1.3, marginTop: 8 }}>{title}</div>
+      {subtitle && <div style={{ fontSize: 12.5, color: BRAND.muted, marginTop: 2 }}>{subtitle}</div>}
+    </button>
+  );
+}
+
+/* --------------------------- GUIDE BANNER ----------------------------------- */
+// Banner rosso "Guida gratuita" — porta alla GuideTab (3 giorni a Bologna).
+function GuideBanner({ t, stopsCount, onOpen }) {
+  const title = t.guideBannerTitle.replace("{n}", GUIDE_DAYS.length);
+  return (
+    <button onClick={() => { track("open_guide_banner"); onOpen(); }} style={{ display: "block", width: "100%", textAlign: "left", marginTop: 22, background: BRAND.red, color: "#fff", border: "none", borderRadius: 20, padding: "22px 22px 24px", cursor: "pointer", fontFamily: "inherit" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", opacity: 0.85, marginBottom: 8 }}>{t.guideBannerKicker}</div>
+      <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(22px, 6vw, 28px)", lineHeight: 1.1, letterSpacing: "-0.01em", marginBottom: 16 }}>{title}</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <span style={{ fontSize: 13, opacity: 0.9 }}>{stopsCount > 0 ? `${stopsCount} ${t.guideBannerStops}` : t.guideBannerStops}</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#fff", color: BRAND.red, borderRadius: 999, padding: "9px 16px", fontSize: 13.5, fontWeight: 700, flexShrink: 0 }}>{t.guideBannerCta} →</span>
+      </div>
+    </button>
+  );
+}
+
+/* --------------------------- FLOATING ITINERARY BUTTON ---------------------- */
+// Pillola flottante in basso a destra (sopra la TabBar) con il conteggio
+// dell'itinerario — scorciatoia rapida, visibile mentre si scorre la Home.
+function ItinFloatingButton({ t, count, onClick }) {
+  return (
+    <button onClick={onClick} style={{ position: "fixed", right: 16, bottom: "calc(74px + env(safe-area-inset-bottom, 0))", zIndex: 35, display: "inline-flex", alignItems: "center", gap: 8, background: BRAND.green, color: "#fff", border: "none", borderRadius: 999, padding: "12px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 8px 22px rgba(56,176,74,0.4)" }}>
+      <span style={{ fontSize: 16 }}>🗺️</span>{count} · {t.itinFloatingCta}
+    </button>
   );
 }
 
@@ -1010,115 +926,18 @@ function SoundtrackCard({ t }) {
 }
 
 /* -------------------------------- DECK ------------------------------------ */
-function Deck({ items, lang, t, onBook, onDetail, onTip, itinerary, onToggleItin, isDocDeck }) {
-  const ref = useRef(null);
-  const [idx, setIdx] = useState(0);
-  const drag = useRef({ down: false, x: 0, s: 0, moved: false });
-  const scrollTimer = useRef(null);
-  const loopItems = items.length > 1 ? [...items, items[0]] : items;
-  const onScroll = () => {
-    const el = ref.current; if (!el) return;
-    const raw = Math.round(el.scrollLeft / el.clientWidth);
-    setIdx(Math.min(raw, items.length - 1));
-    // debounce: aspetta che lo scroll/swipe si sia fermato prima di controllare
-    // se siamo atterrati sulla card clonata (= la prima, di nuovo) e nel caso
-    // saltare istantaneamente all'inizio vero, senza che si veda il salto.
-    clearTimeout(scrollTimer.current);
-    scrollTimer.current = setTimeout(() => {
-      if (items.length > 1 && raw >= items.length) {
-        el.scrollLeft = 0;
-        setIdx(0);
-      }
-    }, 120);
-  };
-  const go = (dir) => {
-    const el = ref.current; if (!el) return;
-    const n = items.length;
-    let next = idx + dir;
-    if (next < 0) next = n - 1;        // dalla prima -> ultima
-    else if (next >= n) next = 0;      // dall'ultima -> prima
-    el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
-  };
-  const onDown = (e) => { const el = ref.current; if (!el) return; drag.current = { down: true, x: e.pageX, s: el.scrollLeft, moved: false }; };
-  const onMove = (e) => { const el = ref.current; if (!el || !drag.current.down) return; const dx = e.pageX - drag.current.x; if (Math.abs(dx) > 4) drag.current.moved = true; el.scrollLeft = drag.current.s - dx; };
-  const end = () => { drag.current.down = false; };
-  const onClickCapture = (e) => { if (drag.current.moved) { e.stopPropagation(); e.preventDefault(); drag.current.moved = false; } };
-
+// Riga di card piccole, sempre in stile Airbnb Experience (come Esperienze):
+// scroll orizzontale nativo (swipe naturale, niente drag/arrow custom).
+// Il tap apre il dettaglio, dove restano prenotazione/local tip/itinerario.
+function Deck({ items, lang, t, onDetail, itinerary, onToggleItin, isDocDeck }) {
   return (
-    <div style={{ position: "relative" }}>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
-        <span style={{ fontSize: 12.5, color: BRAND.muted, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{idx + 1} {t.of} {items.length}</span>
-      </div>
-      <div ref={ref} className="gl-deck" onScroll={onScroll} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={end} onMouseLeave={end} onClickCapture={onClickCapture}>
-        {loopItems.map((p, i) => (
-          <div key={i < items.length ? p.id : `${p.id}-loop`} className="gl-deck-slide">
-            <DeckCard place={p} lang={lang} t={t} onBook={onBook} onDetail={onDetail} onTip={onTip}
-              inItin={itinerary.includes(p.id)} onToggleItin={() => onToggleItin(p.id)} />
-          </div>
-        ))}
-      </div>
-      {items.length > 1 && <DeckArrow dir="left" onClick={() => go(-1)} />}
-      {items.length > 1 && <DeckArrow dir="right" onClick={() => go(1)} />}
-      {items.length > 1 && items.length <= 12 && (
-        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 10 }}>
-          {items.map((_, i) => (
-            <span key={i} style={{ width: i === idx ? 18 : 6, height: 6, borderRadius: 999, background: i === idx ? (isDocDeck ? BRAND.red : BRAND.green) : BRAND.border, transition: "all .2s" }} />
-          ))}
-        </div>
-      )}
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, overflowX: "auto", paddingBottom: 4, marginInline: -18, paddingInline: 18 }} className="gl-exp-row">
+      {items.map((p) => (
+        <PlaceCard key={p.id} place={p} lang={lang} t={t} badge={isDocDeck ? t.docTitle : null}
+          onClick={() => { track("view_card", { card: p.title_it || p.id, section: p.interests }); onDetail(p); }}
+          inItin={itinerary.includes(p.id)} onToggleItin={() => onToggleItin(p.id)} />
+      ))}
     </div>
-  );
-}
-
-function DeckArrow({ dir, onClick }) {
-  return (
-    <button onClick={onClick} aria-label={dir === "left" ? "Precedente" : "Successivo"} className="gl-deck-arrow"
-      style={{ position: "absolute", top: "42%", [dir === "left" ? "left" : "right"]: 8, transform: "translateY(-50%)", width: 40, height: 40, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.92)", color: BRAND.ink, fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(0,0,0,0.18)", zIndex: 4, backdropFilter: "blur(4px)" }}>
-      {dir === "left" ? "‹" : "›"}
-    </button>
-  );
-}
-
-/* ----------------------------- DECK CARD ---------------------------------- */
-function DeckCard({ place, lang, t, onBook, onDetail, onTip, inItin, onToggleItin }) {
-  const title = place[`title_${lang}`];
-  const desc = place[`desc_${lang}`];
-  const tip = place[`tip_${lang}`];
-  const bookable = String(place.bookable).trim().toLowerCase() === "yes";
-
-  return (
-    <article className="gl-card" style={{ background: BRAND.card, borderRadius: 22, overflow: "hidden", border: `1px solid ${BRAND.border}`, boxShadow: "0 6px 22px rgba(40,30,15,0.08)", height: "100%", display: "flex", flexDirection: "column" }}>
-      <div onClick={() => { track("view_card", { card: place.title_it || place.id, section: place.interests }); onDetail(place); }} style={{ position: "relative", aspectRatio: "4/3", background: "#eee", overflow: "hidden", cursor: "pointer" }}>
-        <img src={place.image} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.38), rgba(20,16,10,0) 26%)" }} />
-        {place.location && <span style={{ position: "absolute", top: 14, left: 14, background: "rgba(255,255,255,0.92)", color: BRAND.ink, fontSize: 12.5, fontWeight: 700, padding: "6px 12px", borderRadius: 999 }}>{place.location}</span>}
-        <div style={{ position: "absolute", left: 18, bottom: 14, right: 18 }}>
-          <h3 translate="no" className="notranslate" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(24px, 6.5vw, 32px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: "#fff", margin: 0, textShadow: "0 1px 8px rgba(0,0,0,0.35)" }}>{title}</h3>
-        </div>
-      </div>
-
-      <div style={{ padding: 18, display: "flex", flexDirection: "column", flex: 1 }}>
-        <p onClick={() => { track("view_card", { card: place.title_it || place.id, section: place.interests }); onDetail(place); }} style={{ fontSize: 15, lineHeight: 1.5, color: "#4a463d", margin: "0 0 14px", flex: 1, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", cursor: "pointer" }}>{desc}</p>
-
-        {place.price && <div style={{ fontSize: 15, fontWeight: 700, color: BRAND.red, fontFamily: "'Fraunces', serif", marginBottom: 12 }}>{place.price}</div>}
-
-        {tip && (
-          <button onClick={() => { track("open_local_tip", { card: place.title_it || place.id }); onTip(place); }} style={{ display: "inline-flex", alignItems: "center", gap: 7, alignSelf: "flex-start", background: "rgba(56,176,74,0.10)", color: BRAND.greenDark, border: `1.5px solid ${BRAND.green}`, borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
-            <span style={{ fontSize: 15 }}>💬</span>{t.localTipsBtn}
-          </button>
-        )}
-
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={() => { if (!inItin) track("add_to_itinerary", { card: place.title_it || place.id }); onToggleItin(); }} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: inItin ? BRAND.greenDark : "transparent", color: inItin ? "#fff" : BRAND.red, border: `1.5px solid ${inItin ? BRAND.greenDark : BRAND.red}`, borderRadius: 14, padding: "13px 12px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-            <span style={{ fontSize: 16 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItinShort : t.addItinShort}
-          </button>
-          {bookable && (
-            <button onClick={() => { track("start_booking", { card: place.title_it || place.id }); onBook(place); }} style={{ flex: 1, background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: "13px 12px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>
-          )}
-        </div>
-      </div>
-
-    </article>
   );
 }
 
@@ -1178,6 +997,13 @@ function OpeningHours({ orari, t }) {
 }
 
 /* --------------------------- DETAIL MODAL --------------------------------- */
+// Effetto "Airbnb Experience" (parallax hero): mentre si scorre, la foto non
+// si limita a scivolare via passivamente — si rimpicciolisce e sfuma più in
+// fretta dello scroll stesso, "aspirata" verso l'alto, lasciando subito spazio
+// al testo. Fatto leggendo scrollTop nello scroll handler e scrivendo
+// transform/opacity direttamente sul nodo (via ref, senza re-render per
+// frame: più fluido di farlo con lo stato). La freccia indietro resta fissa
+// sopra a tutto e chiude il dettaglio tornando alle card, al posto della "×".
 function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inItin }) {
   const title = place[`title_${lang}`];
   const desc = place[`desc_${lang}`];
@@ -1188,49 +1014,66 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
   const address = String(place.address || "").trim();
   const mapsUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : null;
 
+  const heroRef = useRef(null);
+  const heroHeight = useRef(0);
+  const onContentScroll = (e) => {
+    const hero = heroRef.current;
+    if (!hero) return;
+    if (!heroHeight.current) heroHeight.current = hero.offsetHeight || 1;
+    const y = e.currentTarget.scrollTop;
+    const progress = Math.min(1, y / heroHeight.current); // 0 in cima, 1 appena la foto è "consumata"
+    hero.style.opacity = String(1 - progress);
+    hero.style.transform = `translateY(${-y * 0.55}px) scale(${1 - progress * 0.1})`;
+  };
+
   return (
     <div onClick={onClose} style={overlay}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 540, padding: 0, maxHeight: "88vh", overflowY: "hidden", display: "flex", flexDirection: "column" }}>
-        <div style={{ flexShrink: 0, display: "flex", justifyContent: "flex-end", padding: "22px 14px 10px", background: BRAND.bg }}>
-          <button onClick={onClose} aria-label={t.close} style={xBtn}>×</button>
-        </div>
-        <div style={{ flexShrink: 0, position: "relative" }}>
-          <DetailGallery images={gallery} alt={title} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.28), transparent 30%)", pointerEvents: "none" }} />
-          <div style={{ position: "absolute", left: 20, bottom: 16, right: 20, pointerEvents: "none" }}>
-            {place.location && <span style={{ display: "inline-block", fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#fff", opacity: 0.9, marginBottom: 6, textShadow: "0 1px 6px rgba(0,0,0,0.4)" }}>📍 {place.location}</span>}
-            <h2 translate="no" className="notranslate" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(26px, 6vw, 34px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: "#fff", margin: 0, textShadow: "0 1px 8px rgba(0,0,0,0.4)" }}>{title}</h2>
-          </div>
-        </div>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 540, padding: 0, maxHeight: "88vh", overflow: "hidden", position: "relative", display: "flex", flexDirection: "column" }}>
+        <button onClick={onClose} aria-label={t.back} style={backBtn}>←</button>
 
-        <div style={{ flex: 1, minHeight: 0, padding: 22, overflowY: "auto" }}>
-          {place.price && <p style={{ fontSize: 22, fontWeight: 600, margin: "0 0 16px", color: BRAND.red, fontFamily: "'Fraunces', serif" }}>{place.price}</p>}
-          <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#4a463d", margin: "0 0 20px", whiteSpace: "pre-line" }}>{desc}</p>
-
-          {tip && (
-            <button onClick={() => { track("open_local_tip", { card: place.title_it || place.id, from: "detail" }); onTip(place); }} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(56,176,74,0.10)", color: BRAND.greenDark, border: `1.5px solid ${BRAND.green}`, borderRadius: 999, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 20 }}>
-              <span style={{ fontSize: 16 }}>💬</span>{t.localTipsBtn}
-            </button>
-          )}
-
-          {mapsUrl && (
-            <a href={mapsUrl} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: BRAND.ink, background: BRAND.card, border: `1.5px solid ${BRAND.border}`, borderRadius: 14, padding: "13px 15px", marginBottom: 24 }}>
-              <span style={{ fontSize: 18 }}>📍</span>
-              <span style={{ flex: 1, fontSize: 14.5, fontWeight: 500, lineHeight: 1.35 }}>{address}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.green }}>{lang === "it" ? "Apri" : "Open"} →</span>
-            </a>
-          )}
-
-          <OpeningHours orari={place.orari} t={t} />
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {bookable && <button onClick={() => { track("start_booking", { card: place.title_it || place.id, from: "detail" }); onBook(place); }} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 16, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>}
-            <button onClick={() => { if (!inItin) track("add_to_itinerary", { card: place.title_it || place.id, from: "detail" }); onToggleItin(place.id); }} style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: inItin ? "rgba(56,176,74,0.12)" : "transparent", color: inItin ? BRAND.greenDark : BRAND.red, border: `1.5px solid ${inItin ? BRAND.green : BRAND.red}`, borderRadius: 14, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-              <span style={{ fontSize: 16 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItin : t.addItin}
-            </button>
+        {/* flex:1 + minHeight:0 (non height:100%) è quello che permette a questo
+            blocco di restare scrollabile dentro un contenitore con solo maxHeight */}
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} onScroll={onContentScroll}>
+          <div ref={heroRef} style={{ position: "relative", transformOrigin: "top center", willChange: "transform, opacity" }}>
+            <DetailGallery images={gallery} alt={title} />
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(20,16,10,0.28), transparent 30%)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", left: 20, bottom: 16, right: 20, pointerEvents: "none" }}>
+              {place.location && <span style={{ display: "inline-block", fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#fff", opacity: 0.9, marginBottom: 6, textShadow: "0 1px 6px rgba(0,0,0,0.4)" }}>📍 {place.location}</span>}
+              <h2 translate="no" className="notranslate" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(26px, 6vw, 34px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: "#fff", margin: 0, textShadow: "0 1px 8px rgba(0,0,0,0.4)" }}>{title}</h2>
+            </div>
           </div>
 
+          <div style={{ position: "relative", background: BRAND.bg, padding: 22 }}>
+            {place.price && <p style={{ fontSize: 22, fontWeight: 600, margin: "0 0 16px", color: BRAND.red, fontFamily: "'Fraunces', serif" }}>{place.price}</p>}
+            <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#4a463d", margin: "0 0 20px", whiteSpace: "pre-line" }}>{desc}</p>
 
+            {tip && (
+              <div style={{ background: "rgba(56,176,74,0.08)", border: `1.5px solid ${BRAND.green}`, borderRadius: 16, padding: "16px 18px", marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 16 }}>💬</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: BRAND.greenDark }}>{t.localTipTitle}</span>
+                </div>
+                <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.6, color: "#3c3826", whiteSpace: "pre-line" }}>{tip}</p>
+              </div>
+            )}
+
+            {mapsUrl && (
+              <a href={mapsUrl} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: BRAND.ink, background: BRAND.card, border: `1.5px solid ${BRAND.border}`, borderRadius: 14, padding: "13px 15px", marginBottom: 24 }}>
+                <span style={{ fontSize: 18 }}>📍</span>
+                <span style={{ flex: 1, fontSize: 14.5, fontWeight: 500, lineHeight: 1.35 }}>{address}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.green }}>{lang === "it" ? "Apri" : "Open"} →</span>
+              </a>
+            )}
+
+            <OpeningHours orari={place.orari} t={t} />
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {bookable && <button onClick={() => { track("start_booking", { card: place.title_it || place.id, from: "detail" }); onBook(place); }} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 16, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>}
+              <button onClick={() => { if (!inItin) track("add_to_itinerary", { card: place.title_it || place.id, from: "detail" }); onToggleItin(place.id); }} style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: inItin ? "rgba(56,176,74,0.12)" : "transparent", color: inItin ? BRAND.greenDark : BRAND.red, border: `1.5px solid ${inItin ? BRAND.green : BRAND.red}`, borderRadius: 14, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                <span style={{ fontSize: 16 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItin : t.addItin}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1428,6 +1271,10 @@ const overlay = { position: "fixed", inset: 0, background: "rgba(26,20,12,0.55)"
 const sheet = { background: BRAND.bg, width: "100%", borderRadius: "22px 22px 0 0", overflowY: "auto", maxHeight: "92vh", boxShadow: "0 -10px 50px rgba(0,0,0,0.25)" };
 const inp = { width: "100%", boxSizing: "border-box", padding: "12px 14px", borderRadius: 12, border: `1.5px solid ${BRAND.border}`, background: BRAND.card, fontSize: 15, fontFamily: "inherit", color: BRAND.ink, outline: "none" };
 const xBtn = { width: 44, height: 44, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(26,20,12,0.08)", border: "none", borderRadius: "50%", fontSize: 26, cursor: "pointer", color: BRAND.ink, lineHeight: 1 };
+// Freccia "indietro" del DetailModal: fissa in alto a sinistra sopra al
+// foglio (non dentro l'area che scorre), così resta visibile mentre la foto
+// scorre via dietro di lei.
+const backBtn = { position: "absolute", top: 14, left: 14, zIndex: 20, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.92)", border: "none", borderRadius: "50%", fontSize: 19, fontWeight: 700, cursor: "pointer", color: BRAND.ink, lineHeight: 1, boxShadow: "0 3px 12px rgba(0,0,0,0.22)" };
 const sheetLabel = { fontSize: 12.5, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: BRAND.muted, margin: "0 0 12px" };
 const listReset = { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 };
 const rowCard = { display: "flex", gap: 13, alignItems: "center", background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 14, padding: 11 };
@@ -1441,83 +1288,6 @@ function LangToggle({ lang, setLang }) {
   return (
     <div style={{ display: "flex", border: `1.5px solid ${BRAND.border}`, borderRadius: 999, overflow: "hidden" }}>
       {["it", "en"].map((l) => (<button key={l} onClick={() => setLang(l)} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", border: "none", cursor: "pointer", fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", background: lang === l ? BRAND.ink : "transparent", color: lang === l ? "#fff" : "#999", textTransform: "uppercase", letterSpacing: "0.05em" }}><span style={{ fontSize: 14 }}>{FLAG[l]}</span>{l}</button>))}
-    </div>
-  );
-}
-/* --------------------------- BETA / FEEDBACK / COOKIE --------------------- */
-/* --------------------------- QUICK FEEDBACK -------------------------------- */
-
-function StarRating({ value, onChange }) {
-  return (
-    <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button key={n} type="button" onClick={() => onChange(n)} aria-label={`${n} stelle`}
-          style={{ background: "none", border: "none", padding: 2, cursor: "pointer", fontSize: 30, lineHeight: 1, color: n <= value ? BRAND.red : BRAND.border, transition: "color .15s" }}>
-          {n <= value ? "★" : "☆"}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function QuickFeedbackModal({ t, lang, onClose, onSubmitted }) {
-  const [rating, setRating] = useState(0);
-  const [improve, setImprove] = useState("");
-  const [extra, setExtra] = useState("");
-  const [status, setStatus] = useState("idle");
-  const FORMSPREE_ENDPOINT = "https://formspree.io/f/maewzgoa";
-  const submit = async () => {
-    setStatus("sending");
-    try {
-      const res = await fetch(FORMSPREE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ tipo: "QUICK_FEEDBACK", valutazione: rating || "—", miglioreresti: improve, altro: extra, lingua: lang, _subject: "Nuovo quick feedback Glocal" }) });
-      if (res.ok) { setStatus("done"); onSubmitted?.(); } else setStatus("error");
-    } catch { setStatus("error"); }
-  };
-  const skip = () => { onSubmitted?.(); onClose(); };
-
-  return (
-    <div onClick={skip} style={{ ...overlay, alignItems: "center", zIndex: 95 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: BRAND.bg, borderRadius: 22, maxWidth: 420, width: "calc(100% - 44px)", padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-        {status === "done" ? (
-          <div style={{ textAlign: "center", padding: "12px 4px" }}>
-            <div style={{ width: 54, height: 54, borderRadius: "50%", background: "rgba(56,176,74,0.14)", color: BRAND.green, fontSize: 28, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>✓</div>
-            <p style={{ fontSize: 16, color: "#3a3630", margin: "0 0 20px" }}>{t.qfThanks}</p>
-            <button onClick={onClose} style={{ background: BRAND.ink, color: "#fff", border: "none", borderRadius: 12, padding: "12px 28px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.close}</button>
-          </div>
-        ) : (
-          <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 2 }}>
-              <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 21, margin: 0 }}>{t.qfTitle}</h3>
-              <button onClick={skip} style={xBtn}>×</button>
-            </div>
-            <p style={{ fontSize: 13, color: BRAND.muted, margin: "0 0 16px" }}>{t.qfSub}</p>
-
-            <Field label={t.qfRatingLabel}><StarRating value={rating} onChange={setRating} /></Field>
-            <Field label={t.qfImproveLabel}><input style={inp} value={improve} onChange={(e) => setImprove(e.target.value)} placeholder={t.qfImprovePlaceholder} /></Field>
-            <Field label={t.qfExtraLabel}><input style={inp} value={extra} onChange={(e) => setExtra(e.target.value)} placeholder={t.qfExtraPlaceholder} /></Field>
-
-            <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-              <button onClick={skip} style={{ flex: 1, background: "transparent", color: BRAND.muted, border: `1.5px solid ${BRAND.border}`, borderRadius: 14, padding: 14, fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.qfSkip}</button>
-              <button onClick={submit} disabled={status === "sending"} style={{ flex: 1, background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 14, fontSize: 14.5, fontWeight: 700, cursor: status === "sending" ? "default" : "pointer", fontFamily: "inherit", opacity: status === "sending" ? 0.7 : 1 }}>
-                {status === "sending" ? t.qfSending : t.qfSend}
-              </button>
-            </div>
-            {status === "error" && <p style={{ color: BRAND.red, fontSize: 13.5, margin: "10px 0 0", textAlign: "center" }}>{t.required}</p>}
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function CookieBanner({ t, onOk }) {
-  return (
-    <div style={{ position: "fixed", left: 12, right: 12, bottom: 12, zIndex: 80, background: BRAND.ink, color: "#fff", borderRadius: 16, padding: "16px 18px", boxShadow: "0 10px 40px rgba(0,0,0,0.35)", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, maxWidth: 620, margin: "0 auto" }}>
-      <span style={{ flex: 1, minWidth: 200, fontSize: 13.5, lineHeight: 1.5 }}>
-        {t.cookieText}{" "}
-        <a href="https://www.iubenda.com/privacy-policy/67582598" target="_blank" rel="noreferrer" style={{ color: "#9fe0ab", textDecoration: "underline" }}>{t.cookiePolicy}</a>{" · "}<a href="https://www.iubenda.com/privacy-policy/67582598/cookie-policy" target="_blank" rel="noreferrer" style={{ color: "#9fe0ab", textDecoration: "underline" }}>Cookie</a>
-      </span>
-      <button onClick={onOk} style={{ background: BRAND.green, color: "#fff", border: "none", borderRadius: 12, padding: "11px 22px", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{t.cookieOk}</button>
     </div>
   );
 }
@@ -1548,10 +1318,6 @@ function FontLink() {
       body { margin: 0; }
       button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid ${BRAND.green}; outline-offset: 2px; }
       input:focus, textarea:focus { border-color: ${BRAND.green} !important; }
-      .gl-deck { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -ms-overflow-style: none; cursor: grab; -webkit-overflow-scrolling: touch; }
-      .gl-deck:active { cursor: grabbing; }
-      .gl-deck::-webkit-scrollbar { display: none; }
-      .gl-deck-slide { flex: 0 0 100%; scroll-snap-align: center; padding: 2px; box-sizing: border-box; }
       .gl-gallery { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -ms-overflow-style: none; }
       .gl-gallery::-webkit-scrollbar { display: none; }
       .gl-gallery-img { flex: 0 0 100%; width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; scroll-snap-align: center; }
@@ -1578,7 +1344,6 @@ function FontLink() {
       @keyframes glpulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }
       .gl-spin { animation: glspin 0.8s linear infinite; }
       @keyframes glspin { to { transform: rotate(360deg) } }
-      @media (hover:hover) { .gl-deck-arrow:hover { background: #fff; } }
       @media (prefers-reduced-motion: reduce) { *, .gl-pulse, .gl-spin, .gl-card, .gl-pick-card, .gl-check-pop, .gl-rotator-img, .gl-rotator-float, .gl-rotator-wrap { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; } }
     `}</style>
   );
