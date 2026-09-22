@@ -500,7 +500,7 @@ export default function App() {
       <header style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "14px 18px", position: "sticky", top: 0, background: "rgba(251,248,240,0.92)", backdropFilter: "blur(10px)", zIndex: 30, borderBottom: `1px solid ${BRAND.border}` }}>
         <span style={{ justifySelf: "start" }}>{loading && <Spinner />}</span>
         <div style={{ justifySelf: "center" }}>
-          <button onClick={() => { track("open_interest_picker_from_logo"); setPicking(true); }} aria-label={t.editInterests} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block" }}>
+          <button onClick={() => { track("logo_go_home"); setTab("home"); }} aria-label={t.homeTitle} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block" }}>
             <Logo />
           </button>
         </div>
@@ -810,8 +810,8 @@ function FilterChips({ t, lang, filter, setFilter }) {
       {chips.map((c) => {
         const active = filter === c.id;
         return (
-          <button key={c.id} onClick={() => setFilter(c.id)} style={{ flexShrink: 0, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 7, background: active ? BRAND.ink : "transparent", color: active ? "#fff" : BRAND.ink, border: `1.5px solid ${active ? BRAND.ink : BRAND.border}`, borderRadius: 999, padding: "9px 17px 9px 14px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-            {c.icon && <span style={{ width: 18, height: 18, flexShrink: 0, display: "inline-flex", filter: active ? "brightness(0) invert(1)" : "none" }}><img src={c.icon} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></span>}
+          <button key={c.id} onClick={() => setFilter(c.id)} style={{ flexShrink: 0, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 7, background: active ? "rgba(56,176,74,0.12)" : "transparent", color: active ? BRAND.greenDark : BRAND.ink, border: `1.5px solid ${active ? BRAND.green : BRAND.border}`, borderRadius: 999, padding: "9px 17px 9px 14px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            {c.icon && <span style={{ width: 18, height: 18, flexShrink: 0, display: "inline-flex" }}><img src={c.icon} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></span>}
             {c.label}
           </button>
         );
