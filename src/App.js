@@ -828,7 +828,7 @@ function FilterChips({ t, lang, filter, setFilter }) {
 // delle altre (per titolo su 2 righe) spinga in giù/su le vicine.
 function PlaceCard({ place, lang, t, badge, onClick, inItin, onToggleItin }) {
   const title = place[`title_${lang}`];
-  const subtitle = priceSymbol(place.price) || (badge ? t.freeByInvite : place.location || "");
+  const subtitle = priceSymbol(place.price) || place.location || "";
   return (
     <button onClick={onClick} style={{ flexShrink: 0, width: "44%", minWidth: 154, maxWidth: 200, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", flexDirection: "column" }}>
       <div style={{ position: "relative", aspectRatio: "4/3", borderRadius: 18, overflow: "hidden", background: "#eee" }}>
