@@ -16,7 +16,8 @@ import Papa from "papaparse";
    Colonne foglio:
    id | interests | title_it | title_en | desc_it | desc_en | image | images |
    bookable | price | location | address | lat | lng | contact | doc | tip_it | tip_en |
-   place_id | orari | bookings_week
+   place_id | orari | bookings_week | menu | menu_it | menu_en | booking | booking_url | phone
+   (menu/booking/booking_url/phone: vedi il blocco "MENU & PRENOTAZIONE" sotto)
 
    - interests: una o più tra food, drink, nature, museums, shopping (virgola).
                 Determina in quale/quali sezioni appare la card.
@@ -174,6 +175,11 @@ const T = {
     abandonedCta: "Scopri le esperienze",
     abandonedClose: "Continua a guardare",
     socialProofWeek: "persone hanno prenotato questa settimana",
+    menuBtn: "Vedi il menu", menuTitle: "Menu",
+    bookOnline: "Prenota online", bookCall: "Chiama", bookWa: "WhatsApp",
+    openNewTab: "Apri in una nuova scheda",
+    embedHint: "Non si carica? Aprilo in una nuova scheda.",
+    waBookText: "Ciao! Vi scrivo da Glocal, vorrei prenotare da {title}.",
   },
   en: {
     loading: "Loading…",
@@ -246,6 +252,11 @@ const T = {
     abandonedCta: "See experiences",
     abandonedClose: "Keep browsing",
     socialProofWeek: "people booked this week",
+    menuBtn: "See the menu", menuTitle: "Menu",
+    bookOnline: "Book online", bookCall: "Call", bookWa: "WhatsApp",
+    openNewTab: "Open in a new tab",
+    embedHint: "Not loading? Open it in a new tab.",
+    waBookText: "Hi! I found you on Glocal, I'd like to book at {title}.",
   },
 };
 
@@ -257,6 +268,89 @@ const save = (k, v) => { try { store.setItem(k, JSON.stringify(v)); } catch {} }
 const hasInterest = (p, id) => String(p.interests || "").split(",").map((s) => s.trim()).includes(id);
 const isDoc = (p) => String(p.doc || "").trim().toLowerCase() === "yes";
 const isMadeInBo = (p) => String(p.madeinbo || "").trim().toLowerCase() === "yes";
+const splitList = (s) => String(s || "").split(",").map((x) => x.trim()).filter(Boolean);
+
+/* --------------------------- MENU & PRENOTAZIONE --------------------------- */
+// Colonne nuove nel foglio:
+//  - menu_it / menu_en: menu nella lingua dell'utente (stesso formato di
+//                 "menu"). Se c'è solo una lingua, si usa quella per tutti.
+//  - menu:        uno o più URL separati da virgola. PDF su Cloudinary ->
+//                 ogni pagina mostrata come immagine. Altri PDF -> visualizzatore
+//                 Google nel popup. Link di Google Drive (condiviso con
+//                 "chiunque abbia il link") -> anteprima Drive nel popup.
+//                 Immagini (Cloudinary o
+//                 .jpg/.png/.webp) -> mostrate impilate nel popup. Qualsiasi
+//                 altro link (sito, PDF) -> aperto nel popup in un iframe, con
+//                 "Apri in una nuova scheda" come riserva.
+//  - booking:     metodi di prenotazione, separati da virgola, nell'ordine in
+//                 cui compaiono i pulsanti: form | link | whatsapp | call.
+//                 Vuoto + bookable = yes -> "form" (comportamento di prima).
+//  - booking_url: pagina di prenotazione del gestionale (TheFork, Quandoo, …)
+//                 usata dal metodo "link", aperta nel popup.
+//  - phone:       numero per "call". Se vuoto usa "contact".
+//  (- contact:    numero WhatsApp, già esistente, usato da "whatsapp".)
+const IMG_RE = /\.(jpe?g|png|webp|gif|avif)(\?|#|$)/i;
+const PDF_RE = /\.pdf(\?|#|$)/i;
+const isPdfUrl = (u) => PDF_RE.test(u);
+const isCloudinaryImage = (u) => /res\.cloudinary\.com\/.+\/image\/upload\//i.test(u);
+// PDF caricato su Cloudinary come "image": Cloudinary sa trasformarne ogni
+// pagina in un'immagine (pg_N), quindi lo mostriamo come menu a immagini.
+const isCloudinaryPdf = (u) => isCloudinaryImage(u) && isPdfUrl(u);
+const isImageUrl = (u) => IMG_RE.test(u) || (isCloudinaryImage(u) && !isPdfUrl(u));
+// URL dell'immagine della pagina N di un PDF su Cloudinary.
+const cloudinaryPdfPage = (u, n) => u.replace(/\/image\/upload\//i, `/image/upload/pg_${n},w_1400,f_auto,q_auto/`).replace(PDF_RE, ".jpg$1");
+// Qualsiasi altro PDF (es. sul sito del locale): i telefoni non lo mostrano
+// bene dentro un iframe, quindi passa dal visualizzatore di Google.
+const pdfViewerUrl = (u) => `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(u)}`;
+// File su Google Drive (link di condivisione "chiunque abbia il link"):
+// qualsiasi forma del link -> versione /preview, l'unica che Drive lascia
+// incorporare, con tutte le pagine scorrevoli.
+const driveFileId = (u) => (u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=)([\w-]{10,})/) || [])[1];
+const drivePreviewUrl = (u) => { const id = driveFileId(u); return id ? `https://drive.google.com/file/d/${id}/preview` : null; };
+// URL da mettere nell'iframe per un menu che non è fatto di immagini.
+const menuEmbedUrl = (u) => drivePreviewUrl(u) || (isPdfUrl(u) ? pdfViewerUrl(u) : u);
+
+// Pagine di un PDF su Cloudinary: non sappiamo quante sono, quindi carica
+// la pagina 1, e ogni volta che una pagina arriva prova la successiva;
+// la prima che dà errore segna la fine del documento (max 30 pagine).
+function PdfPages({ url, label }) {
+  const [count, setCount] = useState(1);
+  const [last, setLast] = useState(null); // numero dell'ultima pagina esistente
+  const pages = Array.from({ length: last ?? count }, (_, i) => i + 1);
+  return pages.map((n) => (
+    <img key={n} src={cloudinaryPdfPage(url, n)} alt={`${label} ${n}`}
+      onLoad={() => { if (last === null && n === count && count < 30) setCount(count + 1); }}
+      onError={() => { if (last === null) setLast(n - 1); }}
+      style={{ display: "block", width: "100%", height: "auto", borderBottom: `1px solid ${BRAND.border}` }} />
+  ));
+}
+
+function bookingMethods(p) {
+  const list = splitList(p.booking).map((m) => m.toLowerCase());
+  const bookable = String(p.bookable || "").trim().toLowerCase() === "yes";
+  const methods = list.length ? list : bookable ? ["form"] : [];
+  return methods.filter((m) => {
+    if (m === "form") return true;
+    if (m === "link") return !!String(p.booking_url || "").trim();
+    if (m === "whatsapp") return !!String(p.contact || "").replace(/[^0-9]/g, "");
+    if (m === "call") return !!String(p.phone || p.contact || "").replace(/[^0-9+]/g, "");
+    return false;
+  });
+}
+
+// Aggiunge i parametri UTM al link del gestionale, così anche il locale vede
+// nelle sue statistiche che la prenotazione arriva da Glocal.
+function withUtm(url) {
+  try {
+    const u = new URL(url);
+    if (!u.searchParams.has("utm_source")) {
+      u.searchParams.set("utm_source", "glocal");
+      u.searchParams.set("utm_medium", "app");
+      u.searchParams.set("utm_campaign", "booking");
+    }
+    return u.toString();
+  } catch { return url; }
+}
 
 /* --------------------------- ORARI (Google sync) --------------------------- */
 const IT_DAYS = ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"];
@@ -427,6 +521,7 @@ export default function App() {
   const [hasBooked, setHasBooked] = useState(() => load("gl_has_booked", false));
   const [showGuide, setShowGuide] = useState(false);
   const [showAbandoned, setShowAbandoned] = useState(false);
+  const [webSheet, setWebSheet] = useState(null); // popup menu / prenotazione esterna
   const t = T[lang];
 
   useEffect(() => save("gl_lang", lang), [lang]);
@@ -450,7 +545,7 @@ export default function App() {
   // È rimasto l'UNICO popup automatico dell'app (gli altri sono stati tolti
   // su richiesta: install hint, cookie banner, quick feedback, social proof).
   useAbandonedCartTrigger({
-    enabled: !picking && !hasBooked && !detail && !booking && !showAbandoned,
+    enabled: !picking && !hasBooked && !detail && !booking && !showAbandoned && !webSheet,
     onTrigger: () => setShowAbandoned(true),
   });
 
@@ -465,9 +560,10 @@ export default function App() {
       <div style={{ minHeight: "100vh", background: BRAND.bg, color: BRAND.ink, fontFamily: "'Archivo', system-ui, sans-serif" }}>
         <FontLink />
         <GuideTab t={t} lang={lang} places={places} onClose={() => setShowGuide(false)} onOpenDetail={setDetail} />
-        {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} />}
+        {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} onOpenWeb={setWebSheet} onBookIntent={markBooked} />}
         {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} onBooked={markBooked} />}
         {tipPlace && <LocalTipSheet place={tipPlace} tip={tipPlace[`tip_${lang}`]} lang={lang} t={t} onClose={() => setTipPlace(null)} />}
+        {webSheet && <WebSheet sheetData={webSheet} t={t} onClose={() => setWebSheet(null)} />}
       </div>
     );
   }
@@ -525,9 +621,10 @@ export default function App() {
 
       <TabBar t={t} tab={tab} setTab={setTab} itinCount={itinerary.length} />
 
-      {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} />}
+      {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} onOpenWeb={setWebSheet} onBookIntent={markBooked} />}
       {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} onBooked={markBooked} />}
       {tipPlace && <LocalTipSheet place={tipPlace} tip={tipPlace[`tip_${lang}`]} lang={lang} t={t} onClose={() => setTipPlace(null)} />}
+        {webSheet && <WebSheet sheetData={webSheet} t={t} onClose={() => setWebSheet(null)} />}
       {showAbandoned && (
         <AbandonedCartModal t={t} onClose={() => setShowAbandoned(false)}
           onCta={() => { setShowAbandoned(false); setTab("home"); }} />
@@ -698,9 +795,16 @@ function GuideTab({ t, lang, places, onClose, onOpenDetail }) {
 function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, onDetail, onTip, itinerary, onToggleItin, onOpenItin, onOpenGuide }) {
   const [filter, setFilter] = useState("all"); // "all" oppure un id di SECTIONS
   if (loading) return <div style={{ padding: "22px 18px" }}><DeckSkeleton /></div>;
-  const visibleSections = filter === "all" ? SECTIONS : SECTIONS.filter((s) => s.id === filter);
+  // Interessi scelti nella schermata "Cosa ti interessa": se ce ne sono,
+  // la Home mostra SOLO quelle sezioni (e solo quelle chip). "Tutti" = tutti
+  // gli interessi scelti. Nessun interesse scelto = si vede tutto.
+  const scope = chosen.length ? SECTIONS.filter((s) => chosen.includes(s.id)) : SECTIONS;
+  const visibleSections = filter === "all" ? scope : scope.filter((s) => s.id === filter);
   const docs = places.filter(isDoc); // TUTTI i classici, sempre, a prescindere dagli interessi
-  const made = places.filter(isMadeInBo); // esperienze fisse Made in Bo -> sezione "Esperienze" in cima
+  // Esperienze: se ci sono interessi scelti, solo quelle che ne hanno almeno
+  // uno (quelle senza interessi compilati nel foglio restano sempre visibili).
+  const made = places.filter(isMadeInBo).filter((p) =>
+    !chosen.length || !String(p.interests || "").trim() || chosen.some((id) => hasInterest(p, id)));
   const guideStopsCount = places.filter((p) => p.guida_giorno).length;
 
   return (
@@ -710,7 +814,7 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
         {t.homeTitle}
       </h1>
       <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "0 0 16px", lineHeight: 1.4 }}>{t.welcomeSub}</p>
-      <FilterChips t={t} lang={lang} filter={filter} setFilter={setFilter} />
+      <FilterChips t={t} lang={lang} sections={scope} filter={filter} setFilter={setFilter} />
 
       {/* barra: modifica interessi — piccola, sotto le chip */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginTop: 14 }}>
@@ -803,12 +907,14 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
 // stesse icone della schermata "scelta interessi". Selezione singola (a
 // differenza della vecchia scelta interessi, multi-select): filtra solo le
 // sezioni per interesse più sotto nella pagina, non Esperienze/Doc.
-function FilterChips({ t, lang, filter, setFilter }) {
-  const chips = [{ id: "all", label: t.filterAll, icon: null }, ...SECTIONS.map((s) => ({ id: s.id, label: s[lang], icon: s.icon }))];
+function FilterChips({ t, lang, sections, filter, setFilter }) {
+  const list = sections || SECTIONS;
+  // con un solo interesse scelto la chip "Tutti" sarebbe un doppione: si mostra solo quella
+  const chips = [...(list.length > 1 ? [{ id: "all", label: t.filterAll, icon: null }] : []), ...list.map((s) => ({ id: s.id, label: s[lang], icon: s.icon }))];
   return (
     <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2, marginInline: -18, paddingInline: 18 }} className="gl-chip-row">
       {chips.map((c) => {
-        const active = filter === c.id;
+        const active = filter === c.id || list.length === 1;
         return (
           <button key={c.id} onClick={() => setFilter(c.id)} style={{ flexShrink: 0, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 7, background: active ? "rgba(56,176,74,0.12)" : "transparent", color: active ? BRAND.greenDark : BRAND.ink, border: `1.5px solid ${active ? BRAND.green : BRAND.border}`, borderRadius: 999, padding: "9px 17px 9px 14px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
             {c.icon && <span style={{ width: 18, height: 18, flexShrink: 0, display: "inline-flex" }}><img src={c.icon} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></span>}
@@ -841,8 +947,8 @@ function PlaceCard({ place, lang, t, badge, onClick, inItin, onToggleItin }) {
             role="button"
             aria-label={inItin ? t.inItinShort : t.addItinShort}
             onClick={(e) => { e.stopPropagation(); if (!inItin) track("add_to_itinerary", { card: place.title_it || place.id }); onToggleItin(); }}
-            style={{ position: "absolute", top: 10, right: 10, width: 28, height: 28, borderRadius: "50%", background: inItin ? BRAND.greenDark : "rgba(255,255,255,0.92)", color: inItin ? "#fff" : BRAND.ink, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, boxShadow: "0 2px 8px rgba(0,0,0,0.2)", cursor: "pointer" }}>
-            {inItin ? "✓" : "＋"}
+            style={{ position: "absolute", top: 10, right: 10, width: 32, height: 32, borderRadius: "50%", background: inItin ? BRAND.greenDark : "rgba(255,255,255,0.92)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.2)", cursor: "pointer" }}>
+            <PinIcon size={17} filled={inItin} color={inItin ? "#fff" : BRAND.ink} />
           </span>
         )}
       </div>
@@ -876,6 +982,17 @@ function ItinFloatingButton({ t, count, onClick }) {
     <button onClick={onClick} style={{ position: "fixed", right: 16, bottom: "calc(74px + env(safe-area-inset-bottom, 0))", zIndex: 35, display: "inline-flex", alignItems: "center", gap: 8, background: BRAND.green, color: "#fff", border: "none", borderRadius: 999, padding: "12px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 8px 22px rgba(56,176,74,0.4)" }}>
       <span style={{ fontSize: 16 }}>🗺️</span>{count} · {t.itinFloatingCta}
     </button>
+  );
+}
+
+/* --------------------------- PIN ICON (itinerario) ------------------------- */
+// Pin mappa: vuoto = non nell'itinerario, pieno = aggiunto.
+function PinIcon({ size = 18, filled = false, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "block", flexShrink: 0 }}>
+      <path d="M12 21.5s-7-6.1-7-11.5a7 7 0 0 1 14 0c0 5.4-7 11.5-7 11.5Z" fill={filled ? color : "none"} />
+      <circle cx="12" cy="10" r="2.6" fill={filled ? (color === "#fff" ? BRAND.greenDark : "#fff") : "none"} stroke={filled ? "none" : color} />
+    </svg>
   );
 }
 
@@ -1000,11 +1117,19 @@ function OpeningHours({ orari, t }) {
 // transform/opacity direttamente sul nodo (via ref, senza re-render per
 // frame: più fluido di farlo con lo stato). La freccia indietro resta fissa
 // sopra a tutto e chiude il dettaglio tornando alle card, al posto della "×".
-function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inItin }) {
+function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inItin, onOpenWeb, onBookIntent }) {
   const title = place[`title_${lang}`];
   const desc = place[`desc_${lang}`];
   const tip = place[`tip_${lang}`];
-  const bookable = String(place.bookable).trim().toLowerCase() === "yes";
+  const card = place.title_it || place.id;
+  const methods = bookingMethods(place);
+  const waNumber = String(place.contact || "").replace(/[^0-9]/g, "");
+  const phoneNumber = String(place.phone || place.contact || "").replace(/[^0-9+]/g, "");
+  // Menu nella lingua dell'utente: menu_it / menu_en; se manca, "menu"
+  // (valido per tutte le lingue); se manca anche quello, l'altra lingua.
+  const otherLang = lang === "it" ? "en" : "it";
+  const menuUrls = [place[`menu_${lang}`], place.menu, place[`menu_${otherLang}`]]
+    .map(splitList).find((l) => l.length > 0) || [];
   const extra = String(place.images || "").split(",").map((s) => s.trim()).filter(Boolean);
   const gallery = [place.image, ...extra].filter(Boolean);
   const address = String(place.address || "").trim();
@@ -1043,6 +1168,19 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
             {place.price && <p style={{ fontSize: 22, fontWeight: 600, margin: "0 0 16px", color: BRAND.red, fontFamily: "'Fraunces', serif" }}>{priceSymbol(place.price)}</p>}
             <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#4a463d", margin: "0 0 20px", whiteSpace: "pre-line" }}>{desc}</p>
 
+            {/* MENU — subito sotto la descrizione, solo se il posto ha un menu nel foglio */}
+            {menuUrls.length > 0 && (
+              <button onClick={() => {
+                track("open_menu", { card });
+                const allImages = menuUrls.every((u) => isImageUrl(u) || isCloudinaryPdf(u));
+                onOpenWeb(allImages
+                  ? { kind: "images", urls: menuUrls, title, label: t.menuTitle, card, purpose: "menu" }
+                  : { kind: "iframe", url: menuEmbedUrl(menuUrls[0]), openUrl: menuUrls[0], title, label: t.menuTitle, card, purpose: "menu" });
+              }} style={{ ...secondaryBtn, width: "100%", flex: "none", marginBottom: 20 }}>
+                <span>📖</span>{t.menuBtn}
+              </button>
+            )}
+
             {tip && (
               <div style={{ background: "rgba(56,176,74,0.08)", border: `1.5px solid ${BRAND.green}`, borderRadius: 16, padding: "16px 18px", marginBottom: 20 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -1064,9 +1202,34 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
             <OpeningHours orari={place.orari} t={t} />
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {bookable && <button onClick={() => { track("start_booking", { card: place.title_it || place.id, from: "detail" }); onBook(place); }} style={{ width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 16, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{t.book}</button>}
+              {methods.includes("form") && <button onClick={() => { track("start_booking", { card, method: "form", from: "detail" }); onBook(place); }} style={primaryBtn}>{t.book}</button>}
+              {methods.includes("link") && (
+                <button onClick={() => {
+                  track("start_booking", { card, method: "link", from: "detail" });
+                  onBookIntent?.();
+                  onOpenWeb({ kind: "iframe", url: withUtm(String(place.booking_url).trim()), title, label: t.bookOnline, card, purpose: "booking" });
+                }} style={primaryBtn}>{t.bookOnline}</button>
+              )}
+              {(methods.includes("whatsapp") || methods.includes("call")) && (
+                <div style={{ display: "flex", gap: 10 }}>
+                  {methods.includes("whatsapp") && (
+                    <a href={`https://wa.me/${waNumber}?text=${encodeURIComponent(t.waBookText.replace("{title}", title))}`} target="_blank" rel="noreferrer"
+                      onClick={() => { track("start_booking", { card, method: "whatsapp", from: "detail" }); onBookIntent?.(); }}
+                      style={{ ...secondaryBtn, background: "#25D366", color: "#fff", border: "none" }}>
+                      <span>💬</span>{t.bookWa}
+                    </a>
+                  )}
+                  {methods.includes("call") && (
+                    <a href={`tel:${phoneNumber}`}
+                      onClick={() => { track("start_booking", { card, method: "call", from: "detail" }); onBookIntent?.(); }}
+                      style={secondaryBtn}>
+                      <span>📞</span>{t.bookCall}
+                    </a>
+                  )}
+                </div>
+              )}
               <button onClick={() => { if (!inItin) track("add_to_itinerary", { card: place.title_it || place.id, from: "detail" }); onToggleItin(place.id); }} style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: inItin ? "rgba(56,176,74,0.12)" : "transparent", color: inItin ? BRAND.greenDark : BRAND.red, border: `1.5px solid ${inItin ? BRAND.green : BRAND.red}`, borderRadius: 14, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                <span style={{ fontSize: 16 }}>{inItin ? "✓" : "＋"}</span>{inItin ? t.inItin : t.addItin}
+                <PinIcon size={17} filled={inItin} color={inItin ? BRAND.greenDark : BRAND.red} />{inItin ? t.inItin : t.addItin}
               </button>
             </div>
           </div>
@@ -1276,6 +1439,8 @@ const xBtn = { width: 44, height: 44, flexShrink: 0, display: "flex", alignItems
 // "absolute" dentro un contenitore che scorre può finire coperto durante lo
 // scroll. env(safe-area-inset-top) lo tiene lontano dalla notch/isola dinamica.
 const backBtn = { position: "fixed", top: "calc(14px + env(safe-area-inset-top, 0px))", left: 14, zIndex: 95, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.92)", border: "none", borderRadius: "50%", fontSize: 19, fontWeight: 700, cursor: "pointer", color: BRAND.ink, lineHeight: 1, boxShadow: "0 3px 12px rgba(0,0,0,0.22)" };
+const primaryBtn = { width: "100%", background: BRAND.green, color: "#fff", border: "none", borderRadius: 14, padding: 16, fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
+const secondaryBtn = { flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: BRAND.card, color: BRAND.ink, textDecoration: "none", border: `1.5px solid ${BRAND.border}`, borderRadius: 14, padding: "14px 12px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxSizing: "border-box" };
 const sheetLabel = { fontSize: 12.5, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: BRAND.muted, margin: "0 0 12px" };
 const listReset = { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 };
 const rowCard = { display: "flex", gap: 13, alignItems: "center", background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 14, padding: 11 };
@@ -1289,6 +1454,41 @@ function LangToggle({ lang, setLang }) {
   return (
     <div style={{ display: "flex", border: `1.5px solid ${BRAND.border}`, borderRadius: 999, overflow: "hidden" }}>
       {["it", "en"].map((l) => (<button key={l} onClick={() => setLang(l)} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", border: "none", cursor: "pointer", fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", background: lang === l ? BRAND.ink : "transparent", color: lang === l ? "#fff" : "#999", textTransform: "uppercase", letterSpacing: "0.05em" }}><span style={{ fontSize: 14 }}>{FLAG[l]}</span>{l}</button>))}
+    </div>
+  );
+}
+
+/* --------------------------- WEB SHEET (menu / prenotazione) --------------- */
+// Popup a tutta altezza dentro l'app. kind "images": immagini impilate
+// (menu su Cloudinary). kind "iframe": pagina esterna (menu online o pagina
+// di prenotazione del gestionale). Alcuni siti vietano di essere incorporati
+// (X-Frame-Options): per questo c'è sempre "Apri in una nuova scheda" in cima.
+// Sta sopra al DetailModal (zIndex 100 > 95 della freccia indietro).
+function WebSheet({ sheetData, t, onClose }) {
+  const { kind, url, urls = [], title, label, card, purpose } = sheetData;
+  const openUrl = sheetData.openUrl || (kind === "images" ? urls[0] : url);
+  return (
+    <div onClick={onClose} style={{ ...overlay, zIndex: 100 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 640, height: "92vh", padding: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px 12px", borderBottom: `1px solid ${BRAND.border}`, flexShrink: 0 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.14em", color: BRAND.green, fontWeight: 700 }}>{label}</div>
+            <div translate="no" className="notranslate" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 19, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
+          </div>
+          <button onClick={onClose} aria-label={t.close} style={xBtn}>×</button>
+        </div>
+        {kind === "iframe" && (
+          <a href={openUrl} target="_blank" rel="noreferrer" onClick={() => track("open_external_tab", { card, purpose })}
+            style={{ display: "block", flexShrink: 0, padding: "8px 16px", fontSize: 12.5, color: BRAND.muted, textDecoration: "none", background: "rgba(26,20,12,0.04)", borderBottom: `1px solid ${BRAND.border}` }}>
+            {t.embedHint} <span style={{ color: BRAND.greenDark, fontWeight: 700 }}>{t.openNewTab} ↗</span>
+          </a>
+        )}
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", background: kind === "iframe" ? "#fff" : BRAND.bg }}>
+          {kind === "images"
+            ? urls.map((src, i) => isCloudinaryPdf(src) ? <PdfPages key={i} url={src} label={label} /> : <img key={i} src={src} alt={`${label} ${i + 1}`} loading={i === 0 ? "eager" : "lazy"} style={{ display: "block", width: "100%", height: "auto", borderBottom: `1px solid ${BRAND.border}` }} />)
+            : <iframe title={`${label} — ${title}`} src={url} style={{ display: "block", width: "100%", height: "100%", border: "none" }} />}
+        </div>
+      </div>
     </div>
   );
 }
