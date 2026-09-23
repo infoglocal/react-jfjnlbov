@@ -303,7 +303,8 @@ const splitList = (s) => String(s || "").split(",").map((x) => x.trim()).filter(
 //  - booking_url: pagina di prenotazione del gestionale (TheFork, Quandoo, …)
 //                 usata dal metodo "link", aperta nel popup.
 //  - phone:       numero per "call". Se vuoto usa "contact".
-//  (- contact:    numero WhatsApp, già esistente, usato da "whatsapp".)
+//  (- contact:    numero WhatsApp, già esistente, usato da "whatsapp".
+//                 Se vuoto, "whatsapp" usa "phone": basta un numero solo.)
 const IMG_RE = /\.(jpe?g|png|webp|gif|avif)(\?|#|$)/i;
 const PDF_RE = /\.pdf(\?|#|$)/i;
 const isPdfUrl = (u) => PDF_RE.test(u);
@@ -347,7 +348,7 @@ function bookingMethods(p) {
   return methods.filter((m) => {
     if (m === "form") return true;
     if (m === "link") return !!String(p.booking_url || "").trim();
-    if (m === "whatsapp") return !!String(p.contact || "").replace(/[^0-9]/g, "");
+    if (m === "whatsapp") return !!String(p.contact || p.phone || "").replace(/[^0-9]/g, "");
     if (m === "call") return !!String(p.phone || p.contact || "").replace(/[^0-9+]/g, "");
     return false;
   });
@@ -1140,7 +1141,8 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
   const tip = place[`tip_${lang}`];
   const card = place.title_it || place.id;
   const methods = bookingMethods(place);
-  const waNumber = String(place.contact || "").replace(/[^0-9]/g, "");
+  // un numero solo basta: WhatsApp usa contact, altrimenti phone; Chiama usa phone, altrimenti contact
+  const waNumber = String(place.contact || place.phone || "").replace(/[^0-9]/g, "");
   const phoneNumber = String(place.phone || place.contact || "").replace(/[^0-9+]/g, "");
   // Menu nella lingua dell'utente: menu_it / menu_en; se manca, "menu"
   // (valido per tutte le lingue); se manca anche quello, l'altra lingua.
