@@ -97,6 +97,21 @@ function priceSymbol(priceStr) {
   return "€€€";
 }
 
+// Prezzo da mostrare per un posto. Esperienze (madeinbo = yes) col numero
+// nel foglio -> prezzo vero con "da" davanti ("Da 40€" / "From €40"),
+// perché è il prezzo a persona di un'esperienza. Tutti gli altri posti ->
+// fascia €/€€/€€€. Testi senza numero ("Gratis", "Su invito") restano uguali.
+function displayPrice(place, lang) {
+  const raw = String(place?.price || "").trim();
+  if (!raw) return "";
+  if (String(place.madeinbo || "").trim().toLowerCase() === "yes") {
+    const m = raw.match(/\d+(?:[.,]\d{1,2})?/);
+    if (m) return lang === "en" ? `From €${m[0]}` : `Da ${m[0]}€`;
+    return raw;
+  }
+  return priceSymbol(raw);
+}
+
 // invia un evento a GA (no-op se GA non è pronto)
 function track(event, params) {
   try { if (window.gtag) window.gtag("event", event, params || {}); } catch {}
@@ -531,6 +546,8 @@ export default function App() {
     initGA();
     Papa.parse(CSV_URL, {
       download: true, header: true,
+      // nomi colonna normalizzati: "Booking", " booking " ecc. valgono come "booking"
+      transformHeader: (h) => String(h || "").trim().toLowerCase(),
       complete: (res) => {
         const rows = (res.data || []).filter((r) => r && r.id)
           .map((r) => ({ ...r, lat: Number(r.lat) || null, lng: Number(r.lng) || null }));
@@ -747,7 +764,7 @@ function GuideTab({ t, lang, places, onClose, onOpenDetail }) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                       <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 17, color: BRAND.ink }}>{name}</div>
-                      {stop.price && <div style={{ flexShrink: 0, fontSize: 13.5, fontWeight: 700, color: BRAND.red, paddingTop: 2 }}>{priceSymbol(stop.price)}</div>}
+                      {stop.price && <div style={{ flexShrink: 0, fontSize: 13.5, fontWeight: 700, color: BRAND.red, paddingTop: 2 }}>{displayPrice(stop, lang)}</div>}
                     </div>
                     {note && <p style={{ margin: "4px 0 0", fontSize: 13, color: BRAND.muted, lineHeight: 1.4 }}>{note}</p>}
                   </div>
@@ -934,7 +951,7 @@ function FilterChips({ t, lang, sections, filter, setFilter }) {
 // delle altre (per titolo su 2 righe) spinga in giù/su le vicine.
 function PlaceCard({ place, lang, t, badge, onClick, inItin, onToggleItin }) {
   const title = place[`title_${lang}`];
-  const subtitle = priceSymbol(place.price) || place.location || "";
+  const subtitle = displayPrice(place, lang) || place.location || "";
   return (
     <button onClick={onClick} style={{ flexShrink: 0, width: "44%", minWidth: 154, maxWidth: 200, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", flexDirection: "column" }}>
       <div style={{ position: "relative", aspectRatio: "4/3", borderRadius: 18, overflow: "hidden", background: "#eee" }}>
@@ -1165,7 +1182,7 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
           </div>
 
           <div style={{ position: "relative", background: BRAND.bg, padding: 22 }}>
-            {place.price && <p style={{ fontSize: 22, fontWeight: 600, margin: "0 0 16px", color: BRAND.red, fontFamily: "'Fraunces', serif" }}>{priceSymbol(place.price)}</p>}
+            {place.price && <p style={{ fontSize: 22, fontWeight: 600, margin: "0 0 16px", color: BRAND.red, fontFamily: "'Fraunces', serif" }}>{displayPrice(place, lang)}</p>}
             <p style={{ fontSize: 16.5, lineHeight: 1.65, color: "#4a463d", margin: "0 0 20px", whiteSpace: "pre-line" }}>{desc}</p>
 
             {/* MENU — subito sotto la descrizione, solo se il posto ha un menu nel foglio */}
@@ -1264,7 +1281,7 @@ function googleMapsDirUrl(items) {
 function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, onOpenDetail }) {
   const shareWhatsApp = () => {
     const lines = [`${t.itinTitle} — Bologna`, ""];
-    items.forEach((p) => lines.push(`• ${p[`title_${lang}`]}${p.price ? ` (${priceSymbol(p.price)})` : ""}`));
+    items.forEach((p) => lines.push(`• ${p[`title_${lang}`]}${p.price ? ` (${displayPrice(p, lang)})` : ""}`));
     lines.push("");
     lines.push("📲 Scopri altre esperienze a Bologna: https://app.g-local.it");
     window.open(`https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
@@ -1301,7 +1318,7 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, onOpenDetai
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div translate="no" className="notranslate" style={{ fontWeight: 600, fontSize: 15.5, lineHeight: 1.25 }}>{p[`title_${lang}`]}</div>
                   {p.location && <div style={{ fontSize: 12.5, color: BRAND.muted, marginTop: 1 }}>📍 {p.location}</div>}
-                  {p.price && <div style={{ fontSize: 13.5, color: BRAND.red, marginTop: 2, fontWeight: 600 }}>{priceSymbol(p.price)}</div>}
+                  {p.price && <div style={{ fontSize: 13.5, color: BRAND.red, marginTop: 2, fontWeight: 600 }}>{displayPrice(p, lang)}</div>}
                 </div>
                 <button onClick={(e) => { e.stopPropagation(); onRemove(p.id); }} aria-label={t.remove} style={rowX}>×</button>
               </li>
