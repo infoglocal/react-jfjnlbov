@@ -1,5 +1,20 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import Papa from "papaparse";
+import { BRAND, track } from "./shared";
+import { useEvents, EVENT_PREFIX } from "./events/data";
+import { upcomingEvents } from "./events/schedule";
+import { EventsPopup, EventsStrip, EventsTicker } from "./events/EventsPopup";
+
+// Portale locali / admin (/partner): caricato solo quando serve, così la
+// libreria Supabase non appesantisce l'app dei turisti.
+const PartnerPortal = lazy(() => import("./events/PartnerPortal"));
+const isPartnerRoute = () => window.location.pathname.replace(/\/+$/, "") === "/partner";
+
+// I link di invito / accesso inviati da Supabase possono atterrare sulla home
+// dell'app: in quel caso li giriamo al portale /partner, che completa il login.
+if (!isPartnerRoute() && /(access_token=|type=(invite|magiclink|recovery)|[?&]code=|error_description=)/.test(window.location.hash + window.location.search)) {
+  window.location.replace("/partner" + window.location.search + window.location.hash);
+}
 
 /* ============================================================================
    GLOCAL — web app (mobile-first)
@@ -37,12 +52,7 @@ import Papa from "papaparse";
                 quel posto non entra in rotazione nel banner.
    ============================================================================ */
 
-const BRAND = {
-  green: "#38b04a", greenDark: "#2a8f39",
-  red: "#e5383b",
-  bg: "#FBF8F0", card: "#ffffff",
-  border: "#e6e0d0", ink: "#1a1a1a", muted: "#7a7568",
-};
+// BRAND (colori) e track (Google Analytics) sono in src/shared.js
 
 // Le SEZIONI dell'app = interessi. L'ordine qui è l'ordine in Home.
 const SECTIONS = [
@@ -112,10 +122,6 @@ function displayPrice(place, lang) {
   return priceSymbol(raw);
 }
 
-// invia un evento a GA (no-op se GA non è pronto)
-function track(event, params) {
-  try { if (window.gtag) window.gtag("event", event, params || {}); } catch {}
-}
 
 /* ------------------------------- I18N ------------------------------------- */
 const T = {
@@ -279,6 +285,9 @@ const T = {
 const store = window.localStorage;
 const load = (k, fb) => { try { const v = store.getItem(k); return v ? JSON.parse(v) : fb; } catch { return fb; } };
 const save = (k, v) => { try { store.setItem(k, JSON.stringify(v)); } catch {} };
+// flag "per questa sessione" (si azzera chiudendo l'app / la scheda)
+const sessionFlag = (k) => { try { return window.sessionStorage.getItem(k) === "1"; } catch { return false; } };
+const setSessionFlag = (k) => { try { window.sessionStorage.setItem(k, "1"); } catch {} };
 
 const hasInterest = (p, id) => String(p.interests || "").split(",").map((s) => s.trim()).includes(id);
 const isDoc = (p) => String(p.doc || "").trim().toLowerCase() === "yes";
@@ -538,6 +547,12 @@ export default function App() {
   const [showGuide, setShowGuide] = useState(false);
   const [showAbandoned, setShowAbandoned] = useState(false);
   const [webSheet, setWebSheet] = useState(null); // popup menu / prenotazione esterna
+  const [eventsOpen, setEventsOpen] = useState(null); // popup eventi: null = chiuso, altrimenti { focusId }
+  const [tickerOpen, setTickerOpen] = useState(false); // card compatta eventi in basso (apertura automatica)
+  const [eventsAutoShown, setEventsAutoShown] = useState(() => sessionFlag("gl_events_auto")); // già aperto da solo in questa sessione?
+  const isPartner = isPartnerRoute();
+  const events = useEvents(places);                  // eventi approvati (Supabase), [] se non configurato
+  const upcoming = upcomingEvents(events);           // quelli dei prossimi 14 giorni, max 8
   const t = T[lang];
 
   useEffect(() => save("gl_lang", lang), [lang]);
@@ -562,15 +577,54 @@ export default function App() {
   // l'utente non ha ancora prenotato e non c'è già un altro pannello aperto.
   // È rimasto l'UNICO popup automatico dell'app (gli altri sono stati tolti
   // su richiesta: install hint, cookie banner, quick feedback, social proof).
+  // Il popup eventi, invece, NON conta come "popup di disturbo": si apre da solo
+  // una volta per sessione, un paio di secondi dopo l'apertura, se ci sono
+  // eventi nei prossimi giorni. Nella sessione in cui si è aperto da solo il
+  // carrello abbandonato non compare (mai due popup automatici insieme).
   useAbandonedCartTrigger({
-    enabled: !picking && !hasBooked && !detail && !booking && !showAbandoned && !webSheet,
+    enabled: !isPartner && !picking && !hasBooked && !detail && !booking && !showAbandoned && !webSheet && !eventsOpen && !eventsAutoShown,
     onTrigger: () => setShowAbandoned(true),
   });
 
+  const hasUpcoming = upcoming.length > 0;
+  const busy = isPartner || picking || showGuide || !!detail || !!booking || !!webSheet || showAbandoned || !!tipPlace;
+  useEffect(() => {
+    if (!hasUpcoming || busy || eventsAutoShown || eventsOpen) return;
+    const timer = setTimeout(() => {
+      setSessionFlag("gl_events_auto");
+      setEventsAutoShown(true);
+      setTickerOpen(true); // card compatta in basso, non il popup grande
+      track("show_events_ticker");
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [hasUpcoming, busy, eventsAutoShown, eventsOpen]);
+  const openEvents = (focusId = null, from = "home") => { track("open_events", { from }); setTickerOpen(false); setEventsOpen({ focusId }); };
+
   const toggleIn = (list, setList, id) => setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
-  const byId = (id) => places.find((p) => p.id === id);
+  const byId = (id) => (String(id).startsWith(EVENT_PREFIX) ? events.find((e) => e.id === id) : places.find((p) => p.id === id));
   const toggleChosen = (id) => setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
   const markBooked = () => { save("gl_has_booked", true); setHasBooked(true); };
+
+  // PORTALE LOCALI / ADMIN
+  if (isPartner) {
+    return (
+      <Suspense fallback={<div style={{ minHeight: "100vh", background: BRAND.bg }} />}>
+        <FontLink />
+        <PartnerPortal places={places} />
+      </Suspense>
+    );
+  }
+
+  // popup eventi: la lista mostrata + l'evento da cui partire (se aperto dall'itinerario
+  // e non più nei prossimi 14 giorni, lo aggiungiamo in testa)
+  const popupEvents = eventsOpen?.focusId && !upcoming.some((e) => e.id === eventsOpen.focusId)
+    ? [byId(eventsOpen.focusId), ...upcoming].filter(Boolean) : upcoming;
+  const eventsPopup = eventsOpen && popupEvents.length > 0 && (
+    <EventsPopup events={popupEvents} focusId={eventsOpen.focusId} lang={lang} itinerary={itinerary}
+      onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)}
+      onOpenCard={(card) => { setEventsOpen(null); setDetail(card); }}
+      onClose={() => setEventsOpen(null)} />
+  );
 
   // schermata iniziale: scelta interessi (obbligatoria, rivista a ogni apertura)
   if (showGuide) {
@@ -628,12 +682,14 @@ export default function App() {
             onBook={setBooking} onDetail={setDetail} onTip={setTipPlace}
             itinerary={itinerary} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)}
             onOpenItin={() => setTab("itin")}
-            onOpenGuide={() => setShowGuide(true)} />
+            onOpenGuide={() => setShowGuide(true)}
+            upcomingEvents={upcoming} onOpenEvents={() => openEvents(null, "home")}
+            hideItinPill={tickerOpen} />
         )}
         {tab === "itin" && (
           <ItineraryTab t={t} lang={lang} items={itinerary.map(byId).filter(Boolean)}
             onRemove={(id) => toggleIn(itinerary, setItinerary, id)} onClear={() => setItinerary([])} onGoHome={() => setTab("home")}
-            onOpenDetail={setDetail} />
+            onOpenDetail={(p) => (p.isEvent ? openEvents(p.id, "itinerary") : setDetail(p))} />
         )}
       </main>
 
@@ -643,6 +699,13 @@ export default function App() {
       {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} onBooked={markBooked} />}
       {tipPlace && <LocalTipSheet place={tipPlace} tip={tipPlace[`tip_${lang}`]} lang={lang} t={t} onClose={() => setTipPlace(null)} />}
         {webSheet && <WebSheet sheetData={webSheet} t={t} onClose={() => setWebSheet(null)} />}
+      {eventsPopup}
+      {tickerOpen && tab === "home" && !eventsOpen && !detail && !booking && !webSheet && upcoming.length > 0 && (
+        <EventsTicker events={upcoming} lang={lang} itinerary={itinerary}
+          onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)}
+          onOpen={(id) => openEvents(id, "ticker")}
+          onClose={() => setTickerOpen(false)} />
+      )}
       {showAbandoned && (
         <AbandonedCartModal t={t} onClose={() => setShowAbandoned(false)}
           onCta={() => { setShowAbandoned(false); setTab("home"); }} />
@@ -810,7 +873,7 @@ function GuideTab({ t, lang, places, onClose, onOpenDetail }) {
 // cliccabili), banner guida gratuita, e a seguire le sezioni per interesse /
 // Bologna doc / colonna sonora, come prima. Il filtro chip è indipendente
 // dagli "interessi" salvati (chosen): è solo per navigare la Home.
-function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, onDetail, onTip, itinerary, onToggleItin, onOpenItin, onOpenGuide }) {
+function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, onDetail, onTip, itinerary, onToggleItin, onOpenItin, onOpenGuide, upcomingEvents = [], onOpenEvents, hideItinPill }) {
   const [filter, setFilter] = useState("all"); // "all" oppure un id di SECTIONS
   if (loading) return <div style={{ padding: "22px 18px" }}><DeckSkeleton /></div>;
   // Interessi scelti nella schermata "Cosa ti interessa": se ce ne sono,
@@ -856,6 +919,9 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
           </div>
         </section>
       )}
+
+      {/* EVENTI IN CITTÀ — striscia scura, riapre il popup eventi (solo se ci sono eventi nei prossimi giorni) */}
+      {upcomingEvents.length > 0 && <EventsStrip events={upcomingEvents} lang={lang} onOpen={onOpenEvents} />}
 
       {/* GUIDA GRATUITA — banner rosso, porta alla guida "3 giorni a Bologna" */}
       <GuideBanner t={t} stopsCount={guideStopsCount} onOpen={onOpenGuide} />
@@ -915,7 +981,7 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
       <div style={{ height: 20 }} />
 
       {/* pillola flottante "N · Itinerario" — visibile ovunque in Home quando c'è già qualcosa nell'itinerario */}
-      {itinerary.length > 0 && <ItinFloatingButton t={t} count={itinerary.length} onClick={onOpenItin} />}
+      {itinerary.length > 0 && !hideItinPill && <ItinFloatingButton t={t} count={itinerary.length} onClick={onOpenItin} />}
     </div>
   );
 }
