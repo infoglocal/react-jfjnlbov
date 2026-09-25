@@ -15,14 +15,16 @@ import { whenLabel, nextDateLabel, googleCalendarUrl, buildIcs, hhmm } from "./s
 export const EV_T = {
   it: {
     kicker: "Eventi", title: "In città", close: "Chiudi",
-    calendar: "Calendario", itin: "Itinerario", inItin: "Aggiunto", info: "Info",
+    calendar: "Calendario", itin: "Itinerario", inItin: "Aggiunto", info: "Info", share: "Condividi",
+    shareText: (title, when, place, url) => `${title}\n${[when, place].filter(Boolean).join(" · ")}\n\nL'ho trovato su Glocal 👉 ${url}`,
     google: "Google Calendar", ics: "Apple · Outlook",
     stripTitle: "Eventi in città", stripSub: (n) => (n === 1 ? "1 evento nei prossimi giorni" : `${n} eventi nei prossimi giorni`),
     stripCta: "Vedi", tickerOpen: "Apri", of: "di",
   },
   en: {
     kicker: "Events", title: "In town", close: "Close",
-    calendar: "Calendar", itin: "Itinerary", inItin: "Added", info: "Info",
+    calendar: "Calendar", itin: "Itinerary", inItin: "Added", info: "Info", share: "Share",
+    shareText: (title, when, place, url) => `${title}\n${[when, place].filter(Boolean).join(" · ")}\n\nFound it on Glocal 👉 ${url}`,
     google: "Google Calendar", ics: "Apple · Outlook",
     stripTitle: "Events in town", stripSub: (n) => (n === 1 ? "1 event in the coming days" : `${n} events in the coming days`),
     stripCta: "See", tickerOpen: "Open", of: "of",
@@ -37,6 +39,12 @@ const Svg = ({ children, size = 20, color = "currentColor", fill = "none" }) => 
 );
 const CalIcon = (p) => <Svg {...p}><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /><path d="M12 13.2v4.6M9.7 15.5h4.6" /></Svg>;
 const PinIcon = ({ filled, ...p }) => <Svg {...p}><path d="M12 21.5s-7-6.1-7-11.5a7 7 0 0 1 14 0c0 5.4-7 11.5-7 11.5Z" fill={filled ? p.color : "none"} /><circle cx="12" cy="10" r="2.6" fill={filled ? "#fff" : "none"} stroke={filled ? "none" : p.color} /></Svg>;
+const WaIcon = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" style={{ display: "block" }}>
+    <path d="M12 2.5a9.5 9.5 0 0 0-8.2 14.3L2.5 21.5l4.8-1.3A9.5 9.5 0 1 0 12 2.5Z" fill="#25D366" />
+    <path d="M9.1 7.6c-.2-.5-.4-.5-.6-.5h-.5c-.2 0-.5.1-.7.3-.3.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.9 4.5 4 2.2.9 2.7.7 3.2.7s1.5-.6 1.7-1.2c.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3l-1.7-.8c-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1-.3-.1-1.1-.4-2-1.3-.8-.7-1.3-1.5-1.4-1.8-.2-.3 0-.4.1-.5l.4-.5.3-.4v-.5l-.8-2Z" fill="#fff" />
+  </svg>
+);
 const OutIcon = (p) => <Svg {...p}><path d="M14 4h6v6M20 4l-9 9" /><path d="M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10" /></Svg>;
 
 /* ------------------------------ calendario -------------------------------- */
@@ -62,6 +70,18 @@ function openIcs(ev, lang) {
   a.download = "glocal-evento.ics";
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+/* ------------------------------ condividi --------------------------------- */
+// Apre WhatsApp con titolo, data, luogo e un link che riapre l'app
+// direttamente su questo evento (?event=<id>).
+function shareOnWhatsApp(ev, lang) {
+  const t = EV_T[lang] || EV_T.it;
+  const title = ev[`title_${lang}`] || ev.title_it;
+  const url = `${window.location.origin}/?event=${ev.eventId}`;
+  const text = t.shareText(title, whenLabel(ev, lang), ev.location, url);
+  track("share_event", { card: cardName(ev), method: "whatsapp" });
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
 }
 
 /* ------------------------------ popup ------------------------------------- */
@@ -157,9 +177,9 @@ export function EventsPopup({ events, focusId, lang, itinerary, onToggleItin, on
                   )}
                 </div>
 
-                <div style={{ display: "flex", gap: 8, marginTop: 12, position: "relative" }}>
+                <div className="gl-ev-actions">
                   <button className="gl-ev-btn" onClick={(e) => { e.stopPropagation(); setCalFor(calFor === ev.id ? null : ev.id); }} aria-expanded={calFor === ev.id}>
-                    <CalIcon size={18} color={BRAND.ink} /><span>{t.calendar}</span>
+                    <CalIcon size={21} color={BRAND.ink} /><span className="gl-ev-sr">{t.calendar}</span>
                   </button>
                   {hasPlace && (
                     <button className={`gl-ev-btn${inItin ? " is-on" : ""}`} onClick={(e) => {
@@ -167,18 +187,21 @@ export function EventsPopup({ events, focusId, lang, itinerary, onToggleItin, on
                       if (!inItin) track("add_to_itinerary", { card: cardName(ev), from: "events" });
                       onToggleItin(ev.id);
                     }}>
-                      <PinIcon size={18} filled={inItin} color={inItin ? BRAND.greenDark : BRAND.ink} /><span>{inItin ? t.inItin : t.itin}</span>
+                      <PinIcon size={21} filled={inItin} color={inItin ? BRAND.greenDark : BRAND.ink} /><span className="gl-ev-sr">{inItin ? t.inItin : t.itin}</span>
                     </button>
                   )}
                   {canInfo && (ev.link_url ? (
                     <a className="gl-ev-btn" href={ev.link_url} target="_blank" rel="noreferrer" onClick={(e) => { e.stopPropagation(); track("event_learn_more", { card: cardName(ev), target: "link" }); }}>
-                      <OutIcon size={18} color={BRAND.ink} /><span>{t.info}</span>
+                      <OutIcon size={20} color={BRAND.ink} /><span className="gl-ev-sr">{t.info}</span>
                     </a>
                   ) : (
                     <button className="gl-ev-btn" onClick={(e) => { e.stopPropagation(); track("event_learn_more", { card: cardName(ev), target: "card" }); onOpenCard(ev.card); }}>
-                      <OutIcon size={18} color={BRAND.ink} /><span>{t.info}</span>
+                      <OutIcon size={20} color={BRAND.ink} /><span className="gl-ev-sr">{t.info}</span>
                     </button>
                   ))}
+                  <button className="gl-ev-btn" onClick={(e) => { e.stopPropagation(); shareOnWhatsApp(ev, lang); }}>
+                    <WaIcon size={23} /><span className="gl-ev-sr">{t.share}</span>
+                  </button>
 
                   {calFor === ev.id && (
                     <div className="gl-ev-menu" onClick={(e) => e.stopPropagation()}>
@@ -322,11 +345,12 @@ function EventsStyles() {
   return (
     <style>{`
       .gl-ev-overlay { position: fixed; inset: 0; background: rgba(26,20,12,0.55); display: flex; align-items: flex-end; justify-content: center; z-index: 92; animation: glEvFade .2s ease; }
-      .gl-ev-sheet { background: ${BRAND.bg}; width: 100%; max-width: 520px; border-radius: 22px 22px 0 0; max-height: 94vh; overflow-y: auto; box-shadow: 0 -10px 50px rgba(0,0,0,0.25); animation: glEvUp .28s cubic-bezier(.2,.8,.2,1); }
+      .gl-ev-sheet { background: ${BRAND.bg}; width: 100%; max-width: 520px; border-radius: 22px 22px 0 0; max-height: 90vh; max-height: 90dvh; overflow-y: auto; overscroll-behavior: contain; box-shadow: 0 -10px 50px rgba(0,0,0,0.25); animation: glEvUp .28s cubic-bezier(.2,.8,.2,1); }
       @keyframes glEvFade { from { opacity: 0 } to { opacity: 1 } }
       @keyframes glEvUp { from { transform: translateY(40px); opacity: .6 } to { transform: none; opacity: 1 } }
       .gl-ev-x { width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(26,20,12,0.08); border: none; border-radius: 50%; font-size: 24px; cursor: pointer; color: ${BRAND.ink}; line-height: 1; }
-      .gl-ev-sheet { --w: min(76vw, 330px, calc((94vh - 360px) * 0.8)); }
+      .gl-ev-sheet { --w: max(220px, min(76vw, 330px, calc((88vh - 370px) * 0.8))); }
+      @supports (height: 100dvh) { .gl-ev-sheet { --w: max(220px, min(76vw, 330px, calc((90dvh - 370px) * 0.8))); } }
       .gl-ev-row { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 0 calc((100% - var(--w)) / 2); scrollbar-width: none; -webkit-overflow-scrolling: touch; }
       .gl-ev-row::-webkit-scrollbar { display: none; }
       .gl-ev-slide { flex: 0 0 var(--w); width: var(--w); scroll-snap-align: center; scroll-snap-stop: always; }
@@ -338,7 +362,9 @@ function EventsStyles() {
       .gl-ev-place span:first-of-type { text-decoration: underline; text-decoration-color: ${BRAND.border}; text-underline-offset: 3px; }
       .gl-ev-desc { margin: 7px 0 0; font-size: 13.5px; line-height: 1.45; color: #4a463d; white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
       .gl-ev-desc.open { -webkit-line-clamp: unset; display: block; }
-      .gl-ev-btn { flex: 1; min-width: 0; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 9px 4px 8px; background: ${BRAND.card}; border: 1.5px solid ${BRAND.border}; border-radius: 14px; font: 700 11.5px 'Archivo', system-ui, sans-serif; color: ${BRAND.ink}; cursor: pointer; text-decoration: none; transition: background .15s, border-color .15s; }
+      .gl-ev-actions { display: flex; justify-content: center; gap: 14px; margin-top: 12px; position: relative; }
+      .gl-ev-btn { flex: 0 0 50px; width: 50px; height: 50px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: ${BRAND.card}; border: 1.5px solid ${BRAND.border}; border-radius: 50%; color: ${BRAND.ink}; cursor: pointer; text-decoration: none; transition: background .15s, border-color .15s; }
+      .gl-ev-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
       .gl-ev-btn:active { transform: scale(.97); }
       .gl-ev-btn.is-on { background: rgba(56,176,74,0.12); border-color: ${BRAND.green}; color: ${BRAND.greenDark}; }
       .gl-ev-menu { position: absolute; left: 0; bottom: calc(100% + 8px); z-index: 2; background: ${BRAND.card}; border: 1px solid ${BRAND.border}; border-radius: 14px; box-shadow: 0 12px 30px rgba(40,30,15,0.2); overflow: hidden; min-width: 190px; animation: glEvFade .15s ease; }

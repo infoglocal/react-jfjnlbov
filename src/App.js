@@ -598,6 +598,26 @@ export default function App() {
     }, 1800);
     return () => clearTimeout(timer);
   }, [hasUpcoming, busy, eventsAutoShown, eventsOpen]);
+  // Link condiviso (…/?event=<id>): apre il popup direttamente su quell'evento
+  // (al posto della card compatta) e ripulisce l'indirizzo.
+  const deepEventDone = useRef(false);
+  useEffect(() => {
+    if (deepEventDone.current || isPartner) return;
+    let id = null;
+    try { id = new URLSearchParams(window.location.search).get("event"); } catch {}
+    if (!id) { deepEventDone.current = true; return; }
+    if (!events.length) return; // aspetta che arrivino gli eventi
+    deepEventDone.current = true;
+    try { window.history.replaceState(null, "", window.location.pathname); } catch {}
+    const focusId = `${EVENT_PREFIX}${id}`;
+    if (!events.some((e) => e.id === focusId)) return; // evento finito o ritirato: app normale
+    setSessionFlag("gl_events_auto");
+    setEventsAutoShown(true);
+    setTickerOpen(false);
+    setEventsOpen({ focusId });
+    track("open_events", { from: "share_link" });
+  }, [events, isPartner]);
+
   const openEvents = (focusId = null, from = "home") => { track("open_events", { from }); setTickerOpen(false); setEventsOpen({ focusId }); };
 
   const toggleIn = (list, setList, id) => setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
