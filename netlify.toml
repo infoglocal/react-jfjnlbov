@@ -3,6 +3,11 @@
   publish = "build"
   functions = "netlify/functions"
 
+# esbuild: permette alla funzione ics.js di riusare il codice delle date
+# dell'app (src/events/schedule.js) invece di duplicarlo
+[functions]
+  node_bundler = "esbuild"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
