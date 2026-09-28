@@ -17,7 +17,7 @@
    ============================================================================ */
 
 export const TZ = "Europe/Rome";
-export const WINDOW_DAYS = 14; // il popup mostra gli eventi dei prossimi 14 giorni
+export const WINDOW_DAYS = 7;  // il popup mostra gli eventi dei prossimi 7 giorni (chi visita resta 2-3 giorni)
 export const MAX_EVENTS = 8;   // … al massimo 8
 
 /* --------------------------- date come testo ------------------------------ */
@@ -104,13 +104,18 @@ export function nextOccurrence(ev, now = nowInRome()) {
 }
 
 // Eventi da mostrare nel popup: solo quelli con una data nei prossimi
-// WINDOW_DAYS giorni, in ordine di data e ora, al massimo MAX_EVENTS.
+// WINDOW_DAYS giorni, al massimo MAX_EVENTS.
+// Ordine: prima gli eventi con una data precisa (stasera, domani…), in ordine
+// di data e ora; IN FONDO quelli "in corso" (mostre dal/al già iniziate), che
+// altrimenti risulterebbero "oggi" ogni giorno e occuperebbero la cima per
+// settimane. Se si supera MAX_EVENTS, sono le mostre in corso a restare fuori.
 export function upcomingEvents(events, now = nowInRome(), windowDays = WINDOW_DAYS, max = MAX_EVENTS) {
   const limit = addDays(now.date, windowDays);
   return events
     .map((ev) => ({ ev, occ: nextOccurrence(ev, now) }))
     .filter(({ occ }) => occ && occ.date <= limit)
     .sort((a, b) =>
+      Number(a.occ.ongoing) - Number(b.occ.ongoing) ||
       a.occ.date.localeCompare(b.occ.date) ||
       (hhmm(a.ev.start_time) || "99").localeCompare(hhmm(b.ev.start_time) || "99"))
     .slice(0, max)
@@ -120,15 +125,17 @@ export function upcomingEvents(events, now = nowInRome(), windowDays = WINDOW_DA
 /* --------------------------- etichette ------------------------------------ */
 const LOCALE = { it: "it-IT", en: "en-GB" };
 const WORDS = {
-  it: { today: "Oggi", tomorrow: "Domani", every: "Ogni", until: "Fino al", from: "Dal", to: "al", and: "e" },
-  en: { today: "Today", tomorrow: "Tomorrow", every: "Every", until: "Until", from: "From", to: "to", and: "and" },
+  it: { today: "Oggi", tonight: "Stasera", tomorrow: "Domani", every: "Ogni", until: "Fino al", from: "Dal", to: "al", and: "e" },
+  en: { today: "Today", tonight: "Tonight", tomorrow: "Tomorrow", every: "Every", until: "Until", from: "From", to: "to", and: "and" },
 };
 
 const fmt = (dateStr, lang, opts) =>
   new Intl.DateTimeFormat(LOCALE[lang] || "it-IT", { timeZone: "UTC", ...opts }).format(new Date(toUtcMs(dateStr)));
-const dayLabel = (dateStr, lang, now) => {
+// "Stasera" al posto di "Oggi" se l'evento inizia dalle 18 in poi
+const EVENING = "18:00";
+const dayLabel = (dateStr, lang, now, ev) => {
   const w = WORDS[lang] || WORDS.it;
-  if (dateStr === now.date) return w.today;
+  if (dateStr === now.date) return ev && hhmm(ev.start_time) >= EVENING ? w.tonight : w.today;
   if (dateStr === addDays(now.date, 1)) return w.tomorrow;
   return fmt(dateStr, lang, { weekday: "short", day: "numeric", month: "short" });
 };
@@ -158,14 +165,14 @@ export function whenLabel(ev, lang = "it", now = nowInRome()) {
     const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} ${w.and} ${names[names.length - 1]}` : names[0];
     return withTime(`${w.every} ${list}`);
   }
-  return withTime(cap(dayLabel(ev.start_date, lang, now)));
+  return withTime(cap(dayLabel(ev.start_date, lang, now, ev)));
 }
 
 // Etichetta breve della prossima data (per gli eventi ricorrenti: "Prossimo: gio 2 ott")
 export function nextDateLabel(ev, lang = "it", now = nowInRome()) {
   const occ = ev.occ || nextOccurrence(ev, now);
   if (!occ) return "";
-  const s = dayLabel(occ.date, lang, now);
+  const s = dayLabel(occ.date, lang, now, ev);
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 

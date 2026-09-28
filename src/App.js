@@ -552,7 +552,7 @@ export default function App() {
   const [eventsAutoShown, setEventsAutoShown] = useState(() => sessionFlag("gl_events_auto")); // già aperto da solo in questa sessione?
   const isPartner = isPartnerRoute();
   const events = useEvents(places);                  // eventi approvati (Supabase), [] se non configurato
-  const upcoming = upcomingEvents(events);           // quelli dei prossimi 14 giorni, max 8
+  const upcoming = upcomingEvents(events);           // quelli dei prossimi 7 giorni, max 8 (mostre in corso in fondo)
   const t = T[lang];
 
   useEffect(() => save("gl_lang", lang), [lang]);
@@ -636,7 +636,7 @@ export default function App() {
   }
 
   // popup eventi: la lista mostrata + l'evento da cui partire (se aperto dall'itinerario
-  // e non più nei prossimi 14 giorni, lo aggiungiamo in testa)
+  // e non più nei prossimi 7 giorni, lo aggiungiamo in testa)
   const popupEvents = eventsOpen?.focusId && !upcoming.some((e) => e.id === eventsOpen.focusId)
     ? [byId(eventsOpen.focusId), ...upcoming].filter(Boolean) : upcoming;
   const eventsPopup = eventsOpen && popupEvents.length > 0 && (
