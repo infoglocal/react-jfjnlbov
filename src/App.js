@@ -1,9 +1,21 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import Papa from "papaparse";
-import { BRAND, track } from "./shared";
+import { BRAND, track as baseTrack } from "./shared";
+import { captureAttribution, getAttribution, trackBooking } from "./glocalTracking";
 import { useEvents, EVENT_PREFIX } from "./events/data";
 import { upcomingEvents } from "./events/schedule";
 import { EventsPopup, EventsStrip, EventsTicker } from "./events/EventsPopup";
+
+// -------- TRACCIAMENTO PRENOTAZIONI -> GOOGLE SHEET ------------------------
+// Salva UTM/ref del link d'ingresso (Instagram, Meta Ads, QR…) e, a ogni
+// start_booking, manda anche una riga al foglio via Apps Script (glocalTracking.js).
+captureAttribution();
+const track = (name, params = {}) => {
+  baseTrack(name, params);
+  if (name === "start_booking") {
+    trackBooking(params.card, { method: params.method || "", from: params.from || "" });
+  }
+};
 
 // Portale locali / admin (/partner): caricato solo quando serve, così la
 // libreria Supabase non appesantisce l'app dei turisti.
@@ -1468,8 +1480,13 @@ function BookingModal({ place, lang, t, onClose, onBooked }) {
     if (!form.name || !form.email || !form.date) { setStatus("error"); return; }
     setStatus("sending");
     try {
-      const res = await fetch(FORMSPREE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ esperienza: title, nome: form.name, email: form.email, persone: form.people, data: form.date, _subject: `Nuova prenotazione Glocal: ${title}` }) });
-      if (res.ok) { setStatus("done"); onBooked?.(); } else setStatus("error");
+      const attrib = getAttribution();
+      const res = await fetch(FORMSPREE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ esperienza: title, nome: form.name, email: form.email, persone: form.people, data: form.date, fonte: attrib.utm_source || "(diretto)", campagna: attrib.utm_campaign || "", annuncio: attrib.utm_content || "", ref: attrib.ref || "", _subject: `Nuova prenotazione Glocal: ${title}` }) });
+      if (res.ok) {
+        setStatus("done");
+        onBooked?.();
+        trackBooking(place.title_it || place.id, { event: "booking_submitted", method: "form", from: "booking_modal" });
+      } else setStatus("error");
     } catch { setStatus("error"); }
   };
   const waText = encodeURIComponent(lang === "it"
