@@ -527,8 +527,8 @@ function useAbandonedCartTrigger({ enabled, onTrigger }) {
 
 function AbandonedCartModal({ t, onClose, onCta }) {
   return (
-    <div onClick={onClose} style={overlay}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 440, padding: 26, textAlign: "center" }}>
+    <div onClick={onClose} className="gl-overlay" style={overlay}>
+      <div onClick={(e) => e.stopPropagation()} className="gl-sheet" style={{ ...sheet, maxWidth: 440, padding: 26, textAlign: "center" }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>👀</div>
         <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 24, margin: "0 0 10px" }}>{t.abandonedTitle}</h3>
         <p style={{ fontSize: 15.5, lineHeight: 1.55, color: "#4a463d", margin: "0 0 22px" }}>{t.abandonedBody}</p>
@@ -698,7 +698,10 @@ export default function App() {
     <div style={{ minHeight: "100vh", background: BRAND.bg, color: BRAND.ink, fontFamily: "'Archivo', system-ui, sans-serif" }}>
       <FontLink />
       <header style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "14px 18px", position: "sticky", top: 0, background: "rgba(251,248,240,0.92)", backdropFilter: "blur(10px)", zIndex: 30, borderBottom: `1px solid ${BRAND.border}` }}>
-        <span style={{ justifySelf: "start" }}>{loading && <Spinner />}</span>
+        <span style={{ justifySelf: "start", display: "flex", alignItems: "center", gap: 14 }}>
+          <DesktopNav t={t} tab={tab} setTab={setTab} itinCount={itinerary.length} />
+          {loading && <Spinner />}
+        </span>
         <div style={{ justifySelf: "center" }}>
           <button onClick={() => { track("logo_go_home"); setTab("home"); }} aria-label={t.homeTitle} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block" }}>
             <Logo />
@@ -707,7 +710,7 @@ export default function App() {
         <div style={{ justifySelf: "end" }}><LangToggle lang={lang} setLang={setLang} /></div>
       </header>
 
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: "0 0 96px" }}>
+      <main className="gl-main" style={{ maxWidth: 720, margin: "0 auto", padding: "0 0 96px" }}>
         {tab === "home" && (
           <HomeTab t={t} lang={lang} loading={loading} places={places} chosen={chosen}
             onEditInterests={() => setPicking(true)}
@@ -921,9 +924,9 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
   const guideStopsCount = places.filter((p) => p.guida_giorno).length;
 
   return (
-    <div style={{ padding: "8px 18px 0" }}>
+    <div className="gl-home" style={{ padding: "8px 18px 0" }}>
       {/* COSA TI VA DI FARE A BOLOGNA — titolo + sottotitolo Home, prima cosa che si vede aprendo l'app */}
-      <h1 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(28px, 7.5vw, 36px)", lineHeight: 1.08, letterSpacing: "-0.02em", margin: "14px 0 6px" }}>
+      <h1 className="gl-home-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: "clamp(28px, 7.5vw, 36px)", lineHeight: 1.08, letterSpacing: "-0.02em", margin: "14px 0 6px" }}>
         {t.homeTitle}
       </h1>
       <p style={{ fontSize: 13.5, color: BRAND.muted, margin: "0 0 16px", lineHeight: 1.4 }}>{t.welcomeSub}</p>
@@ -953,10 +956,13 @@ function HomeTab({ t, lang, loading, places, chosen, onEditInterests, onBook, on
       )}
 
       {/* EVENTI IN CITTÀ — striscia scura, riapre il popup eventi (solo se ci sono eventi nei prossimi giorni) */}
-      {upcomingEvents.length > 0 && <EventsStrip events={upcomingEvents} lang={lang} onOpen={onOpenEvents} />}
+      {/* su desktop eventi + guida stanno affiancati (gl-promo-row), su mobile impilati come prima */}
+      <div className={upcomingEvents.length > 0 ? "gl-promo-row" : undefined}>
+        {upcomingEvents.length > 0 && <EventsStrip events={upcomingEvents} lang={lang} onOpen={onOpenEvents} />}
 
-      {/* GUIDA GRATUITA — banner rosso, porta alla guida "3 giorni a Bologna" */}
-      <GuideBanner t={t} stopsCount={guideStopsCount} onOpen={onOpenGuide} />
+        {/* GUIDA GRATUITA — banner rosso, porta alla guida "3 giorni a Bologna" */}
+        <GuideBanner t={t} stopsCount={guideStopsCount} onOpen={onOpenGuide} />
+      </div>
 
       {itinerary.length > 0 && (
         <button onClick={onOpenItin} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, width: "100%", marginTop: 22, background: "rgba(56,176,74,0.10)", border: `1.5px solid ${BRAND.green}`, borderRadius: 14, padding: "12px 16px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
@@ -1052,8 +1058,8 @@ function PlaceCard({ place, lang, t, badge, onClick, inItin, onToggleItin }) {
   const title = place[`title_${lang}`];
   const subtitle = displayPrice(place, lang) || place.location || "";
   return (
-    <button onClick={onClick} style={{ flexShrink: 0, width: "44%", minWidth: 154, maxWidth: 200, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", flexDirection: "column" }}>
-      <div style={{ position: "relative", aspectRatio: "4/3", borderRadius: 18, overflow: "hidden", background: "#eee" }}>
+    <button onClick={onClick} className="gl-place-card" style={{ flexShrink: 0, width: "44%", minWidth: 154, maxWidth: 200, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit", display: "flex", flexDirection: "column" }}>
+      <div className="gl-place-img" style={{ position: "relative", aspectRatio: "4/3", borderRadius: 18, overflow: "hidden", background: "#eee" }}>
         {place.image
           ? <img src={place.image} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
           : <div style={{ width: "100%", height: "100%", background: "#ece4d6" }} />}
@@ -1095,7 +1101,7 @@ function GuideBanner({ t, stopsCount, onOpen }) {
 // dell'itinerario — scorciatoia rapida, visibile mentre si scorre la Home.
 function ItinFloatingButton({ t, count, onClick }) {
   return (
-    <button onClick={onClick} style={{ position: "fixed", right: 16, bottom: "calc(74px + env(safe-area-inset-bottom, 0))", zIndex: 35, display: "inline-flex", alignItems: "center", gap: 8, background: BRAND.green, color: "#fff", border: "none", borderRadius: 999, padding: "12px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 8px 22px rgba(56,176,74,0.4)" }}>
+    <button onClick={onClick} className="gl-itin-fab" style={{ position: "fixed", right: 16, bottom: "calc(74px + env(safe-area-inset-bottom, 0))", zIndex: 35, display: "inline-flex", alignItems: "center", gap: 8, background: BRAND.green, color: "#fff", border: "none", borderRadius: 999, padding: "12px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 8px 22px rgba(56,176,74,0.4)" }}>
       <span style={{ fontSize: 16 }}>🗺️</span>{count} · {t.itinFloatingCta}
     </button>
   );
@@ -1265,8 +1271,8 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
   };
 
   return (
-    <div onClick={onClose} style={overlay}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 540, padding: 0, maxHeight: "88vh", overflow: "hidden", position: "relative", display: "flex", flexDirection: "column" }}>
+    <div onClick={onClose} className="gl-overlay" style={overlay}>
+      <div onClick={(e) => e.stopPropagation()} className="gl-sheet" style={{ ...sheet, maxWidth: 540, padding: 0, maxHeight: "88vh", overflow: "hidden", position: "relative", display: "flex", flexDirection: "column" }}>
         <button onClick={onClose} aria-label={t.back} style={backBtn}>←</button>
 
         {/* flex:1 + minHeight:0 (non height:100%) è quello che permette a questo
@@ -1390,7 +1396,7 @@ function ItineraryTab({ t, lang, items, onRemove, onClear, onGoHome, onOpenDetai
   const mapsUrl = googleMapsDirUrl(items);
 
   return (
-    <div style={{ padding: "20px 18px 0" }}>
+    <div className="gl-itin" style={{ padding: "20px 18px 0" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
         <h2 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 26, margin: 0, letterSpacing: "-0.01em" }}>{t.itinTitle}</h2>
         {items.length > 0 && <button onClick={onClear} style={{ background: "none", border: "none", color: BRAND.red, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{t.clearAll}</button>}
@@ -1450,7 +1456,7 @@ function TabIcon({ name, active }) {
 function TabBar({ t, tab, setTab, itinCount }) {
   const tabs = [{ id: "home", label: t.tabHome }, { id: "itin", label: t.tabItin, count: itinCount }];
   return (
-    <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 40, background: "rgba(251,248,240,0.96)", backdropFilter: "blur(12px)", borderTop: `1px solid ${BRAND.border}`, display: "flex", paddingBottom: "env(safe-area-inset-bottom, 0)" }}>
+    <nav className="gl-tabbar" style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 40, background: "rgba(251,248,240,0.96)", backdropFilter: "blur(12px)", borderTop: `1px solid ${BRAND.border}`, display: "flex", paddingBottom: "env(safe-area-inset-bottom, 0)" }}>
       {tabs.map((tb) => {
         const active = tab === tb.id;
         return (
@@ -1460,6 +1466,27 @@ function TabBar({ t, tab, setTab, itinCount }) {
               {tb.count > 0 && <span style={{ position: "absolute", top: -5, right: -9, minWidth: 16, height: 16, borderRadius: 8, background: BRAND.green, color: "#fff", fontSize: 10.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>{tb.count}</span>}
             </span>
             <span style={{ fontSize: 11.5, fontWeight: active ? 700 : 500 }}>{tb.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+/* --------------------------- DESKTOP NAV ----------------------------------- */
+// Su desktop (>= 900px) la TabBar in basso sparisce e Home/Itinerario
+// diventano link nell'header, a sinistra del logo. Su mobile è nascosta.
+function DesktopNav({ t, tab, setTab, itinCount }) {
+  const tabs = [{ id: "home", label: t.tabHome }, { id: "itin", label: t.tabItin, count: itinCount }];
+  return (
+    <nav className="gl-desk-nav" aria-label="Menu">
+      {tabs.map((tb) => {
+        const active = tab === tb.id;
+        return (
+          <button key={tb.id} onClick={() => setTab(tb.id)} className={active ? "gl-desk-link is-active" : "gl-desk-link"}>
+            <TabIcon name={tb.id} active={active} />
+            <span>{tb.label}</span>
+            {tb.count > 0 && <span className="gl-desk-count">{tb.count}</span>}
           </button>
         );
       })}
@@ -1494,8 +1521,8 @@ function BookingModal({ place, lang, t, onClose, onBooked }) {
     : `Hi! I sent a booking request via Glocal for "${title}" on ${form.date || "—"}, ${form.people} people. Under the name ${form.name || "—"}.`);
 
   return (
-    <div onClick={onClose} style={overlay}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 520, padding: 24 }}>
+    <div onClick={onClose} className="gl-overlay" style={overlay}>
+      <div onClick={(e) => e.stopPropagation()} className="gl-sheet" style={{ ...sheet, maxWidth: 520, padding: 24 }}>
         {status === "done" ? (
           <div style={{ textAlign: "center", padding: "28px 8px" }}>
             <div style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(56,176,74,0.14)", color: BRAND.green, fontSize: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>✓</div>
@@ -1590,8 +1617,8 @@ function WebSheet({ sheetData, t, onClose }) {
   const { kind, url, urls = [], title, label, card, purpose } = sheetData;
   const openUrl = sheetData.openUrl || (kind === "images" ? urls[0] : url);
   return (
-    <div onClick={onClose} style={{ ...overlay, zIndex: 100 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 640, height: "92vh", padding: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+    <div onClick={onClose} className="gl-overlay" style={{ ...overlay, zIndex: 100 }}>
+      <div onClick={(e) => e.stopPropagation()} className="gl-sheet" style={{ ...sheet, maxWidth: 640, height: "92vh", padding: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px 12px", borderBottom: `1px solid ${BRAND.border}`, flexShrink: 0 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.14em", color: BRAND.green, fontWeight: 700 }}>{label}</div>
@@ -1620,8 +1647,8 @@ function WebSheet({ sheetData, t, onClose }) {
 function LocalTipSheet({ place, tip, lang, t, onClose }) {
   const title = place[`title_${lang}`];
   return (
-    <div onClick={onClose} style={overlay}>
-      <div onClick={(e) => e.stopPropagation()} style={{ ...sheet, maxWidth: 520, padding: 24, minHeight: "55vh" }}>
+    <div onClick={onClose} className="gl-overlay" style={overlay}>
+      <div onClick={(e) => e.stopPropagation()} className="gl-sheet" style={{ ...sheet, maxWidth: 520, padding: 24, minHeight: "55vh" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
           <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.14em", color: BRAND.green, fontWeight: 700 }}>{t.localTip}</span>
           <button onClick={onClose} style={xBtn}>×</button>
@@ -1667,6 +1694,42 @@ function FontLink() {
       @keyframes glpulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }
       .gl-spin { animation: glspin 0.8s linear infinite; }
       @keyframes glspin { to { transform: rotate(360deg) } }
+      /* ---------- DESKTOP (>= 900px) ---------- */
+      .gl-desk-nav { display: none; }
+      @media (min-width: 900px) {
+        .gl-tabbar { display: none !important; }
+        .gl-desk-nav { display: flex; gap: 6px; }
+        .gl-desk-link { display: inline-flex; align-items: center; gap: 7px; background: none; border: none; border-radius: 999px; padding: 8px 14px; font-family: inherit; font-size: 14.5px; font-weight: 600; color: ${BRAND.muted}; cursor: pointer; transition: background .15s, color .15s; }
+        .gl-desk-link svg { width: 19px; height: 19px; }
+        .gl-desk-link:hover { background: rgba(26,20,12,0.06); color: ${BRAND.ink}; }
+        .gl-desk-link.is-active { color: ${BRAND.red}; background: rgba(229,56,59,0.08); }
+        .gl-desk-count { min-width: 18px; height: 18px; border-radius: 9px; background: ${BRAND.green}; color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; }
+
+        .gl-main { max-width: 1180px !important; padding-bottom: 72px !important; }
+        .gl-home { padding: 24px 40px 0 !important; }
+        .gl-home-title { font-size: 56px !important; margin-top: 18px !important; }
+        .gl-itin { max-width: 760px; margin: 0 auto; padding: 36px 40px 0 !important; }
+
+        .gl-chip-row { flex-wrap: wrap; overflow: visible !important; margin-inline: 0 !important; padding-inline: 0 !important; }
+
+        /* righe di card: da carosello orizzontale a griglia */
+        .gl-exp-row { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 28px 20px !important; overflow: visible !important; margin-inline: 0 !important; padding-inline: 0 !important; }
+        .gl-place-card { width: 100% !important; min-width: 0 !important; max-width: none !important; }
+        .gl-place-img img { transition: transform .35s ease; }
+        .gl-place-card:hover .gl-place-img img { transform: scale(1.04); }
+
+        /* eventi + guida affiancati */
+        .gl-promo-row { display: grid; grid-template-columns: 1fr 1.4fr; gap: 20px; margin-top: 32px; align-items: stretch; }
+        .gl-promo-row > * { margin-top: 0 !important; height: 100%; }
+        .gl-promo-row .gl-ev-strip { flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 22px !important; gap: 16px; }
+
+        .gl-itin-fab { right: 32px !important; bottom: 32px !important; }
+        .gl-ev-ticker { left: auto !important; right: 32px !important; bottom: 32px !important; width: 440px; margin: 0 !important; }
+
+        /* modali: centrati invece che bottom-sheet */
+        .gl-overlay, .gl-ev-overlay { align-items: center !important; padding: 24px; }
+        .gl-sheet, .gl-ev-sheet { border-radius: 22px !important; max-height: 88vh; box-shadow: 0 24px 70px rgba(0,0,0,0.3) !important; }
+      }
       @media (prefers-reduced-motion: reduce) { *, .gl-pulse, .gl-spin, .gl-card, .gl-pick-card, .gl-check-pop, .gl-rotator-img, .gl-rotator-float, .gl-rotator-wrap { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; } }
     `}</style>
   );
