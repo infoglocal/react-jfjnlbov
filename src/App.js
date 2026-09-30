@@ -32,7 +32,7 @@ if (!isPartnerRoute() && /(access_token=|type=(invite|magiclink|recovery)|[?&]co
    GLOCAL — web app (mobile-first)
    ----------------------------------------------------------------------------
    Si apre direttamente sulle sezioni per INTERESSE:
-   Cibo · Bere · Natura · Musei, arte e cultura · Shopping.
+   Cibo · Bere · Musica dal vivo · Natura · Musei, arte e cultura · Shopping.
    In cima, sotto la barra "Interessi", il banner "Benvenuto a Bologna" con le
    Due Torri. Poi il blocco "100% Made in Bo" e, in ogni sezione, in cima,
    il blocco "Bologna doc" (i classici col consiglio da local) — le righe
@@ -46,8 +46,9 @@ if (!isPartnerRoute() && /(access_token=|type=(invite|magiclink|recovery)|[?&]co
    place_id | orari | bookings_week | menu | menu_it | menu_en | booking | booking_url | phone
    (menu/booking/booking_url/phone: vedi il blocco "MENU & PRENOTAZIONE" sotto)
 
-   - interests: una o più tra food, drink, nature, museums, shopping (virgola).
-                Determina in quale/quali sezioni appare la card.
+   - interests: una o più tra food, drink, music, nature, museums, shopping
+                (virgola). Determina in quale/quali sezioni appare la card:
+                un bar con musica dal vivo = "drink, music" compare in entrambe.
    - doc:       "yes" -> la card entra nel blocco "Bologna doc" della/e sua/e
                 sezione/i (un classico da vedere). Altro/vuoto -> card normale.
    - tip_it/tip_en: (facoltativo) il consiglio da local mostrato sulle card doc.
@@ -70,6 +71,7 @@ if (!isPartnerRoute() && /(access_token=|type=(invite|magiclink|recovery)|[?&]co
 const SECTIONS = [
   { id: "food",     it: "Cibo",                  en: "Food",             icon: "/icons/food.png" },
   { id: "drink",    it: "Bere",                  en: "Drinks",           icon: "/icons/drink.png" },
+  { id: "music",    it: "Musica dal vivo",       en: "Live music",       icon: "/icons/music.png" },
   { id: "nature",   it: "Natura",                en: "Nature",           icon: "/icons/nature.png" },
   { id: "museums",  it: "Musei, arte e cultura", en: "Museums & culture",icon: "/icons/museums.png" },
   { id: "shopping", it: "Shopping",              en: "Shopping",         icon: "/icons/shopping.png" },
