@@ -197,6 +197,7 @@ const T = {
     itinEmpty: "Aggiungi luoghi ed esperienze dalla Home per costruire il tuo itinerario.",
     remove: "Rimuovi", clearAll: "Svuota", goHome: "Vai alla Home",
     openInMaps: "Apri in Google Maps", shareWa: "Condividi su WhatsApp",
+    shareCardText: "Guarda {title} su Glocal:",
     booking: "Prenota", name: "Nome e cognome", email: "Email",
     people: "Persone", date: "Data",
     bookingSubtitle: "Prenota in pochi click. Nessun pagamento, nessun impegno. Riceverai una conferma quando la tua prenotazione sarà effettiva.",
@@ -274,6 +275,7 @@ const T = {
     itinEmpty: "Add places and experiences from Home to build your itinerary.",
     remove: "Remove", clearAll: "Clear", goHome: "Go to Home",
     openInMaps: "Open in Google Maps", shareWa: "Share on WhatsApp",
+    shareCardText: "Check out {title} on Glocal:",
     booking: "Book", name: "Full name", email: "Email",
     people: "People", date: "Date",
     bookingSubtitle: "Book in a few clicks. No payment, no commitment. You'll get a confirmation once your booking is finalized.",
@@ -634,6 +636,23 @@ export default function App() {
     setEventsOpen({ focusId });
     track("open_events", { from: "share_link" });
   }, [events, isPartner]);
+
+  // Link condiviso da una card (…/?place=<id>): apre direttamente il dettaglio
+  // di quel posto e ripulisce l'indirizzo. Id inesistente/ritirato: app normale.
+  const deepPlaceDone = useRef(false);
+  useEffect(() => {
+    if (deepPlaceDone.current || isPartner) return;
+    let id = null;
+    try { id = new URLSearchParams(window.location.search).get("place"); } catch {}
+    if (!id) { deepPlaceDone.current = true; return; }
+    if (!places.length) return; // aspetta il foglio
+    deepPlaceDone.current = true;
+    try { window.history.replaceState(null, "", window.location.pathname); } catch {}
+    const p = places.find((x) => String(x.id).trim() === String(id).trim());
+    if (!p) return;
+    setDetail(p);
+    track("view_card", { card: p.title_it || p.id, section: p.interests, from: "share_link" });
+  }, [places, isPartner]);
 
   const openEvents = (focusId = null, from = "home") => { track("open_events", { from }); setTickerOpen(false); setEventsOpen({ focusId }); };
 
@@ -1250,6 +1269,13 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
   const tip = place[`tip_${lang}`];
   const card = place.title_it || place.id;
   const methods = bookingMethods(place);
+  // Condividi la card su WhatsApp: testo + link che riapre questo dettaglio
+  const shareCard = () => {
+    const url = `https://app.g-local.it/?place=${encodeURIComponent(place.id)}`;
+    const text = `${t.shareCardText.replace("{title}", title)}\n${url}`;
+    track("share_card", { card, method: "whatsapp" });
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
   // un numero solo basta: WhatsApp usa contact, altrimenti phone; Chiama usa phone, altrimenti contact
   const waNumber = String(place.contact || place.phone || "").replace(/[^0-9]/g, "");
   const phoneNumber = String(place.phone || place.contact || "").replace(/[^0-9+]/g, "");
@@ -1358,6 +1384,9 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
               )}
               <button onClick={() => { if (!inItin) track("add_to_itinerary", { card: place.title_it || place.id, from: "detail" }); onToggleItin(place.id); }} style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: inItin ? "rgba(56,176,74,0.12)" : "transparent", color: inItin ? BRAND.greenDark : BRAND.red, border: `1.5px solid ${inItin ? BRAND.green : BRAND.red}`, borderRadius: 14, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                 <PinIcon size={17} filled={inItin} color={inItin ? BRAND.greenDark : BRAND.red} />{inItin ? t.inItin : t.addItin}
+              </button>
+              <button onClick={shareCard} style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#25D366", color: "#fff", border: "none", borderRadius: 14, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                <span>💬</span>{t.shareWa}
               </button>
             </div>
           </div>
