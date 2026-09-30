@@ -541,7 +541,10 @@ function AbandonedCartModal({ t, onClose, onCta }) {
 
 /* ------------------------------- APP -------------------------------------- */
 export default function App() {
-  const [lang, setLang] = useState(() => load("gl_lang", "it"));
+  // Lingua: se l'utente l'ha già scelta si rispetta quella; altrimenti si
+  // parte dalla lingua del browser/telefono (italiano → IT, tutto il resto → EN),
+  // così un turista straniero che scansiona il QR vede subito l'inglese.
+  const [lang, setLang] = useState(() => load("gl_lang", detectLang()));
   const [tab, setTab] = useState("home");
   const [chosen, setChosen] = useState([]);          // interessi scelti (rivisti ogni apertura)
   // La app si apre SEMPRE sulla Home (cards cliccabili stile Airbnb Experience,
@@ -567,7 +570,7 @@ export default function App() {
   const upcoming = upcomingEvents(events);           // quelli dei prossimi 7 giorni, max 8 (mostre in corso in fondo)
   const t = T[lang];
 
-  useEffect(() => save("gl_lang", lang), [lang]);
+  useEffect(() => { save("gl_lang", lang); document.documentElement.lang = lang; }, [lang]);
   useEffect(() => save("gl_itin", itinerary), [itinerary]);
 
   useEffect(() => {
@@ -1598,11 +1601,35 @@ const rowX = { background: "none", border: "none", color: "#bbb", fontSize: 22, 
 function Field({ label, children, flex }) {
   return (<label style={{ display: "block", marginBottom: 14, flex: flex ? 1 : undefined }}><span style={{ display: "block", fontSize: 12.5, fontWeight: 700, marginBottom: 6, color: "#3a3630" }}>{label}</span>{children}</label>);
 }
+// Lingua iniziale dal browser: qualsiasi variante di italiano → "it", il resto → "en".
+function detectLang() {
+  try {
+    const list = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+    return String(list[0] || "").toLowerCase().startsWith("it") ? "it" : "en";
+  } catch { return "it"; }
+}
+
+// Selettore lingua: segmented control con icona globo + nome per esteso
+// ("Italiano" / "English") al posto di bandiera + sigla — le bandiere emoji su
+// Windows non si vedono (diventano "IT"/"GB") e la sigla grigia sembrava
+// disattivata. Su schermi stretti restano le sigle.
 function LangToggle({ lang, setLang }) {
-  const FLAG = { it: "🇮🇹", en: "🇬🇧" };
+  const LABEL = { it: "Italiano", en: "English" };
+  const choose = (l) => { if (l !== lang) { track("change_language", { language: l }); setLang(l); } };
   return (
-    <div style={{ display: "flex", border: `1.5px solid ${BRAND.border}`, borderRadius: 999, overflow: "hidden" }}>
-      {["it", "en"].map((l) => (<button key={l} onClick={() => setLang(l)} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", border: "none", cursor: "pointer", fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", background: lang === l ? BRAND.ink : "transparent", color: lang === l ? "#fff" : "#999", textTransform: "uppercase", letterSpacing: "0.05em" }}><span style={{ fontSize: 14 }}>{FLAG[l]}</span>{l}</button>))}
+    <div role="group" aria-label="Lingua / Language" style={{ display: "flex", alignItems: "center", gap: 2, background: BRAND.card, border: `1.5px solid ${BRAND.border}`, borderRadius: 999, padding: 3 }}>
+      <span aria-hidden="true" style={{ display: "inline-flex", padding: "0 4px 0 6px", color: BRAND.muted }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18Z"/></svg>
+      </span>
+      {["it", "en"].map((l) => {
+        const active = lang === l;
+        return (
+          <button key={l} onClick={() => choose(l)} aria-pressed={active} lang={l} title={LABEL[l]}
+            style={{ border: "none", cursor: active ? "default" : "pointer", borderRadius: 999, padding: "6px 11px", fontSize: 13, fontWeight: 700, fontFamily: "inherit", background: active ? BRAND.ink : "transparent", color: active ? "#fff" : BRAND.ink, transition: "background .15s" }}>
+            <span className="gl-lang-long">{LABEL[l]}</span><span className="gl-lang-short">{l.toUpperCase()}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -1694,6 +1721,8 @@ function FontLink() {
       @keyframes glpulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }
       .gl-spin { animation: glspin 0.8s linear infinite; }
       @keyframes glspin { to { transform: rotate(360deg) } }
+      .gl-lang-short { display: none; }
+      @media (max-width: 560px) { .gl-lang-long { display: none; } .gl-lang-short { display: inline; } }
       /* ---------- DESKTOP (>= 900px) ---------- */
       .gl-desk-nav { display: none; }
       @media (min-width: 900px) {
