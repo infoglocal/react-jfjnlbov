@@ -139,19 +139,19 @@ export function EventsPopup({ events, focusId, lang, itinerary, onToggleItin, on
         {events.length > 1 && idx > 0 && <button className="gl-ev-arrow left" aria-label="←" onClick={(e) => { e.stopPropagation(); goTo(idx - 1); }}>‹</button>}
         {events.length > 1 && idx < events.length - 1 && <button className="gl-ev-arrow right" aria-label="→" onClick={(e) => { e.stopPropagation(); goTo(idx + 1); }}>›</button>}
         <div ref={rowRef} onScroll={onScroll} className="gl-ev-row">
-          {events.map((ev) => {
+          {events.map((ev, i) => {
             const inItin = itinerary.includes(ev.id);
             const title = ev[`title_${lang}`] || ev.title_it;
             const hasPlace = Boolean(ev.address || (ev.lat && ev.lng));
             const canInfo = Boolean(ev.link_url || ev.card);
             return (
-              <article key={ev.id} className="gl-ev-slide">
+              <article key={ev.id} className={`gl-ev-slide${i === idx ? " is-active" : ""}`} onClick={() => { if (i !== idx) goTo(i); }}>
                 <div className="gl-ev-poster">
                   <img src={ev.poster_url} alt="" aria-hidden="true" className="gl-ev-poster-bg" />
                   <img src={ev.poster_url} alt={title} className="gl-ev-poster-img" loading="lazy" />
                 </div>
 
-                <div style={{ padding: "12px 2px 0" }}>
+                <div className="gl-ev-body">
                   <div style={{ fontSize: 12.5, fontWeight: 700, color: BRAND.red, letterSpacing: "0.02em" }}>
                     {ev.schedule_type === "recurring"
                       ? <>{[nextDateLabel(ev, lang), hhmm(ev.start_time) && [hhmm(ev.start_time), hhmm(ev.end_time)].filter(Boolean).join("–")].filter(Boolean).join(" · ")}
@@ -349,12 +349,18 @@ function EventsStyles() {
       @keyframes glEvFade { from { opacity: 0 } to { opacity: 1 } }
       @keyframes glEvUp { from { transform: translateY(40px); opacity: .6 } to { transform: none; opacity: 1 } }
       .gl-ev-x { width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(26,20,12,0.08); border: none; border-radius: 50%; font-size: 24px; cursor: pointer; color: ${BRAND.ink}; line-height: 1; }
-      .gl-ev-sheet { --w: max(220px, min(76vw, 330px, calc((88vh - 370px) * 0.8))); }
-      @supports (height: 100dvh) { .gl-ev-sheet { --w: max(220px, min(76vw, 330px, calc((90dvh - 370px) * 0.8))); } }
-      .gl-ev-row { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 0 calc((100% - var(--w)) / 2); scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+      /* larghezza card: 82% dello schermo (si vede un pezzo della successiva), max 330px, e abbastanza bassa da stare nel foglio */
+      .gl-ev-sheet { --w: max(230px, min(82vw, 330px, calc((88vh - 400px) * 0.8 + 16px))); }
+      @supports (height: 100dvh) { .gl-ev-sheet { --w: max(230px, min(82vw, 330px, calc((90dvh - 400px) * 0.8 + 16px))); } }
+      .gl-ev-row { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px calc((100% - var(--w)) / 2) 20px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
       .gl-ev-row::-webkit-scrollbar { display: none; }
-      .gl-ev-slide { flex: 0 0 var(--w); width: var(--w); scroll-snap-align: center; scroll-snap-stop: always; }
-      .gl-ev-poster { position: relative; aspect-ratio: 4 / 5; border-radius: 18px; overflow: hidden; background: #1a1a1a; box-shadow: 0 10px 28px rgba(40,30,15,0.22); }
+      /* ogni evento è una card chiusa: sfondo bianco, bordo, ombra; le azioni stanno in fondo alla card,
+         così sono sempre allineate tra una card e l'altra anche se titoli e descrizioni hanno lunghezze diverse */
+      .gl-ev-slide { flex: 0 0 var(--w); width: var(--w); box-sizing: border-box; scroll-snap-align: center; display: flex; flex-direction: column; background: ${BRAND.card}; border: 1px solid ${BRAND.border}; border-radius: 22px; padding: 8px; box-shadow: 0 8px 24px rgba(40,30,15,0.10); opacity: .6; transition: opacity .25s ease, box-shadow .25s ease; }
+      .gl-ev-slide.is-active { opacity: 1; box-shadow: 0 12px 30px rgba(40,30,15,0.16); }
+      .gl-ev-slide:not(.is-active) { cursor: pointer; }
+      .gl-ev-body { padding: 12px 6px 14px; }
+      .gl-ev-poster { position: relative; aspect-ratio: 4 / 5; border-radius: 15px; overflow: hidden; background: #1a1a1a; }
       .gl-ev-poster-bg { position: absolute; inset: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(22px) brightness(.55); }
       .gl-ev-poster-img { position: relative; width: 100%; height: 100%; object-fit: contain; display: block; }
       .gl-ev-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 19px; line-height: 1.2; margin-top: 3px; letter-spacing: -0.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -362,15 +368,15 @@ function EventsStyles() {
       .gl-ev-place span:first-of-type { text-decoration: underline; text-decoration-color: ${BRAND.border}; text-underline-offset: 3px; }
       .gl-ev-desc { margin: 7px 0 0; font-size: 13.5px; line-height: 1.45; color: #4a463d; white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
       .gl-ev-desc.open { -webkit-line-clamp: unset; display: block; }
-      .gl-ev-actions { display: flex; justify-content: center; gap: 14px; margin-top: 12px; position: relative; }
-      .gl-ev-btn { flex: 0 0 50px; width: 50px; height: 50px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: ${BRAND.card}; border: 1.5px solid ${BRAND.border}; border-radius: 50%; color: ${BRAND.ink}; cursor: pointer; text-decoration: none; transition: background .15s, border-color .15s; }
+      .gl-ev-actions { display: flex; justify-content: space-around; margin-top: auto; padding: 10px 2px 2px; border-top: 1px solid ${BRAND.border}; position: relative; }
+      .gl-ev-btn { flex: 0 0 44px; width: 44px; height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: ${BRAND.bg}; border: 1px solid ${BRAND.border}; border-radius: 50%; color: ${BRAND.ink}; cursor: pointer; text-decoration: none; transition: background .15s, border-color .15s; }
       .gl-ev-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
       .gl-ev-btn:active { transform: scale(.97); }
       .gl-ev-btn.is-on { background: rgba(56,176,74,0.12); border-color: ${BRAND.green}; color: ${BRAND.greenDark}; }
       .gl-ev-menu { position: absolute; left: 0; bottom: calc(100% + 8px); z-index: 2; background: ${BRAND.card}; border: 1px solid ${BRAND.border}; border-radius: 14px; box-shadow: 0 12px 30px rgba(40,30,15,0.2); overflow: hidden; min-width: 190px; animation: glEvFade .15s ease; }
       .gl-ev-menu a, .gl-ev-menu button { display: block; width: 100%; text-align: left; padding: 13px 16px; background: none; border: none; font: 600 14px 'Archivo', system-ui, sans-serif; color: ${BRAND.ink}; text-decoration: none; cursor: pointer; }
       .gl-ev-menu a + button { border-top: 1px solid ${BRAND.border}; }
-      .gl-ev-arrow { display: none; position: absolute; top: calc(var(--w, 330px) * 0.625); transform: translateY(-50%); z-index: 3; width: 42px; height: 42px; border-radius: 50%; border: none; background: rgba(255,255,255,0.95); box-shadow: 0 4px 14px rgba(0,0,0,0.25); font-size: 26px; line-height: 1; color: ${BRAND.ink}; cursor: pointer; }
+      .gl-ev-arrow { display: none; position: absolute; top: calc((var(--w, 330px) - 16px) * 0.625 + 12px); transform: translateY(-50%); z-index: 3; width: 42px; height: 42px; border-radius: 50%; border: none; background: rgba(255,255,255,0.95); box-shadow: 0 4px 14px rgba(0,0,0,0.25); font-size: 26px; line-height: 1; color: ${BRAND.ink}; cursor: pointer; }
       .gl-ev-arrow.left { left: 12px; } .gl-ev-arrow.right { right: 12px; }
       @media (hover: hover) and (pointer: fine) { .gl-ev-arrow { display: flex; align-items: center; justify-content: center; } }
       .gl-ev-ticker { position: fixed; left: 12px; right: 12px; bottom: calc(72px + env(safe-area-inset-bottom, 0px)); z-index: 36; max-width: 520px; margin: 0 auto; background: ${BRAND.card}; border: 1px solid ${BRAND.border}; border-radius: 18px; box-shadow: 0 12px 34px rgba(40,30,15,0.22); animation: glEvUp .35s cubic-bezier(.2,.8,.2,1); }
