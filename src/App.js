@@ -1358,11 +1358,18 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {methods.includes("form") && <button onClick={() => { track("start_booking", { card, method: "form", from: "detail" }); onBook(place); }} style={primaryBtn}>{t.book}</button>}
               {methods.includes("link") && (
-                <button onClick={() => {
-                  track("start_booking", { card, method: "link", from: "detail" });
-                  onBookIntent?.();
-                  onOpenWeb({ kind: "iframe", url: withUtm(String(place.booking_url).trim()), title, label: t.bookOnline, card, purpose: "booking" });
-                }} style={primaryBtn}>{t.bookOnline}</button>
+                // La pagina di prenotazione del partner si apre in una nuova scheda e non più
+                // nel pannello interno: dentro l'iframe, su iPhone, banner cookie, pagamenti e
+                // link WhatsApp dei siti dei partner spesso non funzionano. Glocal resta aperta
+                // nella scheda di prima, quindi l'utente ci torna con un tocco.
+                <a href={withUtm(String(place.booking_url).trim())} target="_blank" rel="noopener noreferrer"
+                  onClick={() => {
+                    track("start_booking", { card, method: "link", from: "detail" });
+                    onBookIntent?.();
+                  }}
+                  style={{ ...primaryBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, textDecoration: "none", boxSizing: "border-box" }}>
+                  {t.bookOnline}<span aria-hidden="true">↗</span>
+                </a>
               )}
               {(methods.includes("whatsapp") || methods.includes("call")) && (
                 <div style={{ display: "flex", gap: 10 }}>
