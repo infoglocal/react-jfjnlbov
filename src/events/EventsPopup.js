@@ -367,16 +367,16 @@ function EventsStyles() {
   return (
     <style>{`
       .gl-ev-overlay { position: fixed; inset: 0; background: rgba(26,20,12,0.55); display: flex; align-items: flex-end; justify-content: center; z-index: 92; animation: glEvFade .2s ease; }
-      .gl-ev-sheet { background: #FFD23F; color: ${BRAND.ink}; width: 100%; max-width: 520px; border-radius: 22px 22px 0 0; max-height: 90vh; max-height: 90dvh; overflow-y: auto; overscroll-behavior: contain; box-shadow: 0 -10px 50px rgba(0,0,0,0.25); animation: glEvUp .28s cubic-bezier(.2,.8,.2,1); }
+      .gl-ev-sheet { background: ${BRAND.bg}; color: ${BRAND.ink}; width: 100%; max-width: 520px; border-radius: 22px 22px 0 0; max-height: 90vh; max-height: 90dvh; overflow-y: auto; overscroll-behavior: contain; box-shadow: 0 -10px 50px rgba(0,0,0,0.25); animation: glEvUp .28s cubic-bezier(.2,.8,.2,1); }
       @keyframes glEvFade { from { opacity: 0 } to { opacity: 1 } }
       @keyframes glEvUp { from { transform: translateY(40px); opacity: .6 } to { transform: none; opacity: 1 } }
-      .gl-ev-x { width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(26,20,12,0.12); border: none; border-radius: 50%; font-size: 24px; cursor: pointer; color: ${BRAND.ink}; line-height: 1; }
+      .gl-ev-x { width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(26,20,12,0.08); border: none; border-radius: 50%; font-size: 24px; cursor: pointer; color: ${BRAND.ink}; line-height: 1; }
       /* larghezza card: 82% dello schermo (si vede un pezzo della successiva), max 330px, e abbastanza bassa da stare nel foglio */
       .gl-ev-sheet { --w: max(230px, min(82vw, 320px, calc((88vh - 430px) / 1.25))); }
       @supports (height: 100svh) { .gl-ev-sheet { --w: max(230px, min(82vw, 320px, calc((90svh - 430px) / 1.25))); } }
       .gl-ev-row { display: flex; align-items: flex-start; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px calc((100% - var(--w)) / 2) 20px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
       .gl-ev-row::-webkit-scrollbar { display: none; }
-      /* stile "storia IG": foglio giallo, locandina grande, titolo condensato, bottone rosso a tutta larghezza.
+      /* stile "storia IG": locandina grande, titolo condensato, bottone rosso a tutta larghezza.
          Il testo ha altezza fissa così i bottoni restano allineati; solo la card aperta cresce verso il basso */
       .gl-ev-kicker { font: 800 12px 'Archivo', system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.14em; }
       .gl-ev-head { margin: 2px 0 0; font-family: 'Archivo', system-ui, sans-serif; font-weight: 900; font-stretch: 62%; font-variation-settings: "wdth" 62; font-size: 46px; line-height: 0.9; letter-spacing: -0.01em; text-transform: uppercase; }
