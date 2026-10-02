@@ -392,7 +392,7 @@ function EventsStyles() {
       .gl-ev-poster-img { position: relative; width: 100%; height: 100%; object-fit: contain; display: block; }
       .gl-ev-title { font-family: 'Archivo', system-ui, sans-serif; font-weight: 900; font-stretch: 62%; font-variation-settings: "wdth" 62; font-size: 34px; line-height: 0.95; text-transform: uppercase; letter-spacing: -0.005em; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; max-height: 2.85em; }
       /* titoli lunghi: un po' più piccoli, così stanno in 3 righe anche sui telefoni stretti */
-      .gl-ev-title.is-long { font-size: 28px; }
+      .gl-ev-title.is-long { font-size: 26px; }
       .gl-ev-when { margin-top: 8px; font: 700 13.5px 'Archivo', system-ui, sans-serif; color: ${BRAND.ink}; }
       .gl-ev-when-sub { font-weight: 500; }
       .gl-ev-place { display: block; font-size: 13.5px; color: #3d3a33; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none; }
