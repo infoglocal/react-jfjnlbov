@@ -1728,7 +1728,7 @@ function LocalTipSheet({ place, tip, lang, t, onClose }) {
 function FontLink() {
   return (
     <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Archivo:wght@400;500;600;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Archivo:wdth,wght@62..125,400..900&display=swap');
       * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
       body { margin: 0; }
       button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid ${BRAND.green}; outline-offset: 2px; }

@@ -21,6 +21,7 @@ export const EV_T = {
     google: "Google Calendar", ics: "Apple · Outlook",
     stripTitle: "Eventi in città", stripSub: (n) => (n === 1 ? "1 evento nei prossimi giorni" : `${n} eventi nei prossimi giorni`),
     stripCta: "Vedi", tickerOpen: "Apri", of: "di",
+    ctaLink: "Vai all'evento", ctaCard: "Vedi il posto",
   },
   en: {
     kicker: "Events", title: "In town", close: "Close",
@@ -30,6 +31,7 @@ export const EV_T = {
     google: "Google Calendar", ics: "Apple · Outlook",
     stripTitle: "Events in town", stripSub: (n) => (n === 1 ? "1 event in the coming days" : `${n} events in the coming days`),
     stripCta: "See", tickerOpen: "Open", of: "of",
+    ctaLink: "Go to the event", ctaCard: "See the place",
   },
 };
 
@@ -129,10 +131,10 @@ export function EventsPopup({ events, focusId, lang, itinerary, onToggleItin, on
     <div className="gl-ev-overlay" onClick={onClose}>
       <EventsStyles />
       <div className="gl-ev-sheet" onClick={(e) => { e.stopPropagation(); setCalFor(null); }} role="dialog" aria-modal="true" aria-label={t.title}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "18px 18px 12px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "20px 18px 14px" }}>
           <div>
-            <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.14em", color: BRAND.green, fontWeight: 700 }}>{t.kicker}</div>
-            <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 25, margin: "2px 0 0", letterSpacing: "-0.02em", lineHeight: 1.1 }}>{t.title}</h3>
+            <div className="gl-ev-kicker">{t.kicker} · {events.length}</div>
+            <h3 className="gl-ev-head">{t.title}</h3>
           </div>
           <button onClick={onClose} aria-label={t.close} className="gl-ev-x">×</button>
         </div>
@@ -165,13 +167,13 @@ export function EventsPopup({ events, focusId, lang, itinerary, onToggleItin, on
                 </div>
 
                 <div className="gl-ev-body">
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: BRAND.red, letterSpacing: "0.02em" }}>
+                  <div translate="no" className="notranslate gl-ev-title">{title}</div>
+                  <div className="gl-ev-when">
                     {ev.schedule_type === "recurring"
                       ? <>{[nextDateLabel(ev, lang), hhmm(ev.start_time) && [hhmm(ev.start_time), hhmm(ev.end_time)].filter(Boolean).join("–")].filter(Boolean).join(" · ")}
-                          <span style={{ color: BRAND.muted, fontWeight: 600 }}> · {whenLabel({ ...ev, start_time: null, end_time: null }, lang).toLowerCase()}</span></>
+                          <span className="gl-ev-when-sub"> · {whenLabel({ ...ev, start_time: null, end_time: null }, lang).toLowerCase()}</span></>
                       : whenLabel(ev, lang)}
                   </div>
-                  <div translate="no" className="notranslate gl-ev-title">{title}</div>
                   {(ev.location || ev.address) && (() => {
                     // luogo cliccabile: apre Google Maps sull'indirizzo (o sul nome / coordinate se manca)
                     const q = ev.address ? (ev.location && !ev.address.toLowerCase().includes(ev.location.toLowerCase()) ? `${ev.location}, ${ev.address}` : ev.address) : ev.lat && ev.lng ? `${ev.lat},${ev.lng}` : ev.location;
@@ -179,7 +181,7 @@ export function EventsPopup({ events, focusId, lang, itinerary, onToggleItin, on
                       <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`} target="_blank" rel="noreferrer"
                         onClick={(e) => { e.stopPropagation(); track("open_event_map", { card: cardName(ev) }); }}
                         className="gl-ev-place">
-                        📍 <span>{ev.location || ev.address}</span> <span aria-hidden="true" style={{ color: BRAND.green, fontWeight: 700 }}>↗</span>
+                        📍 <span>{ev.location || ev.address}</span> <span aria-hidden="true" style={{ fontWeight: 700 }}>↗</span>
                       </a>
                     );
                   })()}
@@ -196,9 +198,19 @@ export function EventsPopup({ events, focusId, lang, itinerary, onToggleItin, on
                   )}
                 </div>
 
+                {canInfo && (ev.link_url ? (
+                  <a className="gl-ev-cta" href={ev.link_url} target="_blank" rel="noreferrer" onClick={(e) => { e.stopPropagation(); track("event_learn_more", { card: cardName(ev), target: "link" }); }}>
+                    {t.ctaLink} <OutIcon size={18} color="#fff" />
+                  </a>
+                ) : (
+                  <button className="gl-ev-cta" onClick={(e) => { e.stopPropagation(); track("event_learn_more", { card: cardName(ev), target: "card" }); onOpenCard(ev.card); }}>
+                    {t.ctaCard} <span aria-hidden="true">→</span>
+                  </button>
+                ))}
+
                 <div className="gl-ev-actions" onClick={(e) => e.stopPropagation()}>
                   <button className="gl-ev-btn" onClick={(e) => { e.stopPropagation(); setCalFor(calFor === ev.id ? null : ev.id); }} aria-expanded={calFor === ev.id}>
-                    <CalIcon size={21} color={BRAND.ink} /><span className="gl-ev-sr">{t.calendar}</span>
+                    <CalIcon size={19} color={BRAND.ink} /><span>{t.calendar}</span>
                   </button>
                   {hasPlace && (
                     <button className={`gl-ev-btn${inItin ? " is-on" : ""}`} onClick={(e) => {
@@ -206,20 +218,11 @@ export function EventsPopup({ events, focusId, lang, itinerary, onToggleItin, on
                       if (!inItin) track("add_to_itinerary", { card: cardName(ev), from: "events" });
                       onToggleItin(ev.id);
                     }}>
-                      <PinIcon size={21} filled={inItin} color={inItin ? BRAND.greenDark : BRAND.ink} /><span className="gl-ev-sr">{inItin ? t.inItin : t.itin}</span>
+                      <PinIcon size={19} filled={inItin} color={inItin ? "#fff" : BRAND.ink} /><span>{inItin ? t.inItin : t.itin}</span>
                     </button>
                   )}
-                  {canInfo && (ev.link_url ? (
-                    <a className="gl-ev-btn" href={ev.link_url} target="_blank" rel="noreferrer" onClick={(e) => { e.stopPropagation(); track("event_learn_more", { card: cardName(ev), target: "link" }); }}>
-                      <OutIcon size={20} color={BRAND.ink} /><span className="gl-ev-sr">{t.info}</span>
-                    </a>
-                  ) : (
-                    <button className="gl-ev-btn" onClick={(e) => { e.stopPropagation(); track("event_learn_more", { card: cardName(ev), target: "card" }); onOpenCard(ev.card); }}>
-                      <OutIcon size={20} color={BRAND.ink} /><span className="gl-ev-sr">{t.info}</span>
-                    </button>
-                  ))}
                   <button className="gl-ev-btn" onClick={(e) => { e.stopPropagation(); shareOnWhatsApp(ev, lang); }}>
-                    <WaIcon size={23} /><span className="gl-ev-sr">{t.share}</span>
+                    <WaIcon size={20} /><span>{t.share}</span>
                   </button>
 
                   {calFor === ev.id && (
@@ -239,7 +242,7 @@ export function EventsPopup({ events, focusId, lang, itinerary, onToggleItin, on
         {events.length > 1 && (
           <div style={{ display: "flex", justifyContent: "center", gap: 6, padding: "14px 0 4px" }}>
             {events.map((ev, i) => (
-              <button key={ev.id} onClick={() => goTo(i)} aria-label={`${i + 1}`} style={{ width: i === idx ? 18 : 6, height: 6, padding: 0, border: "none", borderRadius: 999, background: i === idx ? BRAND.ink : BRAND.border, cursor: "pointer", transition: "all .2s" }} />
+              <button key={ev.id} onClick={() => goTo(i)} aria-label={`${i + 1}`} style={{ width: i === idx ? 18 : 6, height: 6, padding: 0, border: "none", borderRadius: 999, background: i === idx ? BRAND.ink : "rgba(26,20,12,0.25)", cursor: "pointer", transition: "all .2s" }} />
             ))}
           </div>
         )}
@@ -364,41 +367,48 @@ function EventsStyles() {
   return (
     <style>{`
       .gl-ev-overlay { position: fixed; inset: 0; background: rgba(26,20,12,0.55); display: flex; align-items: flex-end; justify-content: center; z-index: 92; animation: glEvFade .2s ease; }
-      .gl-ev-sheet { background: ${BRAND.bg}; width: 100%; max-width: 520px; border-radius: 22px 22px 0 0; max-height: 90vh; max-height: 90dvh; overflow-y: auto; overscroll-behavior: contain; box-shadow: 0 -10px 50px rgba(0,0,0,0.25); animation: glEvUp .28s cubic-bezier(.2,.8,.2,1); }
+      .gl-ev-sheet { background: #FFD23F; color: ${BRAND.ink}; width: 100%; max-width: 520px; border-radius: 22px 22px 0 0; max-height: 90vh; max-height: 90dvh; overflow-y: auto; overscroll-behavior: contain; box-shadow: 0 -10px 50px rgba(0,0,0,0.25); animation: glEvUp .28s cubic-bezier(.2,.8,.2,1); }
       @keyframes glEvFade { from { opacity: 0 } to { opacity: 1 } }
       @keyframes glEvUp { from { transform: translateY(40px); opacity: .6 } to { transform: none; opacity: 1 } }
-      .gl-ev-x { width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(26,20,12,0.08); border: none; border-radius: 50%; font-size: 24px; cursor: pointer; color: ${BRAND.ink}; line-height: 1; }
+      .gl-ev-x { width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(26,20,12,0.12); border: none; border-radius: 50%; font-size: 24px; cursor: pointer; color: ${BRAND.ink}; line-height: 1; }
       /* larghezza card: 82% dello schermo (si vede un pezzo della successiva), max 330px, e abbastanza bassa da stare nel foglio */
-      .gl-ev-sheet { --w: max(230px, min(82vw, 320px, calc((88vh - 470px) / 1.1 + 16px))); }
-      @supports (height: 100svh) { .gl-ev-sheet { --w: max(230px, min(82vw, 320px, calc((90svh - 470px) / 1.1 + 16px))); } }
+      .gl-ev-sheet { --w: max(230px, min(82vw, 320px, calc((88vh - 430px) / 1.25))); }
+      @supports (height: 100svh) { .gl-ev-sheet { --w: max(230px, min(82vw, 320px, calc((90svh - 430px) / 1.25))); } }
       .gl-ev-row { display: flex; align-items: flex-start; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px calc((100% - var(--w)) / 2) 20px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
       .gl-ev-row::-webkit-scrollbar { display: none; }
-      /* ogni evento è una card bianca chiusa; tutte hanno la stessa altezza (testo di altezza fissa),
-         così le azioni sono allineate. Solo la card aperta cresce verso il basso, le altre restano come sono */
-      .gl-ev-slide { flex: 0 0 var(--w); width: var(--w); box-sizing: border-box; scroll-snap-align: center; display: flex; flex-direction: column; background: ${BRAND.card}; border: 1px solid ${BRAND.border}; border-radius: 22px; padding: 8px; box-shadow: 0 8px 24px rgba(40,30,15,0.10); opacity: .55; cursor: pointer; transition: opacity .25s ease, box-shadow .25s ease; -webkit-tap-highlight-color: transparent; }
-      .gl-ev-slide.is-active { opacity: 1; box-shadow: 0 12px 30px rgba(40,30,15,0.16); }
-      .gl-ev-body { padding: 10px 6px 10px; min-height: 150px; box-sizing: border-box; }
-      .gl-ev-more { display: inline-flex; align-items: center; gap: 3px; margin-top: 6px; font: 700 12.5px 'Archivo', system-ui, sans-serif; color: ${BRAND.greenDark}; visibility: hidden; }
+      /* stile "storia IG": foglio giallo, locandina grande, titolo condensato, bottone rosso a tutta larghezza.
+         Il testo ha altezza fissa così i bottoni restano allineati; solo la card aperta cresce verso il basso */
+      .gl-ev-kicker { font: 800 12px 'Archivo', system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.14em; }
+      .gl-ev-head { margin: 2px 0 0; font-family: 'Archivo', system-ui, sans-serif; font-weight: 900; font-stretch: 62%; font-variation-settings: "wdth" 62; font-size: 46px; line-height: 0.9; letter-spacing: -0.01em; text-transform: uppercase; }
+      .gl-ev-slide { flex: 0 0 var(--w); width: var(--w); box-sizing: border-box; scroll-snap-align: center; display: flex; flex-direction: column; opacity: .5; cursor: pointer; transition: opacity .25s ease; -webkit-tap-highlight-color: transparent; }
+      .gl-ev-slide.is-active { opacity: 1; }
+      .gl-ev-body { padding: 14px 2px 4px; min-height: 132px; box-sizing: border-box; }
+      .gl-ev-more { display: inline-flex; align-items: center; gap: 3px; margin-top: 6px; font: 800 12.5px 'Archivo', system-ui, sans-serif; color: ${BRAND.ink}; text-decoration: underline; text-underline-offset: 3px; visibility: hidden; }
       .gl-ev-more svg { transition: transform .25s ease; }
       .gl-ev-slide.is-active .gl-ev-more { visibility: visible; }
       .gl-ev-slide.is-open .gl-ev-more svg { transform: rotate(180deg); }
-      .gl-ev-poster { position: relative; aspect-ratio: 1 / 1.1; border-radius: 15px; overflow: hidden; background: #1a1a1a; }
+      .gl-ev-poster { position: relative; aspect-ratio: 4 / 5; border-radius: 6px; overflow: hidden; background: ${BRAND.ink}; box-shadow: 0 14px 30px rgba(26,20,12,0.28); }
       .gl-ev-poster-bg { position: absolute; inset: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(22px) brightness(.55); }
       .gl-ev-poster-img { position: relative; width: 100%; height: 100%; object-fit: contain; display: block; }
-      .gl-ev-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 18px; line-height: 1.2; margin-top: 2px; letter-spacing: -0.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-height: 2.4em; }
-      .gl-ev-place { display: block; font-size: 12.5px; color: ${BRAND.muted}; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none; }
-      .gl-ev-place span:first-of-type { text-decoration: underline; text-decoration-color: ${BRAND.border}; text-underline-offset: 3px; }
-      .gl-ev-desc { margin: 7px 0 0; font-size: 13.5px; line-height: 1.45; color: #4a463d; white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-height: 2.9em; }
+      .gl-ev-title { font-family: 'Archivo', system-ui, sans-serif; font-weight: 900; font-stretch: 62%; font-variation-settings: "wdth" 62; font-size: 34px; line-height: 0.95; text-transform: uppercase; letter-spacing: -0.005em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-height: 1.9em; }
+      .gl-ev-when { margin-top: 8px; font: 700 13.5px 'Archivo', system-ui, sans-serif; color: ${BRAND.ink}; }
+      .gl-ev-when-sub { font-weight: 500; }
+      .gl-ev-place { display: block; font-size: 13.5px; color: #3d3a33; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none; }
+      .gl-ev-place span:first-of-type { text-decoration: underline; text-decoration-color: rgba(26,20,12,0.35); text-underline-offset: 3px; }
+      .gl-ev-desc { margin: 8px 0 0; font-size: 13.5px; line-height: 1.45; color: #3d3a33; white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-height: 2.9em; }
       .gl-ev-desc.open { -webkit-line-clamp: unset; display: block; max-height: none; }
-      .gl-ev-actions { display: flex; justify-content: space-around; padding: 10px 2px 2px; border-top: 1px solid ${BRAND.border}; position: relative; cursor: auto; }
-      .gl-ev-btn { flex: 0 0 44px; width: 44px; height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: ${BRAND.bg}; border: 1px solid ${BRAND.border}; border-radius: 50%; color: ${BRAND.ink}; cursor: pointer; text-decoration: none; transition: background .15s, border-color .15s; }
+      .gl-ev-cta { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; margin-top: 10px; padding: 0 16px; box-sizing: border-box; background: ${BRAND.red}; color: #fff; border: none; border-radius: 4px; font: 900 18px 'Archivo', system-ui, sans-serif; font-stretch: 75%; font-variation-settings: "wdth" 75; text-transform: uppercase; letter-spacing: 0.01em; text-decoration: none; cursor: pointer; }
+      .gl-ev-cta:active { transform: scale(.98); }
+      .gl-ev-actions { display: flex; gap: 6px; padding-top: 8px; position: relative; cursor: auto; }
+      .gl-ev-btn { flex: 1 1 0; min-width: 0; height: 44px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: transparent; border: 2px solid ${BRAND.ink}; border-radius: 4px; color: ${BRAND.ink}; font: 700 12.5px 'Archivo', system-ui, sans-serif; cursor: pointer; text-decoration: none; white-space: nowrap; transition: background .15s; }
+      .gl-ev-btn span { overflow: hidden; text-overflow: ellipsis; }
       .gl-ev-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
       .gl-ev-btn:active { transform: scale(.97); }
-      .gl-ev-btn.is-on { background: rgba(56,176,74,0.12); border-color: ${BRAND.green}; color: ${BRAND.greenDark}; }
+      .gl-ev-btn.is-on { background: ${BRAND.ink}; color: #fff; }
       .gl-ev-menu { position: absolute; left: 0; bottom: calc(100% + 8px); z-index: 2; background: ${BRAND.card}; border: 1px solid ${BRAND.border}; border-radius: 14px; box-shadow: 0 12px 30px rgba(40,30,15,0.2); overflow: hidden; min-width: 190px; animation: glEvFade .15s ease; }
       .gl-ev-menu a, .gl-ev-menu button { display: block; width: 100%; text-align: left; padding: 13px 16px; background: none; border: none; font: 600 14px 'Archivo', system-ui, sans-serif; color: ${BRAND.ink}; text-decoration: none; cursor: pointer; }
       .gl-ev-menu a + button { border-top: 1px solid ${BRAND.border}; }
-      .gl-ev-arrow { display: none; position: absolute; top: calc((var(--w, 320px) - 16px) * 0.55 + 12px); transform: translateY(-50%); z-index: 3; width: 42px; height: 42px; border-radius: 50%; border: none; background: rgba(255,255,255,0.95); box-shadow: 0 4px 14px rgba(0,0,0,0.25); font-size: 26px; line-height: 1; color: ${BRAND.ink}; cursor: pointer; }
+      .gl-ev-arrow { display: none; position: absolute; top: calc(var(--w, 320px) * 0.625 + 4px); transform: translateY(-50%); z-index: 3; width: 42px; height: 42px; border-radius: 50%; border: none; background: rgba(255,255,255,0.95); box-shadow: 0 4px 14px rgba(0,0,0,0.25); font-size: 26px; line-height: 1; color: ${BRAND.ink}; cursor: pointer; }
       .gl-ev-arrow.left { left: 12px; } .gl-ev-arrow.right { right: 12px; }
       @media (hover: hover) and (pointer: fine) { .gl-ev-arrow { display: flex; align-items: center; justify-content: center; } }
       .gl-ev-ticker { position: fixed; left: 12px; right: 12px; bottom: calc(72px + env(safe-area-inset-bottom, 0px)); z-index: 36; max-width: 520px; margin: 0 auto; background: ${BRAND.card}; border: 1px solid ${BRAND.border}; border-radius: 18px; box-shadow: 0 12px 34px rgba(40,30,15,0.22); animation: glEvUp .35s cubic-bezier(.2,.8,.2,1); }
