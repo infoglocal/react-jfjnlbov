@@ -402,8 +402,8 @@ function EventsStyles() {
       .gl-ev-cta { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; margin-top: 10px; padding: 0 16px; box-sizing: border-box; background: ${BRAND.red}; color: #fff; border: none; border-radius: 4px; font: 900 18px 'Archivo', system-ui, sans-serif; font-stretch: 75%; font-variation-settings: "wdth" 75; text-transform: uppercase; letter-spacing: 0.01em; text-decoration: none; cursor: pointer; }
       .gl-ev-cta:active { transform: scale(.98); }
       .gl-ev-actions { display: flex; gap: 6px; padding-top: 8px; position: relative; cursor: auto; }
-      .gl-ev-btn { flex: 1 1 0; min-width: 0; height: 44px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: transparent; border: 2px solid ${BRAND.ink}; border-radius: 4px; color: ${BRAND.ink}; font: 700 12.5px 'Archivo', system-ui, sans-serif; cursor: pointer; text-decoration: none; white-space: nowrap; transition: background .15s; }
-      .gl-ev-btn span { overflow: hidden; text-overflow: ellipsis; }
+      .gl-ev-btn { flex: 1 1 0; min-width: 0; height: 52px; padding: 0 4px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: transparent; border: 2px solid ${BRAND.ink}; border-radius: 4px; color: ${BRAND.ink}; font: 700 11.5px 'Archivo', system-ui, sans-serif; cursor: pointer; text-decoration: none; white-space: nowrap; transition: background .15s; }
+      .gl-ev-btn span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
       .gl-ev-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
       .gl-ev-btn:active { transform: scale(.97); }
       .gl-ev-btn.is-on { background: ${BRAND.ink}; color: #fff; }
