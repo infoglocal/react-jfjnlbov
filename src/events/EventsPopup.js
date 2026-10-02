@@ -167,7 +167,7 @@ export function EventsPopup({ events, focusId, lang, itinerary, onToggleItin, on
                 </div>
 
                 <div className="gl-ev-body">
-                  <div translate="no" className="notranslate gl-ev-title">{title}</div>
+                  <div translate="no" className={`notranslate gl-ev-title${title.length > 24 ? " is-long" : ""}`}>{title}</div>
                   <div className="gl-ev-when">
                     {ev.schedule_type === "recurring"
                       ? <>{[nextDateLabel(ev, lang), hhmm(ev.start_time) && [hhmm(ev.start_time), hhmm(ev.end_time)].filter(Boolean).join("–")].filter(Boolean).join(" · ")}
@@ -382,7 +382,7 @@ function EventsStyles() {
       .gl-ev-head { margin: 2px 0 0; font-family: 'Archivo', system-ui, sans-serif; font-weight: 900; font-stretch: 62%; font-variation-settings: "wdth" 62; font-size: 46px; line-height: 0.9; letter-spacing: -0.01em; text-transform: uppercase; }
       .gl-ev-slide { flex: 0 0 var(--w); width: var(--w); box-sizing: border-box; scroll-snap-align: center; display: flex; flex-direction: column; opacity: .5; cursor: pointer; transition: opacity .25s ease; -webkit-tap-highlight-color: transparent; }
       .gl-ev-slide.is-active { opacity: 1; }
-      .gl-ev-body { padding: 14px 2px 4px; min-height: 132px; box-sizing: border-box; }
+      .gl-ev-body { padding: 14px 2px 4px; min-height: 158px; box-sizing: border-box; }
       .gl-ev-more { display: inline-flex; align-items: center; gap: 3px; margin-top: 6px; font: 800 12.5px 'Archivo', system-ui, sans-serif; color: ${BRAND.ink}; text-decoration: underline; text-underline-offset: 3px; visibility: hidden; }
       .gl-ev-more svg { transition: transform .25s ease; }
       .gl-ev-slide.is-active .gl-ev-more { visibility: visible; }
@@ -390,7 +390,9 @@ function EventsStyles() {
       .gl-ev-poster { position: relative; aspect-ratio: 4 / 5; border-radius: 6px; overflow: hidden; background: ${BRAND.ink}; box-shadow: 0 14px 30px rgba(26,20,12,0.28); }
       .gl-ev-poster-bg { position: absolute; inset: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(22px) brightness(.55); }
       .gl-ev-poster-img { position: relative; width: 100%; height: 100%; object-fit: contain; display: block; }
-      .gl-ev-title { font-family: 'Archivo', system-ui, sans-serif; font-weight: 900; font-stretch: 62%; font-variation-settings: "wdth" 62; font-size: 34px; line-height: 0.95; text-transform: uppercase; letter-spacing: -0.005em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-height: 1.9em; }
+      .gl-ev-title { font-family: 'Archivo', system-ui, sans-serif; font-weight: 900; font-stretch: 62%; font-variation-settings: "wdth" 62; font-size: 34px; line-height: 0.95; text-transform: uppercase; letter-spacing: -0.005em; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; max-height: 2.85em; }
+      /* titoli lunghi: un po' più piccoli, così stanno in 3 righe anche sui telefoni stretti */
+      .gl-ev-title.is-long { font-size: 28px; }
       .gl-ev-when { margin-top: 8px; font: 700 13.5px 'Archivo', system-ui, sans-serif; color: ${BRAND.ink}; }
       .gl-ev-when-sub { font-weight: 500; }
       .gl-ev-place { display: block; font-size: 13.5px; color: #3d3a33; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none; }
