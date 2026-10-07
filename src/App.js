@@ -203,6 +203,7 @@ const T = {
     bookingSubtitle: "Prenota in pochi click. Nessun pagamento, nessun impegno. Riceverai una conferma quando la tua prenotazione sarà effettiva.",
     send: "Invia richiesta", sending: "Invio…",
     thanks: "Richiesta inviata", thanksSub: "Non è ancora una conferma: il local ti risponde via email entro 24 ore.",
+    askLocalKicker: "Vuoi supporto per il tuo viaggio a Bologna?", askLocal: "Chiedi ad un local", askLocalMsg: "Ciao Glocal! Sono a Bologna e cerco un consiglio: ",
     whatsapp: "Scrivi su WhatsApp", close: "Chiudi", back: "Indietro", required: "Compila i campi obbligatori.",
     openNow: "Aperto ora", closedNow: "Chiuso ora", closesAt: "chiude alle", opensAt: "apre alle",
     hoursTitle: "Orari", hoursSynced: "Orari sincronizzati da Google", open24h: "Aperto 24 ore su 24",
@@ -281,6 +282,7 @@ const T = {
     bookingSubtitle: "Book in a few clicks. No payment, no commitment. You'll get a confirmation once your booking is finalized.",
     send: "Send request", sending: "Sending…",
     thanks: "Request sent", thanksSub: "Not a confirmation yet: the local will email you within 24 hours.",
+    askLocalKicker: "Need help with your trip to Bologna?", askLocal: "Ask a local", askLocalMsg: "Hi Glocal! I'm in Bologna and I'd love a tip: ",
     whatsapp: "Message on WhatsApp", close: "Close", back: "Back", required: "Please fill in the required fields.",
     openNow: "Open now", closedNow: "Closed now", closesAt: "closes at", opensAt: "opens at",
     hoursTitle: "Hours", hoursSynced: "Hours synced from Google", open24h: "Open 24 hours",
@@ -765,6 +767,9 @@ export default function App() {
           onOpen={(id) => openEvents(id, "ticker")}
           onClose={() => setTickerOpen(false)} />
       )}
+      {!detail && !booking && !webSheet && !tipPlace && !eventsOpen && !tickerOpen && !showAbandoned && (
+        <AskLocalButton t={t} />
+      )}
       {showAbandoned && (
         <AbandonedCartModal t={t} onClose={() => setShowAbandoned(false)}
           onCta={() => { setShowAbandoned(false); setTab("home"); }} />
@@ -1128,6 +1133,26 @@ function ItinFloatingButton({ t, count, onClick }) {
     <button onClick={onClick} className="gl-itin-fab" style={{ position: "fixed", right: 16, bottom: "calc(74px + env(safe-area-inset-bottom, 0))", zIndex: 35, display: "inline-flex", alignItems: "center", gap: 8, background: BRAND.green, color: "#fff", border: "none", borderRadius: 999, padding: "12px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 8px 22px rgba(56,176,74,0.4)" }}>
       <span style={{ fontSize: 16 }}>🗺️</span>{count} · {t.itinFloatingCta}
     </button>
+  );
+}
+
+/* --------------------------- CHIEDI A UN LOCAL (WhatsApp) ------------------ */
+// Bottone fisso in basso a sinistra (l'itinerario sta a destra): apre una chat
+// WhatsApp con il numero Glocal e un messaggio già scritto. Risponde una persona.
+const ASK_LOCAL_WA = "393200849247";
+function AskLocalButton({ t }) {
+  const href = `https://wa.me/${ASK_LOCAL_WA}?text=${encodeURIComponent(t.askLocalMsg)}`;
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="gl-ask-fab"
+      onClick={() => track("open_whatsapp", { from: "ask_local" })}
+      aria-label={`${t.askLocalKicker} ${t.askLocal} — WhatsApp`}
+      style={{ position: "fixed", left: 16, bottom: "calc(74px + env(safe-area-inset-bottom, 0))", zIndex: 35, display: "inline-flex", alignItems: "center", gap: 8, background: "#25D366", color: "#fff", textDecoration: "none", borderRadius: 999, maxWidth: "min(250px, calc(100vw - 180px))", padding: "9px 16px 9px 12px", fontSize: 14, fontWeight: 700, lineHeight: 1.2, fontFamily: "inherit", boxShadow: "0 8px 22px rgba(37,211,102,0.4)" }}>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" aria-hidden="true" style={{ flexShrink: 0 }}><path d="M17.47 14.38c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.47-.88-.79-1.47-1.76-1.65-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.21 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.08 1.75-.72 2-1.41.25-.69.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.05 21.5h-.01a9.4 9.4 0 0 1-4.8-1.31l-.34-.2-3.57.94.95-3.48-.22-.36a9.43 9.43 0 0 1-1.45-5.03c0-5.21 4.24-9.45 9.46-9.45 2.52 0 4.9.99 6.68 2.77a9.4 9.4 0 0 1 2.77 6.69c0 5.21-4.24 9.45-9.47 9.45zm8.04-17.5A11.3 11.3 0 0 0 12.05.67C5.78.67.68 5.77.68 12.04c0 2 .52 3.96 1.52 5.69L.58 23.33l5.73-1.5a11.33 11.33 0 0 0 5.73 1.46h.01c6.27 0 11.37-5.1 11.37-11.37 0-3.04-1.18-5.89-3.33-8.04z"/></svg>
+      <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <span style={{ fontSize: 11.5, fontWeight: 500, opacity: 0.92 }}>{t.askLocalKicker}</span>
+        <span>{t.askLocal}</span>
+      </span>
+    </a>
   );
 }
 
@@ -1791,6 +1816,7 @@ function FontLink() {
         .gl-promo-row .gl-ev-strip { flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 22px !important; gap: 16px; }
 
         .gl-itin-fab { right: 32px !important; bottom: 32px !important; }
+        .gl-ask-fab { left: 32px !important; bottom: 32px !important; }
         .gl-ev-ticker { left: auto !important; right: 32px !important; bottom: 32px !important; width: 440px; margin: 0 !important; }
 
         /* modali: centrati invece che bottom-sheet */
