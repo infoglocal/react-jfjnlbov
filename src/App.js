@@ -673,6 +673,10 @@ export default function App() {
     );
   }
 
+  // bottone "Chiedi a un local": visibile anche col ticker eventi aperto
+  // (il ticker si alza sopra il bottone invece di coprirlo)
+  const askLocalVisible = !detail && !booking && !webSheet && !tipPlace && !eventsOpen && !showAbandoned;
+
   // popup eventi: la lista mostrata + l'evento da cui partire (se aperto dall'itinerario
   // e non più nei prossimi 7 giorni, lo aggiungiamo in testa)
   const popupEvents = eventsOpen?.focusId && !upcoming.some((e) => e.id === eventsOpen.focusId)
@@ -765,11 +769,10 @@ export default function App() {
         <EventsTicker events={upcoming} lang={lang} itinerary={itinerary}
           onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)}
           onOpen={(id) => openEvents(id, "ticker")}
-          onClose={() => setTickerOpen(false)} />
+          onClose={() => setTickerOpen(false)}
+          lifted={askLocalVisible} />
       )}
-      {!detail && !booking && !webSheet && !tipPlace && !eventsOpen && !tickerOpen && !showAbandoned && (
-        <AskLocalButton t={t} />
-      )}
+      {askLocalVisible && <AskLocalButton t={t} />}
       {showAbandoned && (
         <AbandonedCartModal t={t} onClose={() => setShowAbandoned(false)}
           onCta={() => { setShowAbandoned(false); setTab("home"); }} />
