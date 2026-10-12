@@ -259,7 +259,7 @@ export function EventsPopup({ events, focusId, lang, itinerary, onToggleItin, on
 // Tap su locandina/titolo -> popup grande con la locandina intera.
 const TICK_MS = 4500;
 
-export function EventsTicker({ events, lang, itinerary, onToggleItin, onOpen, onClose }) {
+export function EventsTicker({ events, lang, itinerary, onToggleItin, onOpen, onClose, lifted = false }) {
   const t = EV_T[lang] || EV_T.it;
   const rowRef = useRef(null);
   const [idx, setIdx] = useState(0);
@@ -284,7 +284,7 @@ export function EventsTicker({ events, lang, itinerary, onToggleItin, onOpen, on
   const stop = () => setPaused(true);
 
   return (
-    <div className="gl-ev-ticker" onTouchStart={stop} onMouseEnter={stop} onWheel={stop} role="region" aria-label={t.stripTitle}>
+    <div className={`gl-ev-ticker${lifted ? " is-lifted" : ""}`} onTouchStart={stop} onMouseEnter={stop} onWheel={stop} role="region" aria-label={t.stripTitle}>
       <EventsStyles />
       <div ref={rowRef} className="gl-ev-ticker-row" onScroll={onScroll}>
         {events.map((ev) => {
@@ -414,6 +414,7 @@ function EventsStyles() {
       .gl-ev-arrow.left { left: 12px; } .gl-ev-arrow.right { right: 12px; }
       @media (hover: hover) and (pointer: fine) { .gl-ev-arrow { display: flex; align-items: center; justify-content: center; } }
       .gl-ev-ticker { position: fixed; left: 12px; right: 12px; bottom: calc(72px + env(safe-area-inset-bottom, 0px)); z-index: 36; max-width: 520px; margin: 0 auto; background: ${BRAND.card}; border: 1px solid ${BRAND.border}; border-radius: 18px; box-shadow: 0 12px 34px rgba(40,30,15,0.22); animation: glEvUp .35s cubic-bezier(.2,.8,.2,1); }
+      .gl-ev-ticker.is-lifted { bottom: calc(134px + env(safe-area-inset-bottom, 0px)); }
       .gl-ev-ticker-row { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; border-radius: 18px; }
       .gl-ev-ticker-row::-webkit-scrollbar { display: none; }
       .gl-ev-ticker-slide { flex: 0 0 100%; scroll-snap-align: start; display: flex; align-items: center; gap: 8px; padding: 9px 12px 9px 9px; box-sizing: border-box; }
