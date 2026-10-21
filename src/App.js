@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import Papa from "papaparse";
 import { BRAND, track as baseTrack } from "./shared";
-import { captureAttribution, getAttribution, trackBooking } from "./glocalTracking";
+import { captureAttribution, trackBooking } from "./glocalTracking";
+import BookingModal from "./BookingModal";
 import { useEvents, EVENT_PREFIX } from "./events/data";
 import { upcomingEvents } from "./events/schedule";
 import { EventsPopup, EventsStrip, EventsTicker } from "./events/EventsPopup";
@@ -371,7 +372,12 @@ function PdfPages({ url, label }) {
 function bookingMethods(p) {
   const list = splitList(p.booking).map((m) => m.toLowerCase());
   const bookable = String(p.bookable || "").trim().toLowerCase() === "yes";
-  const methods = list.length ? list : bookable ? ["form"] : [];
+  // Tutto passa da Glocal: qualsiasi posto prenotabile (bookable = yes o una
+  // colonna "booking" compilata) mostra solo la nostra richiesta di
+  // prenotazione. Link esterni, WhatsApp e chiamata al locale non si mostrano
+  // più: il locale lo contattiamo noi dopo aver ricevuto la richiesta.
+  if (list.length || bookable) return ["form"];
+  const methods = [];
   return methods.filter((m) => {
     if (m === "form") return true;
     if (m === "link") return !!String(p.booking_url || "").trim();
@@ -1563,73 +1569,7 @@ function DesktopNav({ t, tab, setTab, itinCount }) {
   );
 }
 
-/* --------------------------- BOOKING MODAL -------------------------------- */
-function BookingModal({ place, lang, t, onClose, onBooked }) {
-  const [form, setForm] = useState({ name: "", email: "", people: "2", date: "" });
-  const [status, setStatus] = useState("idle");
-  const title = place[`title_${lang}`];
-  const contact = String(place.contact || "").replace(/[^0-9]/g, "");
-  const weekCount = Number(place.bookings_week) || 0;
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
-  const FORMSPREE_ENDPOINT = "https://formspree.io/f/mnpaapzq";
-  const submit = async () => {
-    if (!form.name || !form.email || !form.date) { setStatus("error"); return; }
-    setStatus("sending");
-    try {
-      const attrib = getAttribution();
-      const res = await fetch(FORMSPREE_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ esperienza: title, nome: form.name, email: form.email, persone: form.people, data: form.date, fonte: attrib.utm_source || "(diretto)", campagna: attrib.utm_campaign || "", annuncio: attrib.utm_content || "", ref: attrib.ref || "", _subject: `Nuova prenotazione Glocal: ${title}` }) });
-      if (res.ok) {
-        setStatus("done");
-        onBooked?.();
-        trackBooking(place.title_it || place.id, { event: "booking_submitted", method: "form", from: "booking_modal" });
-      } else setStatus("error");
-    } catch { setStatus("error"); }
-  };
-  const waText = encodeURIComponent(lang === "it"
-    ? `Ciao! Ho inviato una richiesta di prenotazione tramite Glocal per "${title}" per il ${form.date || "—"}, ${form.people} persone. A nome di ${form.name || "—"}.`
-    : `Hi! I sent a booking request via Glocal for "${title}" on ${form.date || "—"}, ${form.people} people. Under the name ${form.name || "—"}.`);
-
-  return (
-    <div onClick={onClose} className="gl-overlay" style={overlay}>
-      <div onClick={(e) => e.stopPropagation()} className="gl-sheet" style={{ ...sheet, maxWidth: 520, padding: 24 }}>
-        {status === "done" ? (
-          <div style={{ textAlign: "center", padding: "28px 8px" }}>
-            <div style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(56,176,74,0.14)", color: BRAND.green, fontSize: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>✓</div>
-            <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 25, margin: "0 0 10px" }}>{t.thanks}</h3>
-            <p style={{ color: "#5a554a", margin: "0 auto 24px", fontSize: 15, lineHeight: 1.55, maxWidth: 380 }}>{t.thanksSub}</p>
-            {contact && <a href={`https://wa.me/${contact}?text=${waText}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#25D366", color: "#fff", textDecoration: "none", borderRadius: 14, padding: "13px 22px", fontSize: 15, fontWeight: 700, marginBottom: 12 }}><span>💬</span>{t.whatsapp}</a>}
-            <div><button onClick={onClose} style={{ background: "none", border: "none", color: BRAND.muted, fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginTop: 4 }}>{t.close}</button></div>
-          </div>
-        ) : (
-          <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-              <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.14em", color: BRAND.green, fontWeight: 700 }}>{t.booking}</span>
-              <button onClick={onClose} style={xBtn}>×</button>
-            </div>
-            <h3 translate="no" className="notranslate" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 23, margin: "0 0 6px" }}>{title}</h3>
-            <p style={{ fontSize: 13.5, lineHeight: 1.5, color: BRAND.muted, margin: "0 0 14px" }}>{t.bookingSubtitle}</p>
-            {weekCount > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(56,176,74,0.10)", border: `1px solid ${BRAND.green}`, borderRadius: 12, padding: "9px 13px", marginBottom: 18, fontSize: 13, fontWeight: 700, color: BRAND.greenDark }}>
-                <span style={{ fontSize: 15 }}>🔥</span>
-                <span>{weekCount} {t.socialProofWeek} <span translate="no" className="notranslate">{title}</span></span>
-              </div>
-            )}
-            <Field label={t.name}><input style={inp} value={form.name} onChange={set("name")} /></Field>
-            <Field label={t.email}><input style={inp} type="email" value={form.email} onChange={set("email")} /></Field>
-            <div style={{ display: "flex", gap: 12 }}>
-              <Field label={t.people} flex><input style={inp} type="number" min="1" value={form.people} onChange={set("people")} /></Field>
-              <Field label={t.date} flex><input style={inp} type="date" value={form.date} onChange={set("date")} /></Field>
-            </div>
-            {status === "error" && <p style={{ color: BRAND.red, fontSize: 14, margin: "4px 0 12px" }}>{t.required}</p>}
-            <button onClick={submit} disabled={status === "sending"} style={{ width: "100%", background: BRAND.red, color: "#fff", border: "none", borderRadius: 14, padding: 15, fontSize: 16, fontWeight: 700, cursor: status === "sending" ? "default" : "pointer", fontFamily: "inherit", marginTop: 8, opacity: status === "sending" ? 0.7 : 1 }}>
-              {status === "sending" ? t.sending : t.send}
-            </button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
+/* BOOKING MODAL: vedi src/BookingModal.js (richiesta di prenotazione che passa da Glocal) */
 
 /* ------------------------- SKELETON / SPINNER ----------------------------- */
 function DeckSkeleton() {
@@ -1784,6 +1724,7 @@ function FontLink() {
       .gl-rotator-float { animation: glOrbit 6.5s ease-in-out infinite; }
       @keyframes glOrbit { 0% { transform: rotate(0deg); } 25% { transform: rotate(5deg); } 50% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } 100% { transform: rotate(0deg); } }
       .gl-pulse { animation: glpulse 1.4s ease-in-out infinite; }
+      .gl-noscrollbar::-webkit-scrollbar { display: none; }
       @keyframes glpulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }
       .gl-spin { animation: glspin 0.8s linear infinite; }
       @keyframes glspin { to { transform: rotate(360deg) } }
