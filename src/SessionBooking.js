@@ -41,7 +41,7 @@ const COPY = {
     book: "Conferma prenotazione", sending: "Prenoto…",
     errRequired: "Compila nome, email e telefono.", errEmail: "Controlla l'indirizzo email.", errPhone: "Controlla il numero di telefono.",
     errSeats: "Nel frattempo i posti per questa data sono finiti. Scegline un'altra.", errSend: "Qualcosa è andato storto. Riprova tra un attimo.",
-    doneTitle: "Prenotazione confermata", doneBody: "Il tuo posto è riservato. Fai uno screenshot di questa schermata: qui sotto trovi tutti i dettagli.",
+    doneTitle: "Prenotazione confermata", doneSent: "Ti abbiamo mandato la conferma a {email}. Se non la vedi, controlla anche lo spam.", doneLater: "Riceverai la conferma a {email}.",
     meet: "Punto di ritrovo", pay: "Da pagare sul posto",
     close: "Chiudi", back: "Indietro",
     devNote: "Anteprima locale: date di esempio e prenotazione simulata.",
@@ -62,7 +62,7 @@ const COPY = {
     book: "Confirm booking", sending: "Booking…",
     errRequired: "Please fill in name, email and phone.", errEmail: "Please check your email address.", errPhone: "Please check your phone number.",
     errSeats: "Spots for this date just ran out. Please pick another one.", errSend: "Something went wrong. Please try again in a moment.",
-    doneTitle: "Booking confirmed", doneBody: "Your spot is reserved. Take a screenshot of this screen: all the details are below.",
+    doneTitle: "Booking confirmed", doneSent: "We've sent the confirmation to {email}. If you can't find it, check your spam folder.", doneLater: "You'll receive the confirmation at {email}.",
     meet: "Meeting point", pay: "To pay on site",
     close: "Close", back: "Back",
     devNote: "Local preview: sample dates and simulated booking.",
@@ -128,6 +128,7 @@ export default function SessionBooking({ place, lang, onClose, onBack, onBooked 
   const [form, setForm] = useState({ name: "", email: "", phone: "", notes: "" });
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
+  const [mailSent, setMailSent] = useState(false);
 
   const load = () => {
     fetchSessions(place.id)
@@ -178,10 +179,15 @@ export default function SessionBooking({ place, lang, onClose, onBack, onBooked 
         console.info("[Glocal] Prenotazione a date (simulata in locale):", { session: sel, people, ...f });
         await new Promise((r) => setTimeout(r, 700));
       } else {
-        await bookSession({
+        const bookingId = await bookSession({
           p_session_id: sel.id, p_people: people, p_name: f.name, p_email: f.email, p_phone: f.phone,
           p_notes: f.notes || null, p_lang: lang, p_source: attrib.utm_source || attrib.ref || null,
         });
+        // email di conferma al turista (netlify/functions/booking-confirmation.js)
+        const sent = await fetch("/.netlify/functions/booking-confirmation", {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ booking_id: bookingId }),
+        }).then((r) => r.ok).catch(() => false);
+        setMailSent(sent);
         // avviso a Glocal (stessa casella delle richieste ristoranti)
         fetch(FORMSPREE_ENDPOINT, {
           method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -189,6 +195,7 @@ export default function SessionBooking({ place, lang, onClose, onBack, onBooked 
             tipo: "PRENOTAZIONE CONFERMATA (date)", esperienza: title, data: dayLabel(sel.starts_at, "it"), orario: timeLabel(sel.starts_at, "it"),
             persone: people, totale_sul_posto: total != null ? euro(total, "it") : "", nome: f.name, email: f.email, telefono: f.phone, note: f.notes,
             lingua: lang, fonte: attrib.utm_source || "(diretto)", ref: attrib.ref || "", _replyto: f.email,
+            email_conferma_turista: sent ? "inviata" : "NON INVIATA: mandala a mano",
             _subject: `Prenotazione confermata Glocal: ${title} — ${dayLabel(sel.starts_at, "it")} ${timeLabel(sel.starts_at, "it")}, ${people} pers.`,
           }),
         }).catch(() => {});
@@ -240,7 +247,7 @@ export default function SessionBooking({ place, lang, onClose, onBack, onBooked 
             <div style={{ textAlign: "center", padding: "18px 4px 8px" }}>
               <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(56,176,74,0.14)", color: BRAND.green, fontSize: 34, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>✓</div>
               <h3 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 27, margin: "0 0 10px" }}>{c.doneTitle}</h3>
-              <p style={{ color: "#4a463d", margin: "0 auto 18px", fontSize: 15, lineHeight: 1.55, maxWidth: 400 }}>{c.doneBody}</p>
+              <p style={{ color: "#4a463d", margin: "0 auto 18px", fontSize: 15, lineHeight: 1.55, maxWidth: 400 }}>{(mailSent ? c.doneSent : c.doneLater).replace("{email}", form.email.trim())}</p>
               <div style={{ ...S.summary, flexDirection: "column", alignItems: "stretch", textAlign: "left", gap: 10 }}>
                 <div>
                   <div translate="no" className="notranslate" style={{ fontSize: 15.5, fontWeight: 700 }}>{title}</div>

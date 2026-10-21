@@ -149,6 +149,38 @@ begin
   return new_id;
 end $$;
 
+-- Email di conferma al turista (netlify/functions/booking-confirmation.js).
+-- Restituisce i dati della prenotazione UNA SOLA VOLTA, entro 30 minuti dalla
+-- prenotazione, e la segna come "conferma inviata": chi conosce l'id della
+-- propria prenotazione non può usarla per mandare email a ripetizione.
+alter table public.session_bookings add column if not exists confirmation_sent_at timestamptz;
+
+create or replace function public.claim_booking_confirmation(p_booking_id uuid)
+returns json
+language plpgsql security definer set search_path = public as $$
+declare
+  r json;
+begin
+  update public.session_bookings b
+     set confirmation_sent_at = now()
+   where b.id = p_booking_id
+     and b.confirmation_sent_at is null
+     and b.created_at > now() - interval '30 minutes';
+  if not found then return null; end if;
+
+  select json_build_object(
+    'name', b.name, 'email', b.email, 'people', b.people, 'notes', b.notes, 'lang', b.lang,
+    'starts_at', s.starts_at, 'duration_min', s.duration_min, 'price_eur', s.price_eur,
+    'language', s.language, 'note', s.note, 'tour', v.name, 'address', v.address, 'card_id', v.card_id
+  ) into r
+  from public.session_bookings b
+  join public.sessions s on s.id = b.session_id
+  join public.venues v on v.id = s.venue_id
+  where b.id = p_booking_id;
+  return r;
+end $$;
+
+grant execute on function public.claim_booking_confirmation(uuid) to anon, authenticated;
 grant execute on function public.sessions_for_card(text) to anon, authenticated;
 grant execute on function public.book_session(uuid, integer, text, text, text, text, text, text) to anon, authenticated;
 
