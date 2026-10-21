@@ -570,6 +570,7 @@ export default function App() {
   // (icona ingranaggio in Home o tap sul logo), ma non è più la prima vista.
   const [picking, setPicking] = useState(false);     // true = schermata scelta interessi
   const [booking, setBooking] = useState(null);
+  const [bookingFrom, setBookingFrom] = useState(null); // scheda da cui si è aperta la prenotazione: "indietro" ci riporta lì
   const [detail, setDetail] = useState(null);
   const [tipPlace, setTipPlace] = useState(null);
   const [itinerary, setItinerary] = useState(() => load("gl_itin", []));
@@ -705,8 +706,8 @@ export default function App() {
       <div style={{ minHeight: "100vh", background: BRAND.bg, color: BRAND.ink, fontFamily: "'Archivo', system-ui, sans-serif" }}>
         <FontLink />
         <GuideTab t={t} lang={lang} places={places} onClose={() => setShowGuide(false)} onOpenDetail={setDetail} />
-        {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} onOpenWeb={setWebSheet} onBookIntent={markBooked} />}
-        {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} onBooked={markBooked} />}
+        {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBookingFrom(p); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} onOpenWeb={setWebSheet} onBookIntent={markBooked} />}
+        {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => { setBooking(null); setBookingFrom(null); }} onBack={() => { const from = bookingFrom; setBooking(null); setBookingFrom(null); if (from) setDetail(from); }} onBooked={markBooked} />}
         {tipPlace && <LocalTipSheet place={tipPlace} tip={tipPlace[`tip_${lang}`]} lang={lang} t={t} onClose={() => setTipPlace(null)} />}
         {webSheet && <WebSheet sheetData={webSheet} t={t} onClose={() => setWebSheet(null)} />}
       </div>
@@ -771,8 +772,8 @@ export default function App() {
 
       <TabBar t={t} tab={tab} setTab={setTab} itinCount={itinerary.length} />
 
-      {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} onOpenWeb={setWebSheet} onBookIntent={markBooked} />}
-      {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} onBooked={markBooked} />}
+      {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBookingFrom(p); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} onOpenWeb={setWebSheet} onBookIntent={markBooked} />}
+      {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => { setBooking(null); setBookingFrom(null); }} onBack={() => { const from = bookingFrom; setBooking(null); setBookingFrom(null); if (from) setDetail(from); }} onBooked={markBooked} />}
       {tipPlace && <LocalTipSheet place={tipPlace} tip={tipPlace[`tip_${lang}`]} lang={lang} t={t} onClose={() => setTipPlace(null)} />}
         {webSheet && <WebSheet sheetData={webSheet} t={t} onClose={() => setWebSheet(null)} />}
       {eventsPopup}

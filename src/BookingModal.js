@@ -185,7 +185,7 @@ function longDate(d, lang) { return cap(fmt(d, lang, { weekday: "long", day: "nu
 function shortDate(d, lang) { return cap(fmt(d, lang, { weekday: "short", day: "numeric", month: "short" })).replace(/\./g, ""); }
 
 /* ================================ MODAL =================================== */
-export default function BookingModal({ place, lang, onClose, onBooked }) {
+export default function BookingModal({ place, lang, onClose, onBack, onBooked }) {
   const c = COPY[lang] || COPY.it;
   const title = place[`title_${lang}`] || place.title_it;
   const card = place.title_it || place.id;
@@ -280,9 +280,9 @@ export default function BookingModal({ place, lang, onClose, onBooked }) {
 
         {/* HEADER */}
         <div style={S.header}>
-          {step === 2 && status !== "done" ? (
-            <button onClick={() => goStep(1)} aria-label={c.back} style={S.iconBtn}>←</button>
-          ) : <span style={{ width: 40 }} />}
+          {status === "done" ? <span style={{ width: 40 }} /> : (
+            <button onClick={() => (step === 2 ? goStep(1) : (onBack || onClose)())} aria-label={c.back} style={S.iconBtn}>←</button>
+          )}
           <div style={{ flex: 1, minWidth: 0, textAlign: "center" }}>
             <div style={S.kicker}>{c.kicker}</div>
             <div translate="no" className="notranslate" style={S.headerTitle}>{title}</div>
