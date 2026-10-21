@@ -94,6 +94,7 @@ export function getDiscount(place) {
 // si usano le fasce standard per tipo di posto.
 const hasInterest = (p, id) => String(p.interests || "").split(",").map((s) => s.trim()).includes(id);
 const IT_DAYS = ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"];
+const EN_DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const STEP = 30;
 const LAST_SLOT_BEFORE_CLOSE = 60;
 const MEAL_WINDOWS = [[12 * 60, 15 * 60], [19 * 60, 23 * 60]];
@@ -119,7 +120,8 @@ function fallbackTimes(cat) {
 function rangesForDay(orari, date) {
   const rows = String(orari || "").split("\n").map((r) => r.trim()).filter(Boolean);
   if (!rows.length) return "unknown";
-  const line = rows.find((r) => r.toLowerCase().startsWith(IT_DAYS[date.getDay()]));
+  const names = [IT_DAYS[date.getDay()], EN_DAYS[date.getDay()]];
+  const line = rows.find((r) => { const low = r.toLowerCase().replace(/^[^a-zà-ù]+/, ""); return names.some((n) => low.startsWith(n)); });
   if (!line) return "unknown";
   const low = line.toLowerCase();
   if (low.includes("24 ore") || low.includes("24 hours")) return "unknown";
