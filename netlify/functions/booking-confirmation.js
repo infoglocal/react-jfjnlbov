@@ -13,6 +13,7 @@
 //   BOOKING_SENDER_EMAIL  mittente VERIFICATO su Brevo (Senders & IP -> Senders)
 //   BOOKING_SENDER_NAME   facoltativo, default "Glocal"
 //   BOOKING_BCC           facoltativo: indirizzo che riceve una copia di ogni conferma
+//   BOOKING_REPLY_TO      facoltativo: dove arrivano le risposte dei turisti (es. la Gmail)
 
 import { authHeaders } from "../../src/events/schedule.js";
 import config from "../../src/events/config.json";
@@ -131,6 +132,7 @@ export const handler = async (event) => {
       tags: ["booking-confirmation"],
     };
     if (process.env.BOOKING_BCC) mail.bcc = [{ email: process.env.BOOKING_BCC }];
+    if (process.env.BOOKING_REPLY_TO) mail.replyTo = { email: process.env.BOOKING_REPLY_TO, name: "Glocal" };
 
     const send = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
