@@ -465,7 +465,7 @@ function Done({ c, discount, title, email, day, time, peopleLabel, lang, onClose
   );
 }
 
-function Field({ label, hint, children }) {
+export function Field({ label, hint, children }) {
   return (
     <label style={{ display: "block", marginBottom: 16 }}>
       <span style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 6, color: "#3a3630" }}>{label}</span>
@@ -476,7 +476,7 @@ function Field({ label, hint, children }) {
 }
 
 /* --------------------------------- stili ---------------------------------- */
-const S = {
+export const S = {
   overlay: { position: "fixed", inset: 0, background: "rgba(26,20,12,0.55)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 90 },
   sheet: { background: BRAND.bg, width: "100%", maxWidth: 540, borderRadius: "22px 22px 0 0", maxHeight: "92vh", height: "92vh", boxShadow: "0 -10px 50px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", overflow: "hidden" },
   header: { display: "flex", alignItems: "center", gap: 8, padding: "14px 14px 10px" },

@@ -247,20 +247,28 @@ function Dashboard({ session, places }) {
           <div className="gl-pp-kicker">{isAdmin ? "Admin Glocal" : "Il tuo locale"}</div>
           <h1 className="gl-pp-h1" style={{ margin: 0 }}>{isAdmin ? "Eventi in città" : myVenue?.name || "I tuoi eventi"}</h1>
         </div>
-        <button className="gl-pp-btn" onClick={() => setEditing("new")}>+ Nuovo evento</button>
+        {tab !== "sessions" && <button className="gl-pp-btn" onClick={() => setEditing("new")}>+ Nuovo evento</button>}
       </div>
 
       {loadErr && <p className="gl-pp-err">{loadErr}</p>}
 
-      {isAdmin && (
+      {isAdmin ? (
         <div className="gl-pp-tabs">
           <button className={tab === "pending" ? "on" : ""} onClick={() => setTab("pending")}>Da approvare{pendingCount > 0 && <span className="gl-pp-count">{pendingCount}</span>}</button>
           <button className={tab === "events" ? "on" : ""} onClick={() => setTab("events")}>Tutti gli eventi</button>
+          <button className={tab === "sessions" ? "on" : ""} onClick={() => setTab("sessions")}>Date tour</button>
           <button className={tab === "venues" ? "on" : ""} onClick={() => setTab("venues")}>Locali e account</button>
         </div>
-      )}
+      ) : myVenue?.card_id ? (
+        <div className="gl-pp-tabs">
+          <button className={tab !== "sessions" ? "on" : ""} onClick={() => setTab("events")}>Eventi</button>
+          <button className={tab === "sessions" ? "on" : ""} onClick={() => setTab("sessions")}>Date e prenotazioni</button>
+        </div>
+      ) : null}
 
-      {isAdmin && tab === "venues" ? (
+      {tab === "sessions" ? (
+        <SessionsPanel isAdmin={isAdmin} venues={venues} myVenue={myVenue} onToast={setToast} />
+      ) : isAdmin && tab === "venues" ? (
         <VenuesAdmin venues={venues} profiles={profiles} places={places} onChanged={(m) => { if (m) setToast(m); reload(); }} />
       ) : (
         <EventList events={list} isAdmin={isAdmin} emptyText={
@@ -268,7 +276,7 @@ function Dashboard({ session, places }) {
         } onEdit={setEditing} onChanged={(m) => { if (m) setToast(m); reload(); }} />
       )}
 
-      {!isAdmin && (
+      {!isAdmin && tab !== "sessions" && (
         <p className="gl-pp-muted" style={{ fontSize: 13, lineHeight: 1.5, marginTop: 26 }}>
           Ogni locandina viene controllata da Glocal prima di comparire nell'app, di solito entro 24 ore. Se modifichi un evento già pubblicato, torna in revisione.
         </p>
@@ -276,6 +284,214 @@ function Dashboard({ session, places }) {
 
       {toast && <div className="gl-pp-toast">{toast}</div>}
     </>
+  );
+}
+
+/* ============================================================================
+   DATE E PRENOTAZIONI (tour / esperienze a date) — supabase/sessions.sql
+   Il partner inserisce le date del proprio tour; l'admin quelle di tutti.
+   Le prenotazioni dei turisti arrivano già confermate (pagamento sul posto).
+   ============================================================================ */
+const TZ_ROME = "Europe/Rome";
+// "2026-10-25" + "10:00" ora di Bologna -> ISO in UTC
+function romeToIso(date, time) {
+  const [y, m, d] = date.split("-").map(Number);
+  const [h, mi] = time.split(":").map(Number);
+  const guess = Date.UTC(y, m - 1, d, h, mi);
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: TZ_ROME, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+    .formatToParts(new Date(guess)).map((p) => [p.type, p.value]));
+  const wall = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute);
+  return new Date(guess - (wall - guess)).toISOString();
+}
+const romeFmt = (iso, opts) => new Date(iso).toLocaleString("it-IT", { timeZone: TZ_ROME, ...opts });
+const sessWhen = (iso) => {
+  const s = romeFmt(iso, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+const durLabel = (m) => (m % 60 === 0 ? `${m / 60} h` : m > 60 ? `${Math.floor(m / 60)} h ${m % 60}` : `${m} min`);
+const DURATIONS = [60, 90, 120, 150, 180, 240, 300];
+
+function SessionsPanel({ isAdmin, venues, myVenue, onToast }) {
+  const [rows, setRows] = useState(null);
+  const [err, setErr] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [open, setOpen] = useState(null);
+  const [confirm, setConfirm] = useState(null);
+  const tourVenues = useMemo(() => venues.filter((v) => v.card_id), [venues]);
+
+  const load = useCallback(async () => {
+    setErr("");
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { data, error } = await supabase.from("sessions")
+      .select("*, venue:venues(name, card_id), bookings:session_bookings(*)")
+      .gte("starts_at", since).order("starts_at");
+    if (error) { setErr(/relation|does not exist|schema cache/i.test(error.message) ? "Le date non sono ancora attive: va eseguito supabase/sessions.sql nel database." : errText(error)); setRows([]); return; }
+    setRows(data || []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const last = rows && rows.length ? rows[rows.length - 1] : null;
+  const cancelSession = async (s) => {
+    const booked = (s.bookings || []).some((b) => b.status === "confirmed");
+    const { error } = booked
+      ? await supabase.from("sessions").update({ cancelled: true }).eq("id", s.id)
+      : await supabase.from("sessions").delete().eq("id", s.id);
+    setConfirm(null);
+    onToast(error ? errText(error) : booked ? "Data annullata: avvisa chi aveva prenotato" : "Data eliminata");
+    load();
+  };
+
+  if (!isAdmin && myVenue && !myVenue.card_id) {
+    return <p className="gl-pp-muted" style={{ fontSize: 14, lineHeight: 1.5 }}>Il tuo account non è ancora collegato a una scheda dell'app: scrivici e lo attiviamo.</p>;
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <p className="gl-pp-muted" style={{ margin: 0, fontSize: 13.5, lineHeight: 1.45 }}>
+          Le date che inserisci compaiono subito nell'app. I turisti prenotano e pagano sul posto.
+        </p>
+        {!adding && <button className="gl-pp-btn small" style={{ flexShrink: 0, whiteSpace: "nowrap" }} onClick={() => setAdding(true)}>+ Aggiungi date</button>}
+      </div>
+      {err && <p className="gl-pp-err" style={{ marginBottom: 12 }}>{err}</p>}
+
+      {adding && (
+        <SessionForm isAdmin={isAdmin} venues={tourVenues} myVenue={myVenue} last={last}
+          onCancel={() => setAdding(false)}
+          onSaved={(n) => { setAdding(false); onToast(n === 1 ? "Data aggiunta" : `${n} date aggiunte`); load(); }} />
+      )}
+
+      {rows === null ? (
+        <div className="gl-pp-muted" style={{ padding: 24, textAlign: "center" }}>Caricamento…</div>
+      ) : rows.length === 0 ? (
+        <div className="gl-pp-card gl-pp-sec gl-pp-muted" style={{ textAlign: "center", fontSize: 14 }}>Nessuna data in programma. Aggiungi la prima!</div>
+      ) : (
+        <div style={{ display: "grid", gap: 10 }}>
+          {rows.map((s) => {
+            const conf = (s.bookings || []).filter((b) => b.status === "confirmed");
+            const taken = conf.reduce((a, b) => a + b.people, 0);
+            const past = new Date(s.starts_at) < new Date();
+            return (
+              <div key={s.id} className="gl-pp-card" style={{ padding: 14, opacity: s.cancelled || past ? 0.55 : 1 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15.5 }}>{sessWhen(s.starts_at)}{s.cancelled && <span className="gl-pp-badge" style={{ marginLeft: 8, background: "rgba(229,56,59,0.12)", color: BRAND.red }}>Annullata</span>}</div>
+                    <div className="gl-pp-muted" style={{ fontSize: 13, marginTop: 3 }}>
+                      {isAdmin && s.venue?.name ? `${s.venue.name} · ` : ""}{durLabel(s.duration_min)}{s.price_eur != null ? ` · ${Number(s.price_eur).toLocaleString("it-IT")} €` : ""}{s.language ? ` · ${s.language}` : ""}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 20 }}>{taken}<span className="gl-pp-muted" style={{ fontSize: 14 }}>/{s.capacity}</span></div>
+                    <div className="gl-pp-muted" style={{ fontSize: 11.5 }}>prenotati</div>
+                  </div>
+                </div>
+                <div className="gl-pp-actions">
+                  {conf.length > 0 && <button className="gl-pp-btn ghost small" onClick={() => setOpen(open === s.id ? null : s.id)}>{open === s.id ? "Nascondi" : `Prenotazioni (${conf.length})`}</button>}
+                  {!s.cancelled && !past && (confirm === s.id ? (
+                    <>
+                      <button className="gl-pp-btn danger small" onClick={() => cancelSession(s)}>{conf.length ? "Sì, annulla la data" : "Sì, elimina"}</button>
+                      <button className="gl-pp-btn ghost small" onClick={() => setConfirm(null)}>No</button>
+                    </>
+                  ) : (
+                    <button className="gl-pp-link" style={{ color: BRAND.red, fontSize: 13 }} onClick={() => setConfirm(s.id)}>{conf.length ? "Annulla data" : "Elimina"}</button>
+                  ))}
+                </div>
+                {open === s.id && (
+                  <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+                    {conf.map((b) => (
+                      <div key={b.id} className="gl-pp-line" style={{ alignItems: "flex-start", flexDirection: "column", gap: 3 }}>
+                        <div style={{ fontWeight: 700 }}>{b.name} · {b.people} {b.people === 1 ? "persona" : "persone"}</div>
+                        <div style={{ fontSize: 13.5 }}><a href={`tel:${b.phone}`}>{b.phone}</a> · <a href={`mailto:${b.email}`}>{b.email}</a></div>
+                        {b.notes && <div className="gl-pp-muted" style={{ fontSize: 13 }}>“{b.notes}”</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SessionForm({ isAdmin, venues, myVenue, last, onCancel, onSaved }) {
+  const [f, setF] = useState(() => ({
+    venue_id: isAdmin ? (last?.venue_id || venues[0]?.id || "") : myVenue?.id || "",
+    date: "", time: last ? romeFmt(last.starts_at, { hour: "2-digit", minute: "2-digit" }) : "10:00",
+    duration_min: last?.duration_min || 120, capacity: last?.capacity || 8,
+    price_eur: last?.price_eur ?? "", language: last?.language || "IT/EN", note: "", repeat: 1,
+  }));
+  const [err, setErr] = useState("");
+  const [saving, setSaving] = useState(false);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+
+  const save = async (e) => {
+    e.preventDefault();
+    if (!f.venue_id) { setErr(isAdmin ? "Scegli il tour (deve essere collegato a una scheda dell'app)." : "Account non collegato."); return; }
+    if (!f.date || !f.time) { setErr("Inserisci giorno e ora."); return; }
+    const cap = Number(f.capacity);
+    if (!(cap >= 1 && cap <= 200)) { setErr("Posti: un numero tra 1 e 200."); return; }
+    const repeat = Math.max(1, Math.min(12, Number(f.repeat) || 1));
+    const rows = [];
+    for (let i = 0; i < repeat; i++) {
+      const d = new Date(`${f.date}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + 7 * i);
+      const iso = romeToIso(d.toISOString().slice(0, 10), f.time);
+      if (new Date(iso) <= new Date()) continue;
+      rows.push({
+        venue_id: f.venue_id, starts_at: iso, duration_min: Number(f.duration_min), capacity: cap,
+        price_eur: f.price_eur === "" ? null : Number(String(f.price_eur).replace(",", ".")),
+        language: f.language.trim() || null, note: f.note.trim() || null,
+      });
+    }
+    if (!rows.length) { setErr("La data è già passata."); return; }
+    setErr(""); setSaving(true);
+    const { error } = await supabase.from("sessions").insert(rows);
+    setSaving(false);
+    if (error) { setErr(errText(error)); return; }
+    onSaved(rows.length);
+  };
+
+  return (
+    <form onSubmit={save} className="gl-pp-card gl-pp-sec" style={{ marginBottom: 16 }}>
+      <div className="gl-pp-sec-title">Nuova data</div>
+      {isAdmin && (
+        <>
+          <label className="gl-pp-label">Tour</label>
+          <select className="gl-pp-input" value={f.venue_id} onChange={set("venue_id")}>
+            <option value="">— scegli —</option>
+            {venues.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+          </select>
+        </>
+      )}
+      <div className="gl-pp-row">
+        <div><label className="gl-pp-label">Giorno</label><input className="gl-pp-input" type="date" value={f.date} onChange={set("date")} /></div>
+        <div><label className="gl-pp-label">Ora di inizio</label><input className="gl-pp-input" type="time" value={f.time} onChange={set("time")} /></div>
+      </div>
+      <div className="gl-pp-row">
+        <div><label className="gl-pp-label">Durata</label>
+          <select className="gl-pp-input" value={f.duration_min} onChange={set("duration_min")}>{DURATIONS.map((d) => <option key={d} value={d}>{durLabel(d)}</option>)}</select>
+        </div>
+        <div><label className="gl-pp-label">Posti</label><input className="gl-pp-input" type="number" min="1" max="200" value={f.capacity} onChange={set("capacity")} /></div>
+      </div>
+      <div className="gl-pp-row">
+        <div><label className="gl-pp-label">Prezzo a persona (€)</label><input className="gl-pp-input" inputMode="decimal" value={f.price_eur} onChange={set("price_eur")} placeholder="es. 25" /></div>
+        <div><label className="gl-pp-label">Lingua</label><input className="gl-pp-input" value={f.language} onChange={set("language")} placeholder="es. IT/EN" /></div>
+      </div>
+      <label className="gl-pp-label">Nota per i turisti <span className="gl-pp-muted" style={{ fontWeight: 500 }}>(facoltativa)</span></label>
+      <input className="gl-pp-input" value={f.note} onChange={set("note")} placeholder="es. Edizione al tramonto" />
+      <label className="gl-pp-label">Ripeti la stessa data</label>
+      <select className="gl-pp-input" value={f.repeat} onChange={set("repeat")}>
+        <option value={1}>No, solo questa</option>
+        {[2, 3, 4, 6, 8, 12].map((n) => <option key={n} value={n}>Ogni settimana, per {n} settimane</option>)}
+      </select>
+      {err && <p className="gl-pp-err">{err}</p>}
+      <div className="gl-pp-actions" style={{ marginTop: 16 }}>
+        <button className="gl-pp-btn" type="submit" disabled={saving}>{saving ? "Salvo…" : "Salva"}</button>
+        <button className="gl-pp-btn ghost" type="button" onClick={onCancel}>Annulla</button>
+      </div>
+    </form>
   );
 }
 

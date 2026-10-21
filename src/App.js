@@ -3,6 +3,7 @@ import Papa from "papaparse";
 import { BRAND, track as baseTrack } from "./shared";
 import { captureAttribution, trackBooking } from "./glocalTracking";
 import BookingModal, { getDiscount } from "./BookingModal";
+import SessionBooking from "./SessionBooking";
 import { useEvents, EVENT_PREFIX } from "./events/data";
 import { upcomingEvents } from "./events/schedule";
 import { EventsPopup, EventsStrip, EventsTicker } from "./events/EventsPopup";
@@ -190,7 +191,7 @@ const T = {
     localTip: "Il consiglio del local", localTipsBtn: "Local tips",
     localTipTitle: "Consiglio locale",
     emptySection: "Presto nuovi contenuti in questa sezione.",
-    book: "Prenota gratuitamente", addItinShort: "Itinerario", inItinShort: "Aggiunto",
+    book: "Prenota gratuitamente", bookDates: "Vedi date e prenota", addItinShort: "Itinerario", inItinShort: "Aggiunto",
     addItin: "Aggiungi all'itinerario", inItin: "Nell'itinerario",
     of: "di",
     tabHome: "Home", tabItin: "Itinerario",
@@ -269,7 +270,7 @@ const T = {
     localTip: "The local's tip", localTipsBtn: "Local tips",
     localTipTitle: "Local tip",
     emptySection: "New content coming soon in this section.",
-    book: "Book for free", addItinShort: "Itinerary", inItinShort: "Added",
+    book: "Book for free", bookDates: "See dates and book", addItinShort: "Itinerary", inItinShort: "Added",
     addItin: "Add to itinerary", inItin: "In itinerary",
     of: "of",
     tabHome: "Home", tabItin: "Itinerary",
@@ -381,6 +382,9 @@ function bookingMethods(p) {
   // ESPERIENZE (madeinbo = yes): per ora restano come prima (link, WhatsApp,
   // chiamata o form, da colonna "booking"): date e posti li decide chi le
   // organizza, il loro flusso è ancora da definire.
+  // TOUR / ESPERIENZE A DATE (booking = sessioni): date inserite dal partner
+  // nel portale, prenotazione confermata subito (src/SessionBooking.js).
+  if (list.includes("sessioni")) return ["sessioni"];
   if (!isMadeInBo(p) && (list.length || bookable)) return ["form"];
   const methods = list.length ? list : bookable ? ["form"] : [];
   return methods.filter((m) => {
@@ -707,7 +711,7 @@ export default function App() {
         <FontLink />
         <GuideTab t={t} lang={lang} places={places} onClose={() => setShowGuide(false)} onOpenDetail={setDetail} />
         {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBookingFrom(p); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} onOpenWeb={setWebSheet} onBookIntent={markBooked} />}
-        {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => { setBooking(null); setBookingFrom(null); }} onBack={() => { const from = bookingFrom; setBooking(null); setBookingFrom(null); if (from) setDetail(from); }} onBooked={markBooked} />}
+        {booking && <BookingSwitch place={booking} lang={lang} t={t} onClose={() => { setBooking(null); setBookingFrom(null); }} onBack={() => { const from = bookingFrom; setBooking(null); setBookingFrom(null); if (from) setDetail(from); }} onBooked={markBooked} />}
         {tipPlace && <LocalTipSheet place={tipPlace} tip={tipPlace[`tip_${lang}`]} lang={lang} t={t} onClose={() => setTipPlace(null)} />}
         {webSheet && <WebSheet sheetData={webSheet} t={t} onClose={() => setWebSheet(null)} />}
       </div>
@@ -773,7 +777,7 @@ export default function App() {
       <TabBar t={t} tab={tab} setTab={setTab} itinCount={itinerary.length} />
 
       {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBookingFrom(p); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} onOpenWeb={setWebSheet} onBookIntent={markBooked} />}
-      {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => { setBooking(null); setBookingFrom(null); }} onBack={() => { const from = bookingFrom; setBooking(null); setBookingFrom(null); if (from) setDetail(from); }} onBooked={markBooked} />}
+      {booking && <BookingSwitch place={booking} lang={lang} t={t} onClose={() => { setBooking(null); setBookingFrom(null); }} onBack={() => { const from = bookingFrom; setBooking(null); setBookingFrom(null); if (from) setDetail(from); }} onBooked={markBooked} />}
       {tipPlace && <LocalTipSheet place={tipPlace} tip={tipPlace[`tip_${lang}`]} lang={lang} t={t} onClose={() => setTipPlace(null)} />}
         {webSheet && <WebSheet sheetData={webSheet} t={t} onClose={() => setWebSheet(null)} />}
       {eventsPopup}
@@ -1396,13 +1400,13 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
             <OpeningHours orari={place.orari} t={t} />
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {methods.includes("form") && getDiscount(place) > 0 && (
+              {(methods.includes("form") || methods.includes("sessioni")) && getDiscount(place) > 0 && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 700, color: BRAND.greenDark }}>
                   <span style={{ background: BRAND.green, color: "#fff", borderRadius: 8, padding: "3px 8px", fontSize: 13 }}>-{getDiscount(place)}%</span>
                   {lang === "it" ? "prenotando con Glocal" : "when you book with Glocal"}
                 </div>
               )}
-              {methods.includes("form") && <button onClick={() => { track("start_booking", { card, method: "form", from: "detail" }); onBook(place); }} style={primaryBtn}>{t.book}</button>}
+              {(methods.includes("form") || methods.includes("sessioni")) && <button onClick={() => { track("start_booking", { card, method: methods[0], from: "detail" }); onBook(place); }} style={primaryBtn}>{methods.includes("sessioni") ? t.bookDates : t.book}</button>}
               {methods.includes("link") && (
                 // La pagina di prenotazione del partner si apre in una nuova scheda e non più
                 // nel pannello interno: dentro l'iframe, su iPhone, banner cookie, pagamenti e
@@ -1581,7 +1585,11 @@ function DesktopNav({ t, tab, setTab, itinCount }) {
   );
 }
 
-/* BOOKING MODAL: vedi src/BookingModal.js (richiesta di prenotazione che passa da Glocal) */
+/* BOOKING MODAL: vedi src/BookingModal.js (richiesta di prenotazione che passa da
+   Glocal) e src/SessionBooking.js (tour/esperienze a date, booking = sessioni) */
+function BookingSwitch(props) {
+  return bookingMethods(props.place).includes("sessioni") ? <SessionBooking {...props} /> : <BookingModal {...props} />;
+}
 
 /* ------------------------- SKELETON / SPINNER ----------------------------- */
 function DeckSkeleton() {
