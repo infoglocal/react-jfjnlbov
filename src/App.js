@@ -374,12 +374,15 @@ function PdfPages({ url, label }) {
 function bookingMethods(p) {
   const list = splitList(p.booking).map((m) => m.toLowerCase());
   const bookable = String(p.bookable || "").trim().toLowerCase() === "yes";
-  // Tutto passa da Glocal: qualsiasi posto prenotabile (bookable = yes o una
-  // colonna "booking" compilata) mostra solo la nostra richiesta di
-  // prenotazione. Link esterni, WhatsApp e chiamata al locale non si mostrano
-  // più: il locale lo contattiamo noi dopo aver ricevuto la richiesta.
-  if (list.length || bookable) return ["form"];
-  const methods = [];
+  // HORECA (bar, ristoranti, botteghe…): tutto passa da Glocal. Qualsiasi posto
+  // prenotabile (bookable = yes o colonna "booking" compilata) mostra solo la
+  // nostra richiesta di prenotazione; link esterni, WhatsApp e chiamata al
+  // locale non si mostrano più: il locale lo contattiamo noi.
+  // ESPERIENZE (madeinbo = yes): per ora restano come prima (link, WhatsApp,
+  // chiamata o form, da colonna "booking"): date e posti li decide chi le
+  // organizza, il loro flusso è ancora da definire.
+  if (!isMadeInBo(p) && (list.length || bookable)) return ["form"];
+  const methods = list.length ? list : bookable ? ["form"] : [];
   return methods.filter((m) => {
     if (m === "form") return true;
     if (m === "link") return !!String(p.booking_url || "").trim();
