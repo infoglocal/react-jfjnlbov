@@ -866,6 +866,14 @@ function GuideTab({ t, lang, places, onClose, onOpenDetail, kitUnlocked, onOpenK
     e.preventDefault();
     if (!email.includes("@") || !consent) { setErr(true); return; }
     setErr(false); setSending(true);
+    // In locale (npm start) le funzioni Netlify non esistono: sblocco simulato,
+    // senza iscrivere l'email a Brevo.
+    if (process.env.NODE_ENV !== "production") {
+      save("gl_guide_unlocked", true);
+      setUnlocked(true);
+      setSending(false);
+      return;
+    }
     try {
       const res = await fetch("/.netlify/functions/subscribe-guide", {
         method: "POST",
