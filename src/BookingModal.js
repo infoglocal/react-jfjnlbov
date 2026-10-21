@@ -8,9 +8,8 @@ import { getAttribution, trackBooking } from "./glocalTracking";
    suoi dati. La richiesta arriva a noi (Formspree) e siamo noi a contattare il
    locale; poi confermiamo all'utente via email.
 
-   GLI ORARI SONO FINTI: generati qui sotto in base al tipo di posto (cibo,
-   drink, altro), tutti selezionabili. Nessun collegamento con la
-   disponibilità reale del locale.
+   ORARI: seguono gli orari di apertura Google (colonna "orari"), vedi sotto.
+   Non è la disponibilità reale dei tavoli: è una richiesta, confermata dopo.
 
    SCONTO: colonna "sconto" del Google Sheet, solo il numero (es. 10 = -10%).
    Vuota o 0 = nessuno sconto mostrato. Da compilare solo per i locali con
@@ -39,11 +38,11 @@ const COPY = {
     continue: "Continua", pickTime: "Scegli un orario",
     edit: "Modifica",
     name: "Nome e cognome", email: "Email", phone: "Telefono / WhatsApp", optional: "facoltativo",
-    phoneHint: "Ti aggiorniamo più in fretta se serve cambiare orario.",
+    phoneHint: "Con prefisso se non hai un numero italiano (es. +44…).",
     notes: "Richieste particolari", notesPh: "Allergie, seggiolone, un'occasione speciale…",
     reassurance: "Nessun pagamento. È una richiesta di prenotazione: riceverai la conferma via email.",
     send: "Invia richiesta", sending: "Invio…",
-    errRequired: "Inserisci nome ed email.", errEmail: "Controlla l'indirizzo email.", errSend: "Qualcosa è andato storto. Riprova tra un attimo.",
+    errRequired: "Compila nome, email e telefono.", errEmail: "Controlla l'indirizzo email.", errPhone: "Controlla il numero di telefono.", errSend: "Qualcosa è andato storto. Riprova tra un attimo.",
     doneTitle: "Richiesta inviata",
     doneBody: "Riceverai la conferma della prenotazione a {email}, di solito entro 24 ore.",
     doneNote: "Non è ancora una conferma: tieni d'occhio la tua email (anche lo spam).",
@@ -64,11 +63,11 @@ const COPY = {
     continue: "Continue", pickTime: "Pick a time",
     edit: "Edit",
     name: "Full name", email: "Email", phone: "Phone / WhatsApp", optional: "optional",
-    phoneHint: "Helps us reach you faster if the time needs to change.",
+    phoneHint: "Include your country code if it isn't an Italian number (e.g. +44…).",
     notes: "Special requests", notesPh: "Allergies, high chair, a special occasion…",
     reassurance: "No payment. This is a booking request: you'll receive the confirmation by email.",
     send: "Send request", sending: "Sending…",
-    errRequired: "Please enter your name and email.", errEmail: "Please check your email address.", errSend: "Something went wrong. Please try again in a moment.",
+    errRequired: "Please fill in name, email and phone.", errEmail: "Please check your email address.", errPhone: "Please check your phone number.", errSend: "Something went wrong. Please try again in a moment.",
     doneTitle: "Request sent",
     doneBody: "You'll receive your booking confirmation at {email}, usually within 24 hours.",
     doneNote: "Not a confirmation yet: keep an eye on your inbox (and spam).",
@@ -85,40 +84,92 @@ export function getDiscount(place) {
   return Number.isFinite(n) && n > 0 && n < 100 ? Math.round(n) : 0;
 }
 
-/* ------------------------------ orari finti ------------------------------- */
+/* -------------------------------- orari --------------------------------- */
+// Gli slot seguono gli orari di apertura sincronizzati da Google (colonna
+// "orari": una riga per giorno, es. "lunedì: 12:00–15:00, 19:00–23:00" o
+// "martedì: Chiuso"). Fasce ogni 30 minuti, l'ultima almeno 1 ora prima della
+// chiusura. Per i posti "cibo" si tengono solo gli slot nelle fasce pasto
+// (pranzo 12–15, cena 19–23), se il locale è aperto in quelle ore.
+// Se "orari" manca, o il giorno non si riesce a leggere, o è aperto 24 ore,
+// si usano le fasce standard per tipo di posto.
 const hasInterest = (p, id) => String(p.interests || "").split(",").map((s) => s.trim()).includes(id);
+const IT_DAYS = ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"];
+const STEP = 30;
+const LAST_SLOT_BEFORE_CLOSE = 60;
+const MEAL_WINDOWS = [[12 * 60, 15 * 60], [19 * 60, 23 * 60]];
 
-function range(from, to, stepMin = 30) {
-  const out = [];
-  const [fh, fm] = from.split(":").map(Number);
-  const [th, tm] = to.split(":").map(Number);
-  for (let m = fh * 60 + fm; m <= th * 60 + tm; m += stepMin) {
-    out.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
-  }
-  return out;
+const toMin = (h, m) => Number(h) * 60 + Number(m);
+const label = (min) => `${String(Math.floor(min / 60) % 24).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+
+function category(place) {
+  if (hasInterest(place, "food")) return "food";
+  if (hasInterest(place, "drink")) return "drink";
+  return "other";
 }
 
-function slotTemplate(place) {
-  if (hasInterest(place, "food")) return [["lunch", range("12:00", "14:30")], ["dinner", range("19:00", "22:00")]];
-  if (hasInterest(place, "drink")) return [["aperitivo", range("18:00", "20:30")], ["evening", range("21:00", "23:00")]];
-  return [["morning", range("10:00", "12:30")], ["afternoon", range("15:00", "18:00")]];
+// fasce standard (posti senza orari Google)
+function fallbackTimes(cat) {
+  const r = (a, b) => { const out = []; for (let m = a; m <= b; m += STEP) out.push(m); return out; };
+  if (cat === "food") return [...r(toMin(12, 0), toMin(14, 30)), ...r(toMin(19, 0), toMin(22, 0))];
+  if (cat === "drink") return [...r(toMin(18, 0), toMin(23, 0))];
+  return [...r(toMin(10, 0), toMin(12, 30)), ...r(toMin(15, 0), toMin(18, 0))];
+}
+
+// "closed" | "unknown" | [{start, end}] (minuti, end può superare 24:00)
+function rangesForDay(orari, date) {
+  const rows = String(orari || "").split("\n").map((r) => r.trim()).filter(Boolean);
+  if (!rows.length) return "unknown";
+  const line = rows.find((r) => r.toLowerCase().startsWith(IT_DAYS[date.getDay()]));
+  if (!line) return "unknown";
+  const low = line.toLowerCase();
+  if (low.includes("24 ore") || low.includes("24 hours")) return "unknown";
+  const ranges = [];
+  const re = /(\d{1,2}):(\d{2})\s*[–—-]\s*(\d{1,2}):(\d{2})/g;
+  let m;
+  while ((m = re.exec(line))) {
+    const start = toMin(m[1], m[2]);
+    let end = toMin(m[3], m[4]);
+    if (end <= start) end += 24 * 60; // fascia oltre la mezzanotte
+    ranges.push({ start, end });
+  }
+  if (ranges.length) return ranges;
+  return low.includes("chius") || low.includes("closed") ? "closed" : "unknown";
+}
+
+function timesFromRanges(ranges, cat) {
+  const all = [];
+  ranges.forEach(({ start, end }) => {
+    for (let t = Math.ceil(start / STEP) * STEP; t <= end - LAST_SLOT_BEFORE_CLOSE; t += STEP) all.push(t);
+  });
+  const uniq = [...new Set(all)].sort((a, b) => a - b);
+  if (cat !== "food") return uniq;
+  const meals = uniq.filter((t) => MEAL_WINDOWS.some(([a, b]) => t >= a && t <= b - LAST_SLOT_BEFORE_CLOSE + STEP));
+  return meals.length ? meals : uniq; // aperto solo fuori dagli orari pasto: mostra comunque gli orari veri
+}
+
+function groupOf(t, cat) {
+  const h = (t % (24 * 60)) / 60;
+  const late = t >= 24 * 60;
+  if (cat === "food") return h < 17 && !late ? "lunch" : "dinner";
+  if (cat === "drink") return late || h >= 21 ? "evening" : h >= 17 ? "aperitivo" : h < 12 ? "morning" : "afternoon";
+  return late || h >= 19 ? "evening" : h < 13 ? "morning" : "afternoon";
 }
 
 function slotsFor(place, date) {
-  const iso = toIso(date);
+  const cat = category(place);
+  const ranges = rangesForDay(place.orari, date);
+  if (ranges === "closed") return [];
+  const times = ranges === "unknown" ? fallbackTimes(cat) : timesFromRanges(ranges, cat);
+
   const now = new Date();
-  const isToday = iso === toIso(now);
+  const isToday = toIso(date) === toIso(now);
   const minMinutes = now.getHours() * 60 + now.getMinutes() + 90; // oggi: almeno 1h30 di preavviso
-  return slotTemplate(place).map(([group, times]) => ({
-    group,
-    slots: times
-      .filter((tm) => {
-        if (!isToday) return true;
-        const [h, m] = tm.split(":").map(Number);
-        return h * 60 + m >= minMinutes;
-      })
-      .map((tm) => ({ time: tm })),
-  })).filter((g) => g.slots.length > 0);
+  const usable = isToday ? times.filter((t) => t >= minMinutes) : times;
+
+  const order = ["morning", "lunch", "afternoon", "aperitivo", "dinner", "evening"];
+  const byGroup = {};
+  usable.forEach((t) => { const g = groupOf(t, cat); (byGroup[g] = byGroup[g] || []).push({ time: label(t) }); });
+  return order.filter((g) => byGroup[g]).map((g) => ({ group: g, slots: byGroup[g] }));
 }
 
 /* ------------------------------ date helpers ------------------------------ */
@@ -166,8 +217,10 @@ export default function BookingModal({ place, lang, onClose, onBooked }) {
   const pickTime = (tm) => { setTime(tm); track("booking_pick_time", { card, time: tm }); };
 
   const submit = async () => {
-    if (!form.name.trim() || !form.email.trim()) { setError(c.errRequired); return; }
+    if (!form.name.trim() || !form.email.trim() || !form.phone.trim()) { setError(c.errRequired); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) { setError(c.errEmail); return; }
+    const digits = form.phone.replace(/[^0-9]/g, "");
+    if (!/^[+0-9\s().-]+$/.test(form.phone.trim()) || digits.length < 8 || digits.length > 15) { setError(c.errPhone); return; }
     setError("");
     setStatus("sending");
     const attrib = getAttribution();
@@ -349,7 +402,7 @@ export default function BookingModal({ place, lang, onClose, onBooked }) {
 
               <Field label={c.name}><input style={S.inp} value={form.name} onChange={set("name")} autoComplete="name" /></Field>
               <Field label={c.email}><input style={S.inp} type="email" inputMode="email" value={form.email} onChange={set("email")} autoComplete="email" /></Field>
-              <Field label={<>{c.phone} <span style={{ fontWeight: 500, color: BRAND.muted }}>({c.optional})</span></>} hint={c.phoneHint}>
+              <Field label={c.phone} hint={c.phoneHint}>
                 <input style={S.inp} type="tel" inputMode="tel" value={form.phone} onChange={set("phone")} autoComplete="tel" />
               </Field>
               <Field label={<>{c.notes} <span style={{ fontWeight: 500, color: BRAND.muted }}>({c.optional})</span></>}>
