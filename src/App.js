@@ -3,6 +3,7 @@ import Papa from "papaparse";
 import { BRAND, track as baseTrack } from "./shared";
 import { captureAttribution, trackBooking } from "./glocalTracking";
 import BookingModal, { getDiscount } from "./BookingModal";
+import { KitBanner, KitStopNote, KitPaywall, KitPage } from "./KitLocal";
 import { useEvents, EVENT_PREFIX } from "./events/data";
 import { upcomingEvents } from "./events/schedule";
 import { EventsPopup, EventsStrip, EventsTicker } from "./events/EventsPopup";
@@ -574,6 +575,18 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [hasBooked, setHasBooked] = useState(() => load("gl_has_booked", false));
   const [showGuide, setShowGuide] = useState(false);
+  // KIT DA LOCAL (contenuto a pagamento, prototipo): vedi src/KitLocal.js
+  const [kitUnlocked, setKitUnlocked] = useState(() => load("gl_kit_unlocked", false));
+  const [showKit, setShowKit] = useState(false);
+  const [kitPaywall, setKitPaywall] = useState(false);
+  const unlockKit = () => { save("gl_kit_unlocked", true); setKitUnlocked(true); setKitPaywall(false); track("kit_unlocked", {}); };
+  // ritorno dal pagamento: …/?kit=ok
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search);
+      if (q.get("kit") === "ok") { unlockKit(); setShowKit(true); window.history.replaceState(null, "", window.location.pathname); }
+    } catch {}
+  }, []);
   const [showAbandoned, setShowAbandoned] = useState(false);
   const [webSheet, setWebSheet] = useState(null); // popup menu / prenotazione esterna
   const [eventsOpen, setEventsOpen] = useState(null); // popup eventi: null = chiuso, altrimenti { focusId }
@@ -697,11 +710,23 @@ export default function App() {
   );
 
   // schermata iniziale: scelta interessi (obbligatoria, rivista a ogni apertura)
+  if (showKit) {
+    return (
+      <div style={{ minHeight: "100vh", background: BRAND.bg, color: BRAND.ink, fontFamily: "'Archivo', system-ui, sans-serif" }}>
+        <FontLink />
+        <KitPage unlocked={kitUnlocked} onClose={() => setShowKit(false)} onLocked={() => setKitPaywall(true)} />
+        {kitPaywall && <KitPaywall onClose={() => setKitPaywall(false)} onUnlocked={unlockKit} />}
+      </div>
+    );
+  }
+
   if (showGuide) {
     return (
       <div style={{ minHeight: "100vh", background: BRAND.bg, color: BRAND.ink, fontFamily: "'Archivo', system-ui, sans-serif" }}>
         <FontLink />
-        <GuideTab t={t} lang={lang} places={places} onClose={() => setShowGuide(false)} onOpenDetail={setDetail} />
+        <GuideTab t={t} lang={lang} places={places} onClose={() => setShowGuide(false)} onOpenDetail={setDetail}
+          kitUnlocked={kitUnlocked} onOpenKit={() => setShowKit(true)} onKitLocked={() => setKitPaywall(true)} />
+        {kitPaywall && <KitPaywall onClose={() => setKitPaywall(false)} onUnlocked={unlockKit} />}
         {detail && <DetailModal place={detail} lang={lang} t={t} onClose={() => setDetail(null)} onBook={(p) => { setDetail(null); setBooking(p); }} onTip={(p) => setTipPlace(p)} onToggleItin={(id) => toggleIn(itinerary, setItinerary, id)} inItin={detail ? itinerary.includes(detail.id) : false} onOpenWeb={setWebSheet} onBookIntent={markBooked} />}
         {booking && <BookingModal place={booking} lang={lang} t={t} onClose={() => setBooking(null)} onBooked={markBooked} />}
         {tipPlace && <LocalTipSheet place={tipPlace} tip={tipPlace[`tip_${lang}`]} lang={lang} t={t} onClose={() => setTipPlace(null)} />}
@@ -822,7 +847,7 @@ function InterestPicker({ t, lang, chosen, onToggle, onDone }) {
 /* --------------------------- GUIDA 3 GIORNI -------------------------------- */
 const GUIDE_DAYS = [1, 2, 3];
 
-function GuideTab({ t, lang, places, onClose, onOpenDetail }) {
+function GuideTab({ t, lang, places, onClose, onOpenDetail, kitUnlocked, onOpenKit, onKitLocked }) {
   const [day, setDay] = useState(1);
   const [unlocked, setUnlocked] = useState(() => load("gl_guide_unlocked", false));
   const [email, setEmail] = useState("");
@@ -884,6 +909,7 @@ function GuideTab({ t, lang, places, onClose, onOpenDetail }) {
       </div>
 
       <div style={{ position: "relative" }}>
+        {unlocked && <KitBanner unlocked={kitUnlocked} onOpen={onOpenKit} />}
         <div style={{ filter: unlocked ? "none" : "blur(7px)", pointerEvents: unlocked ? "auto" : "none", userSelect: unlocked ? "auto" : "none" }}>
           {stops.map((stop) => {
             const name = lang === "en" ? stop.title_en || stop.title_it : stop.title_it;
@@ -908,6 +934,7 @@ function GuideTab({ t, lang, places, onClose, onOpenDetail }) {
                     {note && <p style={{ margin: "4px 0 0", fontSize: 13, color: BRAND.muted, lineHeight: 1.4 }}>{note}</p>}
                   </div>
                 </button>
+                {unlocked && <KitStopNote stop={stop} lang={lang} unlocked={kitUnlocked} onLocked={onKitLocked} />}
               </div>
             );
           })}
