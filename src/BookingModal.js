@@ -9,9 +9,12 @@ import { getAttribution, trackBooking } from "./glocalTracking";
    locale; poi confermiamo all'utente via email.
 
    GLI ORARI SONO FINTI: generati qui sotto in base al tipo di posto (cibo,
-   drink, altro). Alcuni slot risultano "pieni" in modo deterministico (stesso
-   posto + stesso giorno = stessi slot pieni) solo per rendere l'esperienza
-   credibile. Nessun collegamento con la disponibilità reale del locale.
+   drink, altro), tutti selezionabili. Nessun collegamento con la
+   disponibilità reale del locale.
+
+   SCONTO: colonna "sconto" del Google Sheet, solo il numero (es. 10 = -10%).
+   Vuota o 0 = nessuno sconto mostrato. Da compilare solo per i locali con
+   cui lo sconto è stato concordato.
 
    In locale (npm start) la richiesta NON viene inviata a Formspree: si simula
    l'invio, così si può provare il flusso senza far partire email vere.
@@ -25,6 +28,7 @@ const DAYS_AHEAD = 30;
 const COPY = {
   it: {
     kicker: "Richiesta di prenotazione",
+    discount: "-{n}% prenotando con Glocal", discountSub: "Lo sconto è riservato a chi prenota con Glocal: ti verrà applicato direttamente in loco.", discountShort: "Sconto Glocal -{n}%",
     step1: "Quando", step2: "I tuoi dati",
     people: "Persone", peopleOne: "persona", peopleMany: "persone",
     bigGroup: "Più di 12 persone? Scrivici su WhatsApp e organizziamo noi.",
@@ -32,7 +36,6 @@ const COPY = {
     today: "Oggi", tomorrow: "Domani",
     pickDay: "Scegli un giorno per vedere gli orari",
     noSlots: "Nessun orario disponibile in questo giorno. Prova un altro giorno.",
-    full: "Pieno", lastSeats: "Ultimi posti",
     continue: "Continua", pickTime: "Scegli un orario",
     edit: "Modifica",
     name: "Nome e cognome", email: "Email", phone: "Telefono / WhatsApp", optional: "facoltativo",
@@ -50,6 +53,7 @@ const COPY = {
   },
   en: {
     kicker: "Booking request",
+    discount: "-{n}% when you book with Glocal", discountSub: "This discount is reserved for Glocal bookings and will be applied directly on site.", discountShort: "Glocal discount -{n}%",
     step1: "When", step2: "Your details",
     people: "Guests", peopleOne: "guest", peopleMany: "guests",
     bigGroup: "More than 12 people? Message us on WhatsApp and we'll arrange it.",
@@ -57,7 +61,6 @@ const COPY = {
     today: "Today", tomorrow: "Tomorrow",
     pickDay: "Pick a day to see times",
     noSlots: "No times available on this day. Try another one.",
-    full: "Full", lastSeats: "Last spots",
     continue: "Continue", pickTime: "Pick a time",
     edit: "Edit",
     name: "Full name", email: "Email", phone: "Phone / WhatsApp", optional: "optional",
@@ -74,6 +77,13 @@ const COPY = {
     devNote: "Local preview: the request was not actually sent.",
   },
 };
+
+/* --------------------------------- sconto --------------------------------- */
+// "10", "10%", "-10" -> 10. Vuoto, 0 o valori strani -> 0 (nessuno sconto).
+export function getDiscount(place) {
+  const n = Math.abs(parseFloat(String(place?.sconto ?? "").replace(",", ".").replace(/[^0-9.\-]/g, "")));
+  return Number.isFinite(n) && n > 0 && n < 100 ? Math.round(n) : 0;
+}
 
 /* ------------------------------ orari finti ------------------------------- */
 const hasInterest = (p, id) => String(p.interests || "").split(",").map((s) => s.trim()).includes(id);
@@ -94,15 +104,7 @@ function slotTemplate(place) {
   return [["morning", range("10:00", "12:30")], ["afternoon", range("15:00", "18:00")]];
 }
 
-// hash stabile: stesso posto + giorno + ora => stesso risultato a ogni apertura
-function hash(str) {
-  let h = 2166136261;
-  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return (h >>> 0) / 4294967295;
-}
-
 function slotsFor(place, date) {
-  const key = String(place.id || place.title_it || "");
   const iso = toIso(date);
   const now = new Date();
   const isToday = iso === toIso(now);
@@ -115,10 +117,7 @@ function slotsFor(place, date) {
         const [h, m] = tm.split(":").map(Number);
         return h * 60 + m >= minMinutes;
       })
-      .map((tm) => {
-        const r = hash(`${key}|${iso}|${tm}`);
-        return { time: tm, full: r < 0.2, last: r >= 0.2 && r < 0.3 };
-      }),
+      .map((tm) => ({ time: tm })),
   })).filter((g) => g.slots.length > 0);
 }
 
@@ -151,8 +150,9 @@ export default function BookingModal({ place, lang, onClose, onBooked }) {
   const scrollRef = useRef(null);
 
   const groups = useMemo(() => (day ? slotsFor(place, day) : []), [place, day]);
-  // un giorno è "pieno" se non ha neanche uno slot libero
-  const dayHasSlots = (d) => slotsFor(place, d).some((g) => g.slots.some((s) => !s.full));
+  // un giorno si può scegliere se ha almeno un orario (oggi: solo se non è troppo tardi)
+  const dayHasSlots = (d) => slotsFor(place, d).length > 0;
+  const discount = getDiscount(place);
 
   const peopleLabel = `${people} ${people === 1 ? c.peopleOne : c.peopleMany}`;
   const recap = day && time ? `${shortDate(day, lang)} · ${time} · ${peopleLabel}` : null;
@@ -181,13 +181,14 @@ export default function BookingModal({ place, lang, onClose, onBooked }) {
       data_leggibile: longDate(day, "it"),
       orario: time,
       note: form.notes.trim(),
+      sconto: discount ? `-${discount}%` : "nessuno",
       lingua: lang,
       fonte: attrib.utm_source || "(diretto)",
       campagna: attrib.utm_campaign || "",
       annuncio: attrib.utm_content || "",
       ref: attrib.ref || "",
       _replyto: form.email.trim(),
-      _subject: `Richiesta prenotazione Glocal: ${title} — ${shortDate(day, "it")} ${time}, ${people} pers.`,
+      _subject: `Richiesta prenotazione Glocal: ${title} — ${shortDate(day, "it")} ${time}, ${people} pers.${discount ? ` (sconto -${discount}%)` : ""}`,
     };
     try {
       let ok = true;
@@ -251,9 +252,18 @@ export default function BookingModal({ place, lang, onClose, onBooked }) {
         {/* BODY */}
         <div ref={scrollRef} style={S.body}>
           {status === "done" ? (
-            <Done c={c} title={title} email={form.email.trim()} day={day} time={time} peopleLabel={peopleLabel} lang={lang} onClose={onClose} />
+            <Done c={c} discount={discount} title={title} email={form.email.trim()} day={day} time={time} peopleLabel={peopleLabel} lang={lang} onClose={onClose} />
           ) : step === 1 ? (
             <>
+              {discount > 0 && (
+                <div style={S.discount}>
+                  <span style={S.discountBadge}>-{discount}%</span>
+                  <div>
+                    <div style={{ fontSize: 14.5, fontWeight: 700 }}>{c.discount.replace("{n}", discount)}</div>
+                    <div style={{ fontSize: 12.5, opacity: 0.85, marginTop: 2, lineHeight: 1.4 }}>{c.discountSub}</div>
+                  </div>
+                </div>
+              )}
               {/* PERSONE */}
               <section style={S.section}>
                 <h4 style={S.label}>{c.people}</h4>
@@ -309,30 +319,20 @@ export default function BookingModal({ place, lang, onClose, onBooked }) {
                       {g.slots.map((s) => {
                         const selected = time === s.time;
                         return (
-                          <button key={s.time} onClick={() => !s.full && pickTime(s.time)} disabled={s.full}
-                            aria-label={s.full ? `${s.time} — ${c.full}` : s.time}
+                          <button key={s.time} onClick={() => pickTime(s.time)}
                             style={{
                               ...S.slot,
-                              background: selected ? BRAND.green : s.full ? "transparent" : BRAND.card,
-                              color: selected ? "#fff" : s.full ? "#b8b2a4" : BRAND.ink,
-                              borderColor: selected ? BRAND.green : s.full ? "#ece6d8" : BRAND.border,
-                              borderStyle: s.full ? "dashed" : "solid",
-                              cursor: s.full ? "default" : "pointer",
-                              textDecoration: s.full ? "line-through" : "none",
+                              background: selected ? BRAND.green : BRAND.card,
+                              color: selected ? "#fff" : BRAND.ink,
+                              borderColor: selected ? BRAND.green : BRAND.border,
                             }}>
-                            <span>{s.time}</span>
-                            {s.last && !selected && <span style={S.lastDot} title={c.lastSeats} />}
+                            {s.time}
                           </button>
                         );
                       })}
                     </div>
                   </div>
                 ))}
-                {day && groups.some((g) => g.slots.some((s) => s.last)) && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: BRAND.muted }}>
-                    <span style={{ ...S.lastDot, position: "static" }} /> {c.lastSeats}
-                  </div>
-                )}
               </section>
             </>
           ) : (
@@ -342,6 +342,7 @@ export default function BookingModal({ place, lang, onClose, onBooked }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 15.5, fontWeight: 700 }}>{longDate(day, lang)}</div>
                   <div style={{ fontSize: 14, color: BRAND.muted, marginTop: 3 }}>{c.time} {time} · {peopleLabel}</div>
+                  {discount > 0 && <div style={{ fontSize: 13, fontWeight: 700, color: BRAND.greenDark, marginTop: 5 }}>{c.discountShort.replace("{n}", discount)}</div>}
                 </div>
                 <button onClick={() => goStep(1)} style={S.linkBtn}>{c.edit}</button>
               </div>
@@ -387,7 +388,7 @@ export default function BookingModal({ place, lang, onClose, onBooked }) {
   );
 }
 
-function Done({ c, title, email, day, time, peopleLabel, lang, onClose }) {
+function Done({ c, discount, title, email, day, time, peopleLabel, lang, onClose }) {
   return (
     <div style={{ textAlign: "center", padding: "18px 4px 8px" }}>
       <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(56,176,74,0.14)", color: BRAND.green, fontSize: 34, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>✓</div>
@@ -396,6 +397,7 @@ function Done({ c, title, email, day, time, peopleLabel, lang, onClose }) {
         <div>
           <div translate="no" className="notranslate" style={{ fontSize: 15.5, fontWeight: 700 }}>{title}</div>
           <div style={{ fontSize: 14, color: BRAND.muted, marginTop: 3 }}>{longDate(day, lang)} · {time} · {peopleLabel}</div>
+          {discount > 0 && <div style={{ fontSize: 13, fontWeight: 700, color: BRAND.greenDark, marginTop: 5 }}>{c.discountShort.replace("{n}", discount)}</div>}
         </div>
       </div>
       <p style={{ color: "#4a463d", margin: "0 auto 10px", fontSize: 15, lineHeight: 1.55, maxWidth: 400 }}>
@@ -440,7 +442,8 @@ const S = {
   groupLabel: { fontSize: 13.5, fontWeight: 700, margin: "0 0 8px" },
   slotGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(76px, 1fr))", gap: 8 },
   slot: { position: "relative", padding: "12px 0", borderRadius: 12, border: "1.5px solid", fontSize: 15, fontWeight: 700, fontFamily: "inherit", transition: "background .15s, color .15s" },
-  lastDot: { position: "absolute", top: 6, right: 6, width: 7, height: 7, borderRadius: "50%", background: "#f2a20c", display: "inline-block" },
+  discount: { display: "flex", alignItems: "center", gap: 12, background: "rgba(56,176,74,0.10)", border: `1.5px solid ${BRAND.green}`, color: BRAND.greenDark, borderRadius: 16, padding: "12px 14px", marginBottom: 22 },
+  discountBadge: { flexShrink: 0, background: BRAND.green, color: "#fff", fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 18, borderRadius: 12, padding: "8px 10px" },
   summary: { display: "flex", alignItems: "center", gap: 12, background: BRAND.card, border: `1.5px solid ${BRAND.border}`, borderRadius: 16, padding: "14px 16px", marginBottom: 22 },
   linkBtn: { background: "none", border: "none", color: BRAND.green, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: 6 },
   inp: { width: "100%", boxSizing: "border-box", padding: "13px 14px", borderRadius: 12, border: `1.5px solid ${BRAND.border}`, background: BRAND.card, fontSize: 16, fontFamily: "inherit", color: BRAND.ink, outline: "none" },

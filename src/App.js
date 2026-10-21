@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import Papa from "papaparse";
 import { BRAND, track as baseTrack } from "./shared";
 import { captureAttribution, trackBooking } from "./glocalTracking";
-import BookingModal from "./BookingModal";
+import BookingModal, { getDiscount } from "./BookingModal";
 import { useEvents, EVENT_PREFIX } from "./events/data";
 import { upcomingEvents } from "./events/schedule";
 import { EventsPopup, EventsStrip, EventsTicker } from "./events/EventsPopup";
@@ -44,7 +44,9 @@ if (!isPartnerRoute() && /(access_token=|type=(invite|magiclink|recovery)|[?&]co
    Colonne foglio:
    id | interests | title_it | title_en | desc_it | desc_en | image | images |
    bookable | price | location | address | lat | lng | contact | doc | tip_it | tip_en |
-   place_id | orari | bookings_week | menu | menu_it | menu_en | booking | booking_url | phone
+   place_id | orari | bookings_week | menu | menu_it | menu_en | booking | booking_url | phone | sconto
+   - sconto: (facoltativo) solo il numero, es. 10 = -10% prenotando con Glocal.
+             Vuoto = nessuno sconto. Compilare solo se concordato col locale.
    (menu/booking/booking_url/phone: vedi il blocco "MENU & PRENOTAZIONE" sotto)
 
    - interests: una o più tra food, drink, music, nature, museums, shopping
@@ -1390,6 +1392,12 @@ function DetailModal({ place, lang, t, onClose, onBook, onTip, onToggleItin, inI
             <OpeningHours orari={place.orari} t={t} />
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {methods.includes("form") && getDiscount(place) > 0 && (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 700, color: BRAND.greenDark }}>
+                  <span style={{ background: BRAND.green, color: "#fff", borderRadius: 8, padding: "3px 8px", fontSize: 13 }}>-{getDiscount(place)}%</span>
+                  {lang === "it" ? "prenotando con Glocal" : "when you book with Glocal"}
+                </div>
+              )}
               {methods.includes("form") && <button onClick={() => { track("start_booking", { card, method: "form", from: "detail" }); onBook(place); }} style={primaryBtn}>{t.book}</button>}
               {methods.includes("link") && (
                 // La pagina di prenotazione del partner si apre in una nuova scheda e non più
