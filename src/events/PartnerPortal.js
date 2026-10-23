@@ -533,10 +533,18 @@ function EventList({ events, isAdmin, emptyText, onEdit, onChanged }) {
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 5 }}>
                   <span className="gl-pp-badge" style={{ background: st.bg, color: st.fg }}>{st.label}</span>
                   {ended && <span className="gl-pp-badge" style={{ background: "#eee", color: "#777" }}>Concluso</span>}
+                  {isAdmin && ev.source === "bolognatoday" && <span className="gl-pp-badge" style={{ background: "#e8eefc", color: "#2c4fa8" }}>Auto · BolognaToday</span>}
+                  {isAdmin && ev.category && <span className="gl-pp-badge" style={{ background: "#f2f2f2", color: "#555" }}>{ev.category}</span>}
                 </div>
                 <div style={{ fontWeight: 700, fontSize: 15.5, lineHeight: 1.25 }}>{ev.title_it}</div>
                 <div className="gl-pp-muted" style={{ fontSize: 13, marginTop: 2 }}>{whenLabel(ev, "it", now)}</div>
                 {isAdmin && <div className="gl-pp-muted" style={{ fontSize: 12.5, marginTop: 1 }}>📍 {ev.venue?.name || ev.place_name || "—"}</div>}
+                {isAdmin && ev.source && ev.status === "pending" && ev.desc_it && (
+                  <div style={{ fontSize: 13, lineHeight: 1.4, marginTop: 6, color: "#333" }}>{ev.desc_it}</div>
+                )}
+                {isAdmin && ev.source_url && (
+                  <a href={ev.source_url} target="_blank" rel="noopener noreferrer" className="gl-pp-link" style={{ fontSize: 12.5, display: "inline-block", marginTop: 5 }}>Vedi la pagina originale ↗</a>
+                )}
                 {ev.status === "rejected" && ev.review_note && <div className="gl-pp-err" style={{ margin: "6px 0 0", fontSize: 13 }}>Nota: {ev.review_note}</div>}
               </div>
             </div>
